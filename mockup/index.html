@@ -279,9 +279,7 @@ a.rcard:hover { border-color: var(--gold); }
     <label class="field" for="lgPass">Password<span class="pw"><input id="lgPass" name="password" type="password" autocomplete="current-password" required><button type="button" class="pw-t" id="lgShow" aria-label="Tampilkan password">Lihat</button></span></label>
     <p class="lg-err" id="lgErr" role="alert" hidden></p>
     <button class="btn" type="submit" style="width:100%;margin-top:6px">Masuk</button>
-    <div class="lg-demo"><b>Akun contoh untuk mockup</b>
-      <div>Admin: <code>admin</code> / <code>admin123</code> (bisa mengubah data)</div>
-      <div>Viewer: <code>viewer</code> / <code>viewer123</code> (hanya melihat)</div></div>
+    <p class="desc" style="margin:4px 0 0;text-align:center">Belum punya akun? Hubungi admin CHL.</p>
   </form>
 </div>
 <div class="shell" id="shell">
@@ -353,8 +351,8 @@ try { S = JSON.parse(localStorage.getItem(KEY)) || clone(SEED); } catch (e) { S 
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 /* Akun login mockup. Ini bukan pengamanan sungguhan: semua kode dan data ada di browser. */
 const USERS = [
-  { u: "admin", pw: "admin123", nama: "Admin CHL", role: "ADMIN" },
-  { u: "viewer", pw: "viewer123", nama: "Viewer CHL", role: "VIEWER" },
+  { u: "admin.chl", pw: "kw5JulQahD", nama: "Admin CHL", role: "ADMIN" },
+  { u: "viewer.chl", pw: "0eNSMHYqtJ", nama: "Viewer CHL", role: "VIEWER" },
 ];
 let SESI = null;
 try { SESI = JSON.parse(sessionStorage.getItem(KEY + "-sesi")); } catch (e) { SESI = null; }
