@@ -170,6 +170,11 @@ table { width: 100%; border-collapse: collapse; }
 .sales-in td.akst .dari-in input[readonly] { background: var(--bg); color: var(--ink); }
 .sales-in td.akst .dari-in input.locked { background: var(--grey-soft); color: var(--muted); cursor: not-allowed; }
 .sales-in .lock { font-size: 11px; line-height: 1; }
+.lock { color: var(--muted); vertical-align: -1px; }
+.edit tr.row-locked td { background: var(--grey-soft); }
+.edit tr.row-locked input, .edit tr.row-locked select { background: var(--grey-soft); color: var(--muted); cursor: not-allowed; }
+.edit select:disabled { opacity: 1; }
+.sales-in tr.row-locked td.stick { background: var(--grey-soft); color: var(--muted); }
 .sales-in tr.sum td.dari small { color: var(--red); font-weight: 700; }
 .sales-in td.dari small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 2px; }
 .sales-in .after input { opacity: .55; }
@@ -360,13 +365,23 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e
 /* Akun login mockup. Ini bukan pengamanan sungguhan: semua kode dan data ada di browser. */
 const USERS = [
   { u: "admin.chl", pw: "adminsales", nama: "Admin CHL", role: "ADMIN" },
-  { u: "admin.tsc", pw: "adminsales", nama: "Admin TSC", role: "ADMIN", kunciStok: true },
-  { u: "admin.biodistrict", pw: "adminsales", nama: "Admin Bio District", role: "ADMIN", kunciStok: true },
-  { u: "admin.narayabanaraserpong", pw: "adminsales", nama: "Admin Naraya Banara Serpong", role: "ADMIN", kunciStok: true },
-  { u: "admin.permaiindah", pw: "adminsales", nama: "Admin Permai Indah", role: "ADMIN", kunciStok: true },
+  { u: "admin.tsc", pw: "adminsales", nama: "Admin TSC", role: "ADMIN", kunciStok: true, proyek: ["tanglin parc", "newton springs", "scotts vale", "orchard riviera"] },
+  { u: "admin.biodistrict", pw: "adminsales", nama: "Admin Bio District", role: "ADMIN", kunciStok: true, proyek: ["bio district"] },
+  { u: "admin.narayabanaraserpong", pw: "adminsales", nama: "Admin Naraya Banara Serpong", role: "ADMIN", kunciStok: true, proyek: ["banara serpong", "naraya serpong", "mazenta residence", "mozenta residence"] },
+  { u: "admin.permaiindah", pw: "adminsales", nama: "Admin Permai Indah", role: "ADMIN", kunciStok: true, proyek: ["permai indah"] },
   { u: "viewer.chl", pw: "adminsales", nama: "Viewer CHL", role: "VIEWER" },
 ];
 let SESI = null;
+/* Batasan per user: proyek yang boleh diedit (tanpa daftar = semua proyek) */
+const akunIni = () => SESI ? USERS.find(x => x.u === SESI.u) || null : null;
+const userTerbatas = () => !!(akunIni() && akunIni().proyek);
+function bolehEdit(namaProyek) {
+  const a = akunIni();
+  if (!a || a.role !== "ADMIN") return false;
+  if (!a.proyek) return true;
+  return a.proyek.includes(String(namaProyek || "").trim().toLowerCase());
+}
+const ikonKunci = '<svg class="lock" viewBox="0 0 12 14" width="10" height="12" aria-hidden="true"><rect x="1" y="6" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M3.5 6V4.2a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 /* Total stok penjualan dikunci untuk user dengan kunciStok */
 const stokTerkunci = () => !!(SESI && (USERS.find(x => x.u === SESI.u) || {}).kunciStok);
 try { SESI = JSON.parse(sessionStorage.getItem(KEY + "-sesi")); } catch (e) { SESI = null; }
@@ -620,16 +635,17 @@ function viewInput() {
   const prev = dates().filter(d => d < draftDate)[0];
   const optP = sel => `<option value="">Pilih periode</option>` + S.periode.slice().sort(byUrut).filter(p => p.aktif || p.id === sel)
     .map(p => `<option value="${p.id}" ${p.id === sel ? "selected" : ""}>${esc(p.nama)}</option>`).join("");
-  const optJ = sel => `<option value="">Pilih proyek</option>` + S.proyek.slice().sort(byUrut).filter(p => p.aktif || p.id === sel)
+  const optJ = sel => `<option value="">Pilih proyek</option>` + S.proyek.slice().sort(byUrut).filter(p => (p.aktif && bolehEdit(p.nama)) || p.id === sel)
     .map(p => `<option value="${p.id}" ${p.id === sel ? "selected" : ""}>${esc(p.nama)}</option>`).join("");
-  const body = draft.map((r, i) => `<tr class="${errs[i] ? "err" : ""}">
-    <td class="num">${i + 1}</td>
-    <td><select id="p-${i}" data-i="${i}" data-k="periodeId" aria-label="Periode baris ${i + 1}">${optP(r.periodeId)}</select>${errs[i] ? `<div class="msg">${errs[i]}</div>` : ""}</td>
-    <td><select id="j-${i}" data-i="${i}" data-k="proyekId" aria-label="Proyek baris ${i + 1}">${optJ(r.proyekId)}</select></td>
-    ${r.d.map((v, k) => `<td><input id="d-${i}-${k}" type="number" min="0" step="1" inputmode="numeric" data-i="${i}" data-d="${k}" value="${v}" aria-label="Angka ${k + 1} baris ${i + 1}"></td>`).join("")}
-    <td><input id="k-${i}" type="text" data-i="${i}" data-k="ket" value="${esc(r.ket || "")}" aria-label="Keterangan baris ${i + 1}"></td>
+  const body = draft.map((r, i) => { const lk = !!r.proyekId && !bolehEdit(prjById(r.proyekId)?.nama), dis = lk ? 'disabled title="Dikunci. Proyek ini bukan wewenang akun Anda."' : "", ro = lk ? 'readonly class="locked"' : "";
+    return `<tr class="${errs[i] ? "err" : ""} ${lk ? "row-locked" : ""}">
+    <td class="num">${lk ? ikonKunci : i + 1}</td>
+    <td><select id="p-${i}" data-i="${i}" data-k="periodeId" ${dis} aria-label="Periode baris ${i + 1}">${optP(r.periodeId)}</select>${errs[i] ? `<div class="msg">${errs[i]}</div>` : ""}</td>
+    <td><select id="j-${i}" data-i="${i}" data-k="proyekId" ${dis} aria-label="Proyek baris ${i + 1}">${optJ(r.proyekId)}</select></td>
+    ${r.d.map((v, k) => `<td><input id="d-${i}-${k}" type="number" min="0" step="1" inputmode="numeric" data-i="${i}" data-d="${k}" value="${v}" ${ro} aria-label="Angka ${k + 1} baris ${i + 1}"></td>`).join("")}
+    <td><input id="k-${i}" type="text" data-i="${i}" data-k="ket" value="${esc(r.ket || "")}" ${ro} aria-label="Keterangan baris ${i + 1}"></td>
     <td>${errs[i] ? "" : '<span class="ok">OK</span>'}</td>
-    <td><button class="del" data-del="${i}" type="button" aria-label="Hapus baris ${i + 1}">×</button></td></tr>`).join("");
+    <td>${lk ? "" : `<button class="del" data-del="${i}" type="button" aria-label="Hapus baris ${i + 1}">×</button>`}</td></tr>`; }).join("");
   const hasErr = errs.some(Boolean);
   return `<div class="page gut">
   <div class="form-head">
@@ -648,7 +664,7 @@ function viewInput() {
     <tr><th>BAST</th><th>Total Unit</th><th>BAST</th><th>Total Unit</th></tr></thead>
     <tbody>${body}</tbody></table></div>`
     : `<div class="empty">Belum ada data untuk ${ddmmyyyy(draftDate)}. ${prev ? `Salin dari laporan ${ddmmyyyy(prev)} atau tambah baris baru.` : "Tambah baris untuk mulai mengisi."}</div>`}
-  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : S.laporan[draftDate] ? "Menyimpan akan mengganti laporan tanggal ini." : "Laporan baru untuk tanggal ini."}</p>
+  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : S.laporan[draftDate] ? "Menyimpan akan mengganti laporan tanggal ini." : "Laporan baru untuk tanggal ini."}${userTerbatas() ? ` Akun Anda hanya bisa mengubah proyek: ${esc(S.proyek.filter(p => bolehEdit(p.nama)).sort(byUrut).map(p => p.nama).join(", ") || "–")}. Baris proyek lain dikunci.` : ""}</p>
   </div>`;
 }
 function bindInput() {
@@ -659,6 +675,12 @@ function bindInput() {
   document.getElementById("addRow").onclick = () => { draft.push({ periodeId: null, proyekId: null, d: [0, 0, 0, 0], ket: "" }); render(); };
   document.getElementById("saveBtn").onclick = () => {
     const lama = S.laporan[draftDate] || [], key = r => r.periodeId + "-" + r.proyekId, items = [];
+    if (userTerbatas()) {
+      const boleh = r => bolehEdit(prjById(r.proyekId)?.nama);
+      const tetap = lama.filter(r => !boleh(r)), punyaTetap = new Set(tetap.map(key));
+      draft = [...draft.filter(r => boleh(r) || !punyaTetap.has(key(r))).map(r => boleh(r) ? r : (lama.find(x => key(x) === key(r)) || r)),
+        ...tetap.filter(r => !draft.some(d => key(d) === key(r)))];
+    }
     const nm = r => `${prjById(r.proyekId)?.nama || "?"} (${perById(r.periodeId)?.nama || "?"})`;
     const KOL = ["BAST PPN DTP", "Total Unit PPN DTP", "BAST Non PPN DTP", "Total Unit Non PPN DTP"];
     draft.forEach(r => {
@@ -672,12 +694,13 @@ function bindInput() {
     S.laporan[draftDate] = clone(draft); save(); selDate = draftDate;
     toast(`Laporan ${ddmmyyyy(draftDate)} tersimpan`); render();
   };
-  v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { draft.splice(+b.dataset.del, 1); render(); });
-  v.querySelectorAll("select[data-k]").forEach(s => s.onchange = () => { draft[+s.dataset.i][s.dataset.k] = s.value ? +s.value : null; render(s.id); });
-  v.querySelectorAll("input[data-d]").forEach(inp => inp.onchange = () => {
+  v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { if (lkRow(+b.dataset.del)) return; draft.splice(+b.dataset.del, 1); render(); });
+  const lkRow = i => { const r = draft[i]; return !!r.proyekId && !bolehEdit(prjById(r.proyekId)?.nama); };
+  v.querySelectorAll("select[data-k]").forEach(s => s.onchange = () => { if (lkRow(+s.dataset.i)) { render(); return; } draft[+s.dataset.i][s.dataset.k] = s.value ? +s.value : null; render(s.id); });
+  v.querySelectorAll("input[data-d]").forEach(inp => inp.onchange = () => { if (lkRow(+inp.dataset.i)) { render(); return; }
     const raw = inp.value.trim(); draft[+inp.dataset.i].d[+inp.dataset.d] = raw === "" ? 0 : Number(raw); render(inp.id);
   });
-  v.querySelectorAll("input[data-k='ket']").forEach(inp => inp.oninput = () => { draft[+inp.dataset.i].ket = inp.value; });
+  v.querySelectorAll("input[data-k='ket']").forEach(inp => inp.oninput = () => { if (lkRow(+inp.dataset.i)) return; draft[+inp.dataset.i].ket = inp.value; });
 }
 
 /* ===================== Master ===================== */
@@ -936,16 +959,16 @@ function viewSalesInput() {
   const d = sDraft, m = bulanKe(d.tanggal), th = tahunKe(d.tanggal), err = sErrors(d), hasErr = Object.keys(err).length > 0;
   const list = d.proyek.slice().sort(byUrut).filter(p => p.aktif);
   const rpM = S.rpMode === "m", fRp = v => rpM ? idn(M(v)) : Math.round(v).toLocaleString("id-ID");
-  const kunci = stokTerkunci(), ttlKunci = 'readonly class="locked" title="Dikunci. Hanya Admin CHL yang bisa mengubah total stok."';
+  const kunci = stokTerkunci(), ttlKunci = 'readonly class="locked" title="Dikunci. Hubungi Admin CHL untuk mengubah angka ini."';
   const inp = (p, k, j, v) => {
-    const lock = k === "stok" && kunci;
+    const lock = (k === "stok" && kunci) || !bolehEdit(p.nama);
     return j
       ? `<input type="text" inputmode="numeric" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="1" value="${fRp(v)}" ${lock ? ttlKunci : rpM ? 'readonly title="Pilih Rp detail untuk mengubah angka"' : ""} aria-label="${esc(p.nama)} ${k} Rp">`
       : `<input type="number" min="0" step="1" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="0" value="${v}" ${lock ? ttlKunci : ""} aria-label="${esc(p.nama)} ${k} unit">`;
   };
   const cell = (p, k, j, v, extra = "") => `<td class="${extra}">${inp(p, k, j, v)}</td>`;
   /* Akumulasi terjual (atas, dihitung) dan Total stok (bawah, diisi), seperti baris "dari" di Excel */
-  const akumStok = (p, v, j) => `<td class="calc akst"><div class="ak">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}</div><div class="dari-in"><span>dari</span>${inp(p, "stok", j, p.stok[j])}${kunci ? '<svg class="lock" viewBox="0 0 12 14" width="10" height="12" aria-hidden="true"><rect x="1" y="6" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M3.5 6V4.2a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' : ""}</div></td>`;
+  const akumStok = (p, v, j) => `<td class="calc akst"><div class="ak">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}</div><div class="dari-in"><span>dari</span>${inp(p, "stok", j, p.stok[j])}${kunci || !bolehEdit(p.nama) ? '<svg class="lock" viewBox="0 0 12 14" width="10" height="12" aria-hidden="true"><rect x="1" y="6" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M3.5 6V4.2a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' : ""}</div></td>`;
   const calc = (v, j) => `<td class="calc">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}</td>`;
   const tot = { base: [0, 0], ytd: [0, 0], akum: [0, 0], stok: [0, 0], hari: [0, 0], bulan: Z12() };
   let body = "";
@@ -955,7 +978,7 @@ function viewSalesInput() {
       const h = hitungProyek(p, m);
       ["base", "ytd", "akum", "stok", "hari"].forEach(k => { const v = k === "ytd" || k === "akum" ? h[k] : p[k]; tot[k][0] += v[0]; tot[k][1] += v[1]; });
       p.bulan.forEach((v, i) => { tot.bulan[i][0] += v[0]; tot.bulan[i][1] += v[1]; });
-      body += `<tr class="${err[p.id] ? "err" : ""}"><td class="stick proj-in">${esc(p.nama)}${err[p.id] ? `<div class="msg">${err[p.id]}</div>` : ""}</td>
+      body += `<tr class="${err[p.id] ? "err" : ""} ${bolehEdit(p.nama) ? "" : "row-locked"}"><td class="stick proj-in">${bolehEdit(p.nama) ? "" : ikonKunci + " "}${esc(p.nama)}${err[p.id] ? `<div class="msg">${err[p.id]}</div>` : ""}</td>
         ${cell(p, "base", 0, p.base[0])}${cell(p, "base", 1, p.base[1])}
         ${p.bulan.map((v, i) => cell(p, "b" + i, 0, v[0]) + cell(p, "b" + i, 1, v[1])).join("")}
         ${calc(h.ytd[0], 0)}${calc(h.ytd[1], 1)}${akumStok(p, h.akum[0], 0)}${akumStok(p, h.akum[1], 1)}
@@ -979,13 +1002,15 @@ function viewSalesInput() {
       <button class="btn" id="sSave" type="button" ${hasErr ? "disabled" : ""}>Simpan data</button></div>
   </div>
   <div class="tbl-wrap"><table class="edit sales-in num ${rpM ? "rp-m" : ""}"><thead><tr>${h1}</tr><tr>${h2}</tr></thead><tbody>${body}</tbody></table></div>
-  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan. " : ""}Proyek dan grup diatur di tab Master.${stokTerkunci() ? " Kolom total stok (baris “dari”) dikunci untuk akun Anda; hanya Admin CHL yang bisa mengubahnya." : ""}</p></div>`;
+  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan. " : ""}Proyek dan grup diatur di tab Master.${userTerbatas() ? ` Akun Anda hanya bisa mengubah proyek: ${esc(S.sales2.proyek.filter(p => bolehEdit(p.nama)).map(p => p.nama).join(", ") || "–")}. Proyek lain dan kolom total stok dikunci.` : ""}</p></div>`;
 }
 function bindSalesInput() {
   const v = document.getElementById("view");
   document.getElementById("sReset").onclick = () => { sLoad(); render(); toast("Perubahan dibatalkan"); };
   document.getElementById("sSave").onclick = () => {
-    if (stokTerkunci()) sDraft.proyek.forEach(p => { const o = S.sales2.proyek.find(x => x.id === p.id); if (o) p.stok = clone(o.stok); });
+    sDraft.proyek.forEach(p => { const o = S.sales2.proyek.find(x => x.id === p.id); if (!o) return;
+      if (!bolehEdit(o.nama)) { p.base = clone(o.base); p.bulan = clone(o.bulan); p.stok = clone(o.stok); p.hari = clone(o.hari); }
+      else if (stokTerkunci()) p.stok = clone(o.stok); });
     const items = [], th = tahunKe(sDraft.tanggal);
     const f = (k, o, n) => { if (o[0] !== n[0]) items.push(`${k} unit: ${o[0].toLocaleString("id-ID")} → ${n[0].toLocaleString("id-ID")}`);
       if (o[1] !== n[1]) items.push(`${k} Rp: ${rpDot(o[1])} → ${rpDot(n[1])}`); };
@@ -1003,7 +1028,7 @@ function bindSalesInput() {
   document.getElementById("rpM").onclick = () => { S.rpMode = "m"; save(); render("rpM"); };
   v.querySelectorAll("input[data-pid]").forEach(inp => inp.onchange = () => {
     const p = sDraft.proyek.find(x => x.id === +inp.dataset.pid), k = inp.dataset.k, j = +inp.dataset.j;
-    if (k === "stok" && stokTerkunci()) { render(); return; }
+    if ((k === "stok" && stokTerkunci()) || !bolehEdit(p.nama)) { render(); return; }
     const raw = inp.value.trim(), val = raw === "" ? 0 : j ? Number(raw.replace(/[^0-9]/g, "")) : Number(raw);
     if (k[0] === "b" && k !== "base") p.bulan[+k.slice(1)][j] = val; else p[k][j] = val;
     render(inp.id);
@@ -1065,7 +1090,7 @@ const REPORTS = [
     tabs: [
       { id: "bast", label: "Dashboard", view: viewDashboard, bind: bindDashboard },
       { id: "bast-input", label: "Input Data", view: viewInput, bind: bindInput, admin: true },
-      { id: "bast-master", label: "Master", view: viewMaster, bind: bindMaster, admin: true },
+      { id: "bast-master", label: "Master", view: viewMaster, bind: bindMaster, admin: true, master: true },
       { id: "bast-history", label: "History", view: () => viewHistory("bast"), bind: () => {} },
     ],
     meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
@@ -1073,7 +1098,7 @@ const REPORTS = [
     tabs: [
       { id: "penjualan", label: "Dashboard", view: viewSales, bind: bindSales },
       { id: "penjualan-input", label: "Input Data", view: viewSalesInput, bind: bindSalesInput, admin: true },
-      { id: "penjualan-master", label: "Master", view: viewSalesMaster, bind: bindSalesMaster, admin: true },
+      { id: "penjualan-master", label: "Master", view: viewSalesMaster, bind: bindSalesMaster, admin: true, master: true },
       { id: "penjualan-history", label: "History", view: () => viewHistory("penjualan"), bind: () => {} },
     ],
     meta: () => { const T = hitungSales().tot; return `Laporan ${ddmmyyyy(S.sales2.tanggal)} · ${T.bln[0]} unit bulan ini · ${rp(T.bln[1])}`; } },
@@ -1085,7 +1110,7 @@ function viewLaporan() {
       <div class="rcard soon"><h3>Report lainnya</h3><p>Report berikutnya akan muncul di sini dengan format yang sama: dashboard, input data, dan master.</p></div></div></div>`;
 }
 function reportFrame(r, tab, inner) {
-  const tabs = r.tabs.filter(t => !t.admin || S.role === "ADMIN");
+  const tabs = r.tabs.filter(t => (!t.admin || S.role === "ADMIN") && !(t.master && userTerbatas()));
   return `<div class="page gut"><div class="rhead"><div><div class="crumb"><a href="#laporan">Monitoring Laporan</a> / ${esc(r.nama)}</div><h2>${esc(r.nama)}</h2></div></div>
     <nav class="rtabs" aria-label="Bagian report">${tabs.map(t => `<a href="#${t.id}" class="${t.id === tab.id ? "on" : ""}" ${t.id === tab.id ? 'aria-current="page"' : ""}>${t.label}</a>`).join("")}</nav></div>${inner}`;
 }
@@ -1097,7 +1122,7 @@ function current() {
   if (v === "dashboard") v = "bast"; else if (v === "input") v = "bast-input"; else if (v === "master") v = "bast-master";
   if (!(v === "laporan" || findTab(v))) v = "laporan";
   const ft = findTab(v);
-  if (ft && ft.t.admin && S.role !== "ADMIN") { v = ft.r.tabs[0].id; history.replaceState(null, "", "#" + v); }
+  if (ft && ((ft.t.admin && S.role !== "ADMIN") || (ft.t.master && userTerbatas()))) { v = ft.r.tabs[0].id; history.replaceState(null, "", "#" + v); }
   return v;
 }
 function renderMenu(v) {
