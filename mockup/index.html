@@ -567,9 +567,10 @@ const SALES_SEED = { laporan: { "2026-10-31": [
   { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Orchard Riviera", h: [0, 0], b: [0, 0], y: [10, 74.36], a: [37, 246.75], t: [110, 806.71] },
   { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Scotts Vale",     h: [0, 0], b: [6, 12.45], y: [6, 12.45], a: [6, 12.45], t: [95, 199.85] },
   { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Mozenta Residence", h: [0, 0], b: [0, 0], y: [3, 7.24], a: [88, 244.61], t: [91, 259.00] },
-  { grup: "Proyek Lainnya", proyek: "Marchand Hype Station", h: [0, 0], b: [0, 0], y: [0, 0], a: [189, 103.70], t: [266, 178.00] },
+  { grup: "Proyek Lainnya", proyek: "Marchand", h: [0, 0], b: [0, 0], y: [0, 0], a: [189, 103.70], t: [266, 178.00] },
 ] } };
 if (!S.sales) S.sales = clone(SALES_SEED);
+Object.values(S.sales.laporan).forEach(rows => rows.forEach(r => { if (r.proyek === "Marchand Hype Station") r.proyek = "Marchand"; }));
 const KOLOM = ["h", "b", "y", "a", "t"];
 const rp = v => "Rp" + v.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " M";
 const rpN = v => v === 0 ? "–" : v.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
