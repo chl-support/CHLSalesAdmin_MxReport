@@ -85,6 +85,9 @@ h2 { margin: 0; color: var(--ink); font-size: 22px; font-weight: 800; text-trans
 .tbl-wrap { overflow-x: auto; margin-top: 12px; }
 table { width: 100%; border-collapse: collapse; }
 .rincian { min-width: 640px; }
+.rincian.compact { width: auto; min-width: 0; }
+.rincian.compact td, .rincian.compact th { padding-left: 16px; padding-right: 16px; }
+.rincian.compact td.proj { min-width: 190px; }
 .rincian thead th { background: var(--navy); color: #fff; font-weight: 700; padding: 8px 10px; }
 .rincian thead tr:first-child th { font-size: 15px; text-transform: uppercase; }
 .rincian thead tr:last-child th { font-weight: 500; font-size: 13.5px; padding-top: 0; }
@@ -367,7 +370,7 @@ function viewDashboard() {
   const bar = (nm, b, t, c) => `<div class="bar-row"><span class="nm">${esc(nm)}</span>
     <div class="track"><div class="fill" style="--c:${c};width:${pct(b, t)}%"></div></div>
     ${t ? `<span class="u num">${b} / ${t} unit</span><span class="p num">${pct(b, t)}%</span>` : `<span class="u nodata">Belum ada data</span><span class="p num">–</span>`}</div>`;
-  let tbl = `<thead><tr><th rowspan="2" style="text-align:center;width:30%">Proyek</th><th colspan="2">BAST PPN DTP</th><th colspan="2">BAST Non PPN DTP</th><th colspan="2">Total</th></tr>
+  let tbl = `<thead><tr><th rowspan="2" style="text-align:center">Proyek</th><th colspan="2">BAST PPN DTP</th><th colspan="2">BAST Non PPN DTP</th><th colspan="2">Total</th></tr>
     <tr><th>BAST</th><th>Unit</th><th>BAST</th><th>Unit</th><th>BAST</th><th>Status</th></tr></thead><tbody>`;
   const notes = [
     `BAST PPN DTP belum selesai: ${G[1] - G[0]} unit dari ${G[1]} unit.`,
@@ -413,7 +416,7 @@ function viewDashboard() {
   <section class="gut"><h2>Progres BAST per Proyek</h2><div class="desc">Gabungan seluruh periode, PPN DTP dan Non PPN DTP. Proyek tanpa angka tidak ditampilkan.</div>
     <div class="bars">${H.proyeks.map((x, i) => bar(x.p.nama, x.sum[0] + x.sum[2], x.sum[1] + x.sum[3], COLORS[i % 4])).join("")}</div></section>
   <section><div class="gut"><h2>Rincian per Periode &amp; Proyek</h2><div class="desc">Angka dibaca “BAST dari total unit”. Tanda “–” berarti 0 unit.</div></div>
-    <div class="tbl-wrap"><table class="rincian num">${tbl}</table></div></section>
+    <div class="tbl-wrap"><table class="rincian compact num">${tbl}</table></div></section>
   <div class="notes gut"><h2>Catatan Penting</h2><ul>${notes.map(n => `<li>${n}</li>`).join("")}</ul></div>
   </div>`;
 }
