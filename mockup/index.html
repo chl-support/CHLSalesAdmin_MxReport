@@ -578,6 +578,16 @@ const SALES_SEED = { laporan: { "2026-10-31": [
   { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Mozenta Residence", h: [0, 0], b: [0, 0], y: [3, 7.24], a: [88, 244.61], t: [91, 259.00] },
   { grup: "Proyek Lainnya", proyek: "Marchand", h: [0, 0], b: [0, 0], y: [0, 0], a: [189, 103.70], t: [266, 178.00] },
 ] } };
+/* Urutan proyek penjualan (nama lain di luar daftar ditaruh di akhir) */
+const SALES_ORDER = ["banara serpong", "naraya serpong", "bio district", "permai indah", "tanglin parc", "newton springs",
+  "scotts vale", "mazenta residence", "mozenta residence", "marchand", "orchard riviera"];
+const salesRank = r => { const i = SALES_ORDER.indexOf(r.proyek.trim().toLowerCase()); return i < 0 ? 999 : i; };
+/* Grup tampil sesuai proyek teratasnya; di dalam grup, proyek mengikuti SALES_ORDER */
+function sortSales(rows) {
+  const gRank = {};
+  rows.forEach(r => { gRank[r.grup] = Math.min(gRank[r.grup] ?? 999, salesRank(r)); });
+  return rows.slice().sort((a, b) => (gRank[a.grup] - gRank[b.grup]) || (salesRank(a) - salesRank(b)));
+}
 if (!S.sales) S.sales = clone(SALES_SEED);
 Object.values(S.sales.laporan).forEach(rows => rows.forEach(r => { if (r.proyek === "Marchand Hype Station") r.proyek = "Marchand"; }));
 const KOLOM = ["h", "b", "y", "a", "t"];
@@ -602,7 +612,7 @@ function viewSales() {
   const ds = salesDates();
   if (!ds.length) return `<div class="page gut"><div class="empty">Belum ada laporan penjualan.</div></div>`;
   if (!ds.includes(salesSel)) salesSel = ds[0];
-  const rows = S.sales.laporan[salesSel], T = sumSales(rows), bln = bulanTahun(salesSel), thn = salesSel.slice(0, 4);
+  const rows = sortSales(S.sales.laporan[salesSel]), T = sumSales(rows), bln = bulanTahun(salesSel), thn = salesSel.slice(0, 4);
   const kpi = (c, lbl, u, v, note) => `<div class="kpi" style="--c:${c}"><div class="lbl">${lbl}</div>
     <div class="val num">${u.toLocaleString("id-ID")} <small>unit</small></div><div class="pct num">${rp(v)}</div><div class="note">${note}</div></div>`;
   const contrib = (k, judul) => {
@@ -656,7 +666,7 @@ function viewSales() {
   </div>`;
 }
 function salesText(tgl) {
-  const rows = S.sales.laporan[tgl], T = sumSales(rows), bln = bulanTahun(tgl);
+  const rows = sortSales(S.sales.laporan[tgl]), T = sumSales(rows), bln = bulanTahun(tgl);
   let t = `*Dashboard Penjualan Properti*\n${panjang(tgl)}\n\n`;
   t += `Hari ini: ${T.h[0]} unit (${rp(T.h[1])})\nBulan ${bln}: ${T.b[0]} unit (${rp(T.b[1])})\nYTD: ${T.y[0]} unit (${rp(T.y[1])})\nAkumulasi terjual: ${T.a[0]} dari ${T.t[0]} unit (${rp(T.a[1])})\n`;
   const kontr = rows.filter(r => r.b[0] > 0).sort((a, b) => b.b[1] - a.b[1]);
@@ -673,7 +683,7 @@ function bindSales() {
   };
   document.getElementById("salesXls").onclick = () => {
     if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
-    const rows = S.sales.laporan[salesSel], T = sumSales(rows);
+    const rows = sortSales(S.sales.laporan[salesSel]), T = sumSales(rows);
     const aoa = [["DASHBOARD PENJUALAN PROPERTI"], [panjang(salesSel)], [],
       ["Grup", "Proyek", "Hari ini unit", "Hari ini Rp M", "Bulan unit", "Bulan Rp M", "YTD unit", "YTD Rp M", "Terjual unit", "Terjual Rp M", "Total unit", "Total Rp M"]];
     rows.forEach(r => aoa.push([r.grup, r.proyek, ...KOLOM.flatMap(k => r[k])]));
@@ -688,7 +698,7 @@ function bindSales() {
 
 /* Input penjualan */
 let sDraft = null, sDraftDate = null;
-function sLoad(tgl) { sDraftDate = tgl; sDraft = clone(S.sales.laporan[tgl] || []); }
+function sLoad(tgl) { sDraftDate = tgl; sDraft = sortSales(clone(S.sales.laporan[tgl] || [])); }
 function sValidate(rows) {
   const seen = {};
   return rows.map(r => {
@@ -734,7 +744,7 @@ function bindSalesInput() {
   const cp = document.getElementById("sCopyPrev");
   if (cp) cp.onclick = () => {
     const prev = salesDates().filter(d => d < sDraftDate)[0];
-    sDraft = clone(S.sales.laporan[prev]).map(r => ({ ...r, h: [0, 0] }));
+    sDraft = sortSales(clone(S.sales.laporan[prev])).map(r => ({ ...r, h: [0, 0] }));
     render(); toast(`Data ${ddmmyyyy(prev)} disalin, kolom hari ini dikosongkan.`);
   };
   document.getElementById("sAdd").onclick = () => { sDraft.push({ grup: sDraft.at(-1)?.grup || "", proyek: "", h: [0, 0], b: [0, 0], y: [0, 0], a: [0, 0], t: [0, 0] }); render(); };
