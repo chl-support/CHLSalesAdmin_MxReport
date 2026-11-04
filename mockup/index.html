@@ -168,6 +168,15 @@ table { width: 100%; border-collapse: collapse; }
 .sales-in tr.sum td { background: var(--blue-soft); font-weight: 800; color: var(--ink); }
 .sales-in tr.sum td.stick { background: var(--blue-soft); }
 .sales-in tr.err td.stick { background: var(--red-soft); }
+.hist { min-width: 720px; }
+.hist th { background: var(--navy); color: #fff; font-size: 13px; padding: 8px 10px; text-align: left; }
+.hist td { border-bottom: 1px solid var(--line); padding: 8px 10px; vertical-align: top; font-size: 13.5px; }
+.hist td.nowrap { white-space: nowrap; color: var(--muted); }
+.hist .bag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 3px; background: var(--blue-soft); color: var(--ink); white-space: nowrap; }
+.hist td.chg ul { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 2px; }
+.hist details { margin-top: 4px; font-size: 13px; }
+.hist summary { cursor: pointer; color: var(--blue); font-weight: 600; }
+.hist details ul { margin-top: 4px; }
 .master { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
 .master > div { min-width: 0; }
 .master table th { background: var(--navy); color: #fff; font-size: 13px; padding: 8px; text-align: left; }
@@ -353,6 +362,29 @@ function status(b, t) {
 }
 const toastEl = document.getElementById("toast");
 let toastT;
+/* ===================== History perubahan ===================== */
+function catat(report, bagian, items) {
+  if (!items || !items.length) return;
+  S.history = S.history || [];
+  S.history.unshift({ t: new Date().toISOString(), report, bagian, items, oleh: S.role === "ADMIN" ? "Admin" : "Viewer" });
+  S.history = S.history.slice(0, 500);
+}
+const waktuID = iso => { const d = new Date(iso); const z = n => String(n).padStart(2, "0");
+  return `${z(d.getDate())}-${z(d.getMonth() + 1)}-${d.getFullYear()} ${z(d.getHours())}:${z(d.getMinutes())}`; };
+const rpDot = v => Math.round(v).toLocaleString("id-ID");
+function viewHistory(report) {
+  const list = (S.history || []).filter(h => h.report === report || h.report === "semua");
+  if (!list.length) return `<div class="page gut"><div class="empty" style="margin-top:24px">Belum ada perubahan tercatat. Setiap perubahan yang disimpan di Input Data atau Master akan muncul di sini.</div></div>`;
+  const rows = list.map((h, i) => {
+    const first = h.items.slice(0, 4).map(x => `<li>${esc(x)}</li>`).join("");
+    const rest = h.items.length > 4 ? `<details><summary>dan ${h.items.length - 4} perubahan lainnya</summary><ul>${h.items.slice(4).map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>` : "";
+    return `<tr><td class="num nowrap">${waktuID(h.t)}</td><td><span class="bag">${esc(h.bagian)}</span></td><td class="chg"><ul>${first}</ul>${rest}</td><td>${esc(h.oleh)}</td></tr>`;
+  }).join("");
+  return `<div class="page gut"><div class="form-head"><div><h2>History Perubahan</h2>
+    <div class="desc">${list.length} catatan, terbaru di atas. Dicatat setiap kali data disimpan di Input Data atau diubah di Master. Disimpan di browser ini saja.</div></div></div>
+    <div class="tbl-wrap" style="margin-top:16px"><table class="hist"><thead><tr><th style="width:140px">Waktu</th><th style="width:120px">Bagian</th><th>Perubahan</th><th style="width:80px">Oleh</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+
 function toast(m) { toastEl.textContent = m; toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => toastEl.hidden = true, 2400); }
 
 /* ===================== Hitung (sesuai PRD bagian 5) ===================== */
@@ -579,6 +611,17 @@ function bindInput() {
   if (cp) cp.onclick = () => { const prev = dates().filter(d => d < draftDate)[0]; draft = clone(S.laporan[prev]); render(); toast(`Data ${ddmmyyyy(prev)} disalin. Periksa lalu simpan.`); };
   document.getElementById("addRow").onclick = () => { draft.push({ periodeId: null, proyekId: null, d: [0, 0, 0, 0], ket: "" }); render(); };
   document.getElementById("saveBtn").onclick = () => {
+    const lama = S.laporan[draftDate] || [], key = r => r.periodeId + "-" + r.proyekId, items = [];
+    const nm = r => `${prjById(r.proyekId)?.nama || "?"} (${perById(r.periodeId)?.nama || "?"})`;
+    const KOL = ["BAST PPN DTP", "Total Unit PPN DTP", "BAST Non PPN DTP", "Total Unit Non PPN DTP"];
+    draft.forEach(r => {
+      const o = lama.find(x => key(x) === key(r));
+      if (!o) { items.push(`Tambah ${nm(r)}: ${KOL.map((k, i) => `${k} ${r.d[i]}`).join(", ")}`); return; }
+      r.d.forEach((v, i) => { if (v !== o.d[i]) items.push(`${nm(r)} · ${KOL[i]}: ${o.d[i]} → ${v}`); });
+      if ((o.ket || "") !== (r.ket || "")) items.push(`${nm(r)} · Keterangan: "${o.ket || ""}" → "${r.ket || ""}"`);
+    });
+    lama.forEach(o => { if (!draft.some(r => key(r) === key(o))) items.push(`Hapus ${nm(o)}`); });
+    catat("bast", "Input Data", items.map(x => `Laporan ${ddmmyyyy(draftDate)} · ${x}`));
     S.laporan[draftDate] = clone(draft); save(); selDate = draftDate;
     toast(`Laporan ${ddmmyyyy(draftDate)} tersimpan`); render();
   };
@@ -617,19 +660,26 @@ function bindMaster() {
     const nm = inp.value.trim(), [k] = inp.dataset.name.split(":"), it = find(inp.dataset.name);
     if (!nm) { inp.value = it.nama; toast("Nama tidak boleh kosong"); return; }
     if (S[k].some(p => p !== it && p.nama.toLowerCase() === nm.toLowerCase())) { inp.value = it.nama; toast("Nama sudah dipakai"); return; }
+    if (nm === it.nama) return;
+    catat("bast", "Master", [`${k === "proyek" ? "Proyek" : "Periode"} diganti nama: ${it.nama} → ${nm}`]);
     it.nama = nm; save(); toast("Nama disimpan");
   });
-  v.querySelectorAll("[data-aktif]").forEach(c => c.onchange = () => { find(c.dataset.aktif).aktif = c.checked; save(); toast(c.checked ? "Diaktifkan" : "Dinonaktifkan"); });
+  v.querySelectorAll("[data-aktif]").forEach(c => c.onchange = () => {
+    const it = find(c.dataset.aktif), k = c.dataset.aktif.split(":")[0];
+    it.aktif = c.checked; catat("bast", "Master", [`${k === "proyek" ? "Proyek" : "Periode"} ${it.nama} ${c.checked ? "diaktifkan" : "dinonaktifkan"}`]);
+    save(); toast(c.checked ? "Diaktifkan" : "Dinonaktifkan");
+  });
   v.querySelectorAll("[data-up]").forEach(b => b.onclick = () => {
     const [k] = b.dataset.up.split(":"), it = find(b.dataset.up), items = S[k].slice().sort(byUrut), i = items.indexOf(it);
-    const o = items[i - 1]; [it.urutan, o.urutan] = [o.urutan, it.urutan]; save(); render();
+    const o = items[i - 1]; [it.urutan, o.urutan] = [o.urutan, it.urutan];
+    catat("bast", "Master", [`Urutan ${k === "proyek" ? "proyek" : "periode"}: ${it.nama} dipindah ke atas ${o.nama}`]); save(); render();
   });
   v.querySelectorAll("[data-add]").forEach(b => b.onclick = () => {
     const k = b.dataset.add, inp = document.getElementById("new-" + k), nm = inp.value.trim();
     if (!nm) { toast("Isi nama terlebih dahulu"); return; }
     if (S[k].some(p => p.nama.toLowerCase() === nm.toLowerCase())) { toast("Nama sudah dipakai"); return; }
     const id = Math.max(0, ...S[k].map(p => p.id)) + 1, ur = Math.max(0, ...S[k].map(p => p.urutan)) + 1;
-    S[k].push({ id, nama: nm, urutan: ur, aktif: true }); save(); render(); toast(`${nm} ditambahkan`);
+    S[k].push({ id, nama: nm, urutan: ur, aktif: true }); catat("bast", "Master", [`${k === "proyek" ? "Proyek" : "Periode"} baru ditambahkan: ${nm}`]); save(); render(); toast(`${nm} ditambahkan`);
   });
 }
 
@@ -883,6 +933,17 @@ function bindSalesInput() {
   const v = document.getElementById("view");
   document.getElementById("sReset").onclick = () => { sLoad(); render(); toast("Perubahan dibatalkan"); };
   document.getElementById("sSave").onclick = () => {
+    const items = [], th = tahunKe(sDraft.tanggal);
+    const f = (k, o, n) => { if (o[0] !== n[0]) items.push(`${k} unit: ${o[0].toLocaleString("id-ID")} → ${n[0].toLocaleString("id-ID")}`);
+      if (o[1] !== n[1]) items.push(`${k} Rp: ${rpDot(o[1])} → ${rpDot(n[1])}`); };
+    sDraft.proyek.forEach(p => {
+      const o = S.sales2.proyek.find(x => x.id === p.id); if (!o) return;
+      const pre = items.length;
+      f(`Akumulasi s.d. ${th - 1}`, o.base, p.base); p.bulan.forEach((v, i) => f(`${BULAN[i]} ${th}`, o.bulan[i], v));
+      f("Total stok", o.stok, p.stok); f("Hari ini", o.hari, p.hari);
+      for (let i = pre; i < items.length; i++) items[i] = `${p.nama} · ${items[i]}`;
+    });
+    catat("penjualan", "Input Data", items);
     S.sales2 = clone(sDraft); save(); toast(`Data penjualan ${ddmmyyyy(S.sales2.tanggal)} tersimpan`); render();
   };
   document.getElementById("rpDetail").onclick = () => { S.rpMode = "detail"; save(); render("rpDetail"); };
@@ -920,24 +981,27 @@ function bindSalesMaster() {
     const x = byId(inp.dataset.smn), nm = inp.value.trim();
     if (!nm) { inp.value = x.nama; toast("Nama tidak boleh kosong"); return; }
     if (S.sales2.proyek.some(o => o !== x && o.nama.toLowerCase() === nm.toLowerCase())) { inp.value = x.nama; toast("Nama sudah dipakai"); return; }
-    x.nama = nm; sDraft = null; save(); toast("Nama disimpan");
+    if (nm === x.nama) return;
+    catat("penjualan", "Master", [`Proyek diganti nama: ${x.nama} → ${nm}`]); x.nama = nm; sDraft = null; save(); toast("Nama disimpan");
   });
   v.querySelectorAll("[data-smg]").forEach(inp => inp.onchange = () => {
     const x = byId(inp.dataset.smg), g = inp.value.trim();
     if (!g) { inp.value = x.grup; toast("Grup tidak boleh kosong"); return; }
-    x.grup = g; sDraft = null; save(); toast("Grup disimpan");
+    if (g === x.grup) return;
+    catat("penjualan", "Master", [`${x.nama} · Grup: ${x.grup} → ${g}`]); x.grup = g; sDraft = null; save(); toast("Grup disimpan");
   });
-  v.querySelectorAll("[data-sma]").forEach(c => c.onchange = () => { byId(c.dataset.sma).aktif = c.checked; sDraft = null; save(); toast(c.checked ? "Diaktifkan" : "Dinonaktifkan"); });
+  v.querySelectorAll("[data-sma]").forEach(c => c.onchange = () => { const x = byId(c.dataset.sma); x.aktif = c.checked;
+    catat("penjualan", "Master", [`Proyek ${x.nama} ${c.checked ? "diaktifkan" : "dinonaktifkan"}`]); sDraft = null; save(); toast(c.checked ? "Diaktifkan" : "Dinonaktifkan"); });
   v.querySelectorAll("[data-smup]").forEach(b => b.onclick = () => {
     const items = S.sales2.proyek.slice().sort(byUrut), x = byId(b.dataset.smup), o = items[items.indexOf(x) - 1];
-    [x.urutan, o.urutan] = [o.urutan, x.urutan]; sDraft = null; save(); render();
+    [x.urutan, o.urutan] = [o.urutan, x.urutan]; catat("penjualan", "Master", [`Urutan proyek: ${x.nama} dipindah ke atas ${o.nama}`]); sDraft = null; save(); render();
   });
   document.getElementById("smAdd").onclick = () => {
     const nm = document.getElementById("smNewN").value.trim(), g = document.getElementById("smNewG").value.trim();
     if (!nm || !g) { toast("Isi nama proyek dan grup"); return; }
     if (S.sales2.proyek.some(o => o.nama.toLowerCase() === nm.toLowerCase())) { toast("Nama sudah dipakai"); return; }
     const id = Math.max(0, ...S.sales2.proyek.map(o => o.id)) + 1, ur = Math.max(0, ...S.sales2.proyek.map(o => o.urutan)) + 1;
-    S.sales2.proyek.push(proyekBaru(id, nm, g, ur)); sDraft = null; save(); render(); toast(`${nm} ditambahkan`);
+    S.sales2.proyek.push(proyekBaru(id, nm, g, ur)); catat("penjualan", "Master", [`Proyek baru ditambahkan: ${nm} (${g})`]); sDraft = null; save(); render(); toast(`${nm} ditambahkan`);
   };
 }
 
@@ -948,6 +1012,7 @@ const REPORTS = [
       { id: "bast", label: "Dashboard", view: viewDashboard, bind: bindDashboard },
       { id: "bast-input", label: "Input Data", view: viewInput, bind: bindInput, admin: true },
       { id: "bast-master", label: "Master", view: viewMaster, bind: bindMaster, admin: true },
+      { id: "bast-history", label: "History", view: () => viewHistory("bast"), bind: () => {} },
     ],
     meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
   { id: "penjualan", nama: "Dashboard Penjualan Properti", menu: "DASHBOARD PENJUALAN PROPERTI", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan laporan, YTD, dan akumulasi terjual. Mengikuti format Excel Daily Report.",
@@ -955,6 +1020,7 @@ const REPORTS = [
       { id: "penjualan", label: "Dashboard", view: viewSales, bind: bindSales },
       { id: "penjualan-input", label: "Input Data", view: viewSalesInput, bind: bindSalesInput, admin: true },
       { id: "penjualan-master", label: "Master", view: viewSalesMaster, bind: bindSalesMaster, admin: true },
+      { id: "penjualan-history", label: "History", view: () => viewHistory("penjualan"), bind: () => {} },
     ],
     meta: () => { const T = hitungSales().tot; return `Laporan ${ddmmyyyy(S.sales2.tanggal)} · ${T.bln[0]} unit bulan ini · ${rp(T.bln[1])}`; } },
 ];
@@ -1014,7 +1080,7 @@ const roleSel = document.getElementById("roleSel");
 roleSel.value = S.role;
 roleSel.onchange = () => { S.role = roleSel.value; save(); render(); toast(`Masuk sebagai ${S.role === "ADMIN" ? "Admin" : "Viewer"}`); };
 document.getElementById("resetBtn").onclick = () => {
-  const role = S.role; S = clone(SEED); S.role = role; salesBulan = null; S.sales2 = clone(SALES2_SEED); S.sales2.hariTanggal = null; ikutiHariIni(); save(); draft = null; sDraft = null; selDate = dates()[0]; render(); toast("Data contoh dikembalikan");
+  const role = S.role, hist = S.history || [], rpMode = S.rpMode; S = clone(SEED); S.role = role; S.history = hist; S.rpMode = rpMode; salesBulan = null; S.sales2 = clone(SALES2_SEED); S.sales2.hariTanggal = null; ikutiHariIni(); catat("semua", "Data contoh", ["Semua data dikembalikan ke data contoh"]); save(); draft = null; sDraft = null; selDate = dates()[0]; render(); toast("Data contoh dikembalikan");
 };
 window.addEventListener("hashchange", () => { if (current() === "bast-input" && draft === null) loadDraft(dates()[0] || todayISO()); if (current() === "penjualan-input" && sDraft === null) sLoad(); render(); window.scrollTo(0, 0); });
 if (!location.hash) history.replaceState(null, "", "#bast");
