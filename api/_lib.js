@@ -108,7 +108,7 @@ function merge(old, inc, user) {
     out.sales2.proyek = old.sales2.proyek.map(o => {
       const n = (inc.sales2.proyek || []).find(x => x.id === o.id);
       if (!n || !ok(o.nama)) return o;
-      return Object.assign({}, o, { base: n.base, bulan: n.bulan, hari: n.hari, stok: user.kunciStok ? o.stok : n.stok, catatan: n.catatan });
+      return Object.assign({}, o, { base: n.base, bulan: n.bulan, hari: n.hari, stok: user.kunciStok ? o.stok : n.stok, catatan: n.catatan, catatanTampil: n.catatanTampil });
     });
     const salesNama = id => ((old.sales2.proyek || []).find(p => p.id === id) || {}).nama;
     ["batal", "hold"].forEach(j => {
