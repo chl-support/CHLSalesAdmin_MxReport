@@ -31,6 +31,7 @@
   }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.45; }
 .page { max-width: 1240px; margin: 0 auto; padding-bottom: 48px; }
 .gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -177,6 +178,19 @@ table { width: 100%; border-collapse: collapse; }
 .hist details { margin-top: 4px; font-size: 13px; }
 .hist summary { cursor: pointer; color: var(--blue); font-weight: 600; }
 .hist details ul { margin-top: 4px; }
+.login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--side-bg); padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
+.login-card { width: 100%; max-width: 380px; background: var(--bg); border: 1px solid var(--side-line); border-top: 4px solid var(--gold); border-radius: 8px; padding: 28px 24px; display: flex; flex-direction: column; gap: 12px; }
+.login-card .field input { width: 100%; padding: 10px 12px; font-size: 15px; background: var(--bg); }
+.pw { display: flex; gap: 6px; }
+.pw input { flex: 1; min-width: 0; }
+.pw-t { border: 1px solid var(--line); background: var(--bg); color: var(--blue); font-weight: 600; font-size: 13px; border-radius: 4px; padding: 0 10px; cursor: pointer; }
+.lg-err { margin: 0; font-size: 13px; font-weight: 600; color: var(--red); }
+.lg-demo { margin-top: 8px; font-size: 12.5px; color: var(--muted); background: var(--blue-soft); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; }
+.lg-demo b { color: var(--ink); }
+.lg-demo code { font-size: 12.5px; color: var(--ink); font-weight: 700; }
+.who { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); }
+.who b { font-size: 14px; color: var(--side-ink); }
+.who span { font-size: 12px; font-weight: 700; color: var(--gold-ink); }
 .master { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
 .master > div { min-width: 0; }
 .master table th { background: var(--navy); color: #fff; font-size: 13px; padding: 8px; text-align: left; }
@@ -256,7 +270,21 @@ a.rcard:hover { border-color: var(--gold); }
 </style>
 </head>
 <body>
-<div class="shell">
+<div class="login" id="loginScreen" hidden>
+  <form class="login-card" id="loginForm" novalidate>
+    <div class="logo-co">Cipta Harmoni Lestari</div>
+    <div class="logo-app" style="margin-bottom:4px">CHL Sales Admin System</div>
+    <p class="desc" style="margin:0 0 18px">Masuk untuk membuka Monitoring Laporan.</p>
+    <label class="field" for="lgUser">Username<input id="lgUser" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+    <label class="field" for="lgPass">Password<span class="pw"><input id="lgPass" name="password" type="password" autocomplete="current-password" required><button type="button" class="pw-t" id="lgShow" aria-label="Tampilkan password">Lihat</button></span></label>
+    <p class="lg-err" id="lgErr" role="alert" hidden></p>
+    <button class="btn" type="submit" style="width:100%;margin-top:6px">Masuk</button>
+    <div class="lg-demo"><b>Akun contoh untuk mockup</b>
+      <div>Admin: <code>admin</code> / <code>admin123</code> (bisa mengubah data)</div>
+      <div>Viewer: <code>viewer</code> / <code>viewer123</code> (hanya melihat)</div></div>
+  </form>
+</div>
+<div class="shell" id="shell">
   <aside class="side" id="side" aria-label="Menu utama">
     <div class="logo">
       <div class="logo-co">Cipta Harmoni Lestari</div>
@@ -269,9 +297,8 @@ a.rcard:hover { border-color: var(--gold); }
       </div>
     </nav>
     <div class="side-foot">
-      <label class="role" for="roleSel">Masuk sebagai
-        <select id="roleSel"><option value="ADMIN">Admin</option><option value="VIEWER">Viewer</option></select>
-      </label>
+      <div class="who">Masuk sebagai<b id="whoName"></b><span id="whoRole"></span></div>
+      <button class="btn sec" id="logoutBtn" type="button" style="padding:6px 12px">Keluar</button>
       <p>Mockup. Data tersimpan di browser ini saja.</p>
       <button class="linkbtn" id="resetBtn" type="button">Kembalikan data contoh</button>
     </div>
@@ -324,6 +351,14 @@ const clone = o => JSON.parse(JSON.stringify(o));
 let S;
 try { S = JSON.parse(localStorage.getItem(KEY)) || clone(SEED); } catch (e) { S = clone(SEED); }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+/* Akun login mockup. Ini bukan pengamanan sungguhan: semua kode dan data ada di browser. */
+const USERS = [
+  { u: "admin", pw: "admin123", nama: "Admin CHL", role: "ADMIN" },
+  { u: "viewer", pw: "viewer123", nama: "Viewer CHL", role: "VIEWER" },
+];
+let SESI = null;
+try { SESI = JSON.parse(sessionStorage.getItem(KEY + "-sesi")); } catch (e) { SESI = null; }
+if (SESI) S.role = SESI.role;
 /* Nama proyek yang diganti */
 S.proyek.forEach(p => { if (p.nama === "Marchand Hype Station") p.nama = "Marchand"; });
 /* Tambahkan proyek baru dari data contoh ke data yang sudah tersimpan di browser */
@@ -366,7 +401,7 @@ let toastT;
 function catat(report, bagian, items) {
   if (!items || !items.length) return;
   S.history = S.history || [];
-  S.history.unshift({ t: new Date().toISOString(), report, bagian, items, oleh: S.role === "ADMIN" ? "Admin" : "Viewer" });
+  S.history.unshift({ t: new Date().toISOString(), report, bagian, items, oleh: SESI ? SESI.nama : (S.role === "ADMIN" ? "Admin" : "Viewer") });
   S.history = S.history.slice(0, 500);
 }
 const waktuID = iso => { const d = new Date(iso); const z = n => String(n).padStart(2, "0");
@@ -1058,6 +1093,13 @@ function renderMenu(v) {
 let rendering = false;
 function render(focusId) {
   if (rendering) return;
+  const masuk = !!SESI;
+  document.getElementById("loginScreen").hidden = masuk;
+  document.getElementById("shell").hidden = !masuk;
+  if (!masuk) { document.title = "Masuk · Monitoring Laporan CHL"; return; }
+  document.title = "Monitoring Laporan CHL";
+  document.getElementById("whoName").textContent = SESI.nama;
+  document.getElementById("whoRole").textContent = SESI.role === "ADMIN" ? "Admin" : "Viewer";
   rendering = true;
   const v = current();
   try {
@@ -1076,9 +1118,27 @@ burger.onclick = () => setMenu(!side.classList.contains("open"));
 scrim.onclick = () => setMenu(false);
 side.addEventListener("click", e => { if (e.target.closest("a")) setMenu(false); });
 
-const roleSel = document.getElementById("roleSel");
-roleSel.value = S.role;
-roleSel.onchange = () => { S.role = roleSel.value; save(); render(); toast(`Masuk sebagai ${S.role === "ADMIN" ? "Admin" : "Viewer"}`); };
+/* Login dan logout */
+document.getElementById("loginForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const u = document.getElementById("lgUser").value.trim().toLowerCase(), pw = document.getElementById("lgPass").value;
+  const err = document.getElementById("lgErr"), akun = USERS.find(x => x.u === u && x.pw === pw);
+  if (!u || !pw) { err.textContent = "Isi username dan password."; err.hidden = false; return; }
+  if (!akun) { err.textContent = "Username atau password salah. Periksa lalu coba lagi."; err.hidden = false; document.getElementById("lgPass").select(); return; }
+  err.hidden = true; SESI = { u: akun.u, nama: akun.nama, role: akun.role };
+  try { sessionStorage.setItem(KEY + "-sesi", JSON.stringify(SESI)); } catch (x) {}
+  S.role = akun.role; save(); document.getElementById("lgPass").value = "";
+  if (!location.hash) history.replaceState(null, "", "#laporan");
+  render(); toast(`Selamat datang, ${akun.nama}`);
+});
+document.getElementById("lgShow").onclick = () => {
+  const i = document.getElementById("lgPass"), b = document.getElementById("lgShow"), show = i.type === "password";
+  i.type = show ? "text" : "password"; b.textContent = show ? "Sembunyikan" : "Lihat"; b.setAttribute("aria-label", show ? "Sembunyikan password" : "Tampilkan password");
+};
+document.getElementById("logoutBtn").onclick = () => {
+  SESI = null; try { sessionStorage.removeItem(KEY + "-sesi"); } catch (x) {}
+  draft = null; sDraft = null; setMenu(false); render(); document.getElementById("lgUser").focus(); toast("Anda sudah keluar");
+};
 document.getElementById("resetBtn").onclick = () => {
   const role = S.role, hist = S.history || [], rpMode = S.rpMode; S = clone(SEED); S.role = role; S.history = hist; S.rpMode = rpMode; salesBulan = null; S.sales2 = clone(SALES2_SEED); S.sales2.hariTanggal = null; ikutiHariIni(); catat("semua", "Data contoh", ["Semua data dikembalikan ke data contoh"]); save(); draft = null; sDraft = null; selDate = dates()[0]; render(); toast("Data contoh dikembalikan");
 };
