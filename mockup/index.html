@@ -122,6 +122,8 @@ table { width: 100%; border-collapse: collapse; }
 .edit td { border: 1px solid var(--line); vertical-align: middle; }
 .edit td:nth-child(2) select, .edit td:nth-child(2) input[type="text"] { min-width: 230px; }
 .edit td:nth-child(3) select, .edit td:nth-child(3) input[type="text"] { min-width: 210px; }
+.edit td.grup-cell { min-width: 220px; font-size: 13px; color: var(--muted); }
+.edit select[data-sp] { min-width: 210px; }
 .edit td input[id^="k-"] { min-width: 230px; }
 .edit th { background: var(--navy); color: #fff; font-size: 13px; font-weight: 700; padding: 8px; text-align: center; white-space: nowrap; line-height: 1.3; }
 .edit td { border-bottom: 1px solid var(--line); padding: 6px; text-align: center; vertical-align: middle; }
@@ -585,7 +587,11 @@ const SALES_SEED = { laporan: { "2026-10-31": [
 /* Urutan proyek penjualan (nama lain di luar daftar ditaruh di akhir) */
 const SALES_ORDER = ["banara serpong", "naraya serpong", "bio district", "permai indah", "tanglin parc", "newton springs",
   "scotts vale", "mazenta residence", "mozenta residence", "marchand", "orchard riviera"];
-const salesRank = r => { const i = SALES_ORDER.indexOf(r.proyek.trim().toLowerCase()); return i < 0 ? 999 : i; };
+const salesRank = r => {
+  const m = (S.salesMaster || []).find(x => x.nama.toLowerCase() === r.proyek.trim().toLowerCase());
+  if (m) return m.urutan;
+  const i = SALES_ORDER.indexOf(r.proyek.trim().toLowerCase()); return i < 0 ? 999 : 900 + i;
+};
 /* Grup tampil sesuai proyek teratasnya; di dalam grup, proyek mengikuti SALES_ORDER */
 function sortSales(rows) {
   const gRank = {};
@@ -593,7 +599,21 @@ function sortSales(rows) {
   return rows.slice().sort((a, b) => (gRank[a.grup] - gRank[b.grup]) || (salesRank(a) - salesRank(b)));
 }
 if (!S.sales) S.sales = clone(SALES_SEED);
+/* Master proyek penjualan: dibuat dari laporan terbaru bila belum ada */
+function buildSalesMaster() {
+  const latest = Object.keys(S.sales.laporan).sort().reverse()[0];
+  const seen = new Set(), list = [];
+  Object.keys(S.sales.laporan).sort().reverse().forEach(d => S.sales.laporan[d].forEach(r => {
+    const k = r.proyek.trim().toLowerCase(); if (!seen.has(k)) { seen.add(k); list.push({ nama: r.proyek.trim(), grup: r.grup.trim() }); }
+  }));
+  const rank = x => { const i = SALES_ORDER.indexOf(x.nama.toLowerCase()); return i < 0 ? 999 : i; };
+  const gr = {}; list.forEach(x => gr[x.grup] = Math.min(gr[x.grup] ?? 999, rank(x)));
+  list.sort((a, b) => (gr[a.grup] - gr[b.grup]) || (rank(a) - rank(b)));
+  return list.map((x, i) => ({ id: i + 1, nama: x.nama, grup: x.grup, urutan: i + 1, aktif: true }));
+}
 Object.values(S.sales.laporan).forEach(rows => rows.forEach(r => { if (r.proyek === "Marchand Hype Station") r.proyek = "Marchand"; }));
+if (!S.salesMaster) { S.salesMaster = buildSalesMaster(); save(); }
+const smByName = n => S.salesMaster.find(x => x.nama.toLowerCase() === String(n).trim().toLowerCase());
 const KOLOM = ["h", "b", "y", "a", "t"];
 const rp = v => "Rp" + v.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " M";
 const rpN = v => v === 0 ? "–" : v.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -706,7 +726,7 @@ function sLoad(tgl) { sDraftDate = tgl; sDraft = sortSales(clone(S.sales.laporan
 function sValidate(rows) {
   const seen = {};
   return rows.map(r => {
-    if (!r.grup.trim() || !r.proyek.trim()) return "Isi grup dan nama proyek";
+    if (!r.proyek.trim()) return "Pilih proyek";
     if (KOLOM.some(k => r[k].some(v => !Number.isFinite(v) || v < 0)) || KOLOM.some(k => !Number.isInteger(r[k][0]))) return "Unit harus bilangan bulat, Rp harus angka 0 atau lebih";
     if (r.h[0] > r.b[0] || r.b[0] > r.y[0]) return "Unit hari ini ≤ bulan ini ≤ YTD";
     if (r.a[0] > r.t[0]) return "Unit terjual melebihi total stok";
@@ -721,8 +741,10 @@ function viewSalesInput() {
   const errs = sValidate(sDraft), hasErr = errs.some(Boolean);
   const prev = salesDates().filter(d => d < sDraftDate)[0];
   const body = sDraft.map((r, i) => `<tr class="${errs[i] ? "err" : ""}">
-    <td><input type="text" id="sg-${i}" data-i="${i}" data-f="grup" value="${esc(r.grup)}" aria-label="Grup baris ${i + 1}">${errs[i] ? `<div class="msg">${errs[i]}</div>` : ""}</td>
-    <td><input type="text" id="sp-${i}" data-i="${i}" data-f="proyek" value="${esc(r.proyek)}" aria-label="Proyek baris ${i + 1}"></td>
+    <td><select id="sp-${i}" data-i="${i}" data-sp aria-label="Proyek baris ${i + 1}"><option value="">Pilih proyek</option>${S.salesMaster.slice().sort(byUrut)
+      .filter(m => m.aktif || m.nama.toLowerCase() === r.proyek.toLowerCase())
+      .map(m => `<option value="${esc(m.nama)}" ${m.nama.toLowerCase() === r.proyek.toLowerCase() ? "selected" : ""}>${esc(m.nama)}</option>`).join("")}</select>${errs[i] ? `<div class="msg">${errs[i]}</div>` : ""}</td>
+    <td class="grup-cell">${esc(r.grup || "–")}</td>
     ${SKOL.map(([k]) => `<td><input type="number" min="0" step="1" id="s${k}0-${i}" data-i="${i}" data-k="${k}" data-j="0" value="${r[k][0]}" aria-label="${k} unit baris ${i + 1}"></td>
       <td><input type="number" min="0" step="0.01" id="s${k}1-${i}" data-i="${i}" data-k="${k}" data-j="1" value="${r[k][1]}" aria-label="${k} Rp baris ${i + 1}"></td>`).join("")}
     <td><button class="del" data-sdel="${i}" type="button" aria-label="Hapus baris ${i + 1}">×</button></td></tr>`).join("");
@@ -737,7 +759,7 @@ function viewSalesInput() {
     </div>
   </div>
   ${sDraft.length ? `<div class="tbl-wrap"><table class="edit num" style="min-width:1280px"><thead>
-    <tr><th rowspan="2">Grup</th><th rowspan="2">Proyek</th>${SKOL.map(([, l]) => `<th colspan="2">${l}</th>`).join("")}<th rowspan="2"></th></tr>
+    <tr><th rowspan="2">Proyek</th><th rowspan="2">Grup</th>${SKOL.map(([, l]) => `<th colspan="2">${l}</th>`).join("")}<th rowspan="2"></th></tr>
     <tr>${SKOL.map(() => "<th>Unit</th><th>Rp M</th>").join("")}</tr></thead><tbody>${body}</tbody></table></div>`
     : `<div class="empty">Belum ada data untuk ${ddmmyyyy(sDraftDate)}. ${prev ? `Salin dari laporan ${ddmmyyyy(prev)} atau tambah proyek.` : "Tambah proyek untuk mulai mengisi."}</div>`}
   <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : S.sales.laporan[sDraftDate] ? "Menyimpan akan mengganti laporan tanggal ini." : "Laporan baru untuk tanggal ini."}</p></div>`;
@@ -751,17 +773,70 @@ function bindSalesInput() {
     sDraft = sortSales(clone(S.sales.laporan[prev])).map(r => ({ ...r, h: [0, 0] }));
     render(); toast(`Data ${ddmmyyyy(prev)} disalin, kolom hari ini dikosongkan.`);
   };
-  document.getElementById("sAdd").onclick = () => { sDraft.push({ grup: sDraft.at(-1)?.grup || "", proyek: "", h: [0, 0], b: [0, 0], y: [0, 0], a: [0, 0], t: [0, 0] }); render(); };
+  document.getElementById("sAdd").onclick = () => { sDraft.push({ grup: "", proyek: "", h: [0, 0], b: [0, 0], y: [0, 0], a: [0, 0], t: [0, 0] }); render(); };
   document.getElementById("sSave").onclick = () => {
     S.sales.laporan[sDraftDate] = clone(sDraft).map(r => ({ ...r, grup: r.grup.trim(), proyek: r.proyek.trim() }));
     save(); salesSel = sDraftDate; toast(`Laporan ${ddmmyyyy(sDraftDate)} tersimpan`); render();
   };
   v.querySelectorAll("[data-sdel]").forEach(b => b.onclick = () => { sDraft.splice(+b.dataset.sdel, 1); render(); });
-  v.querySelectorAll("input[data-f]").forEach(inp => inp.onchange = () => { sDraft[+inp.dataset.i][inp.dataset.f] = inp.value; render(inp.id); });
+  v.querySelectorAll("select[data-sp]").forEach(sel => sel.onchange = () => {
+    const r = sDraft[+sel.dataset.i], m = smByName(sel.value);
+    r.proyek = m ? m.nama : ""; r.grup = m ? m.grup : ""; render(sel.id);
+  });
   v.querySelectorAll("input[data-k]").forEach(inp => inp.onchange = () => {
     const raw = inp.value.trim().replace(",", ".");
     sDraft[+inp.dataset.i][inp.dataset.k][+inp.dataset.j] = raw === "" ? 0 : Number(raw); render(inp.id);
   });
+}
+
+/* Master proyek penjualan */
+function viewSalesMaster() {
+  const items = S.salesMaster.slice().sort(byUrut);
+  return `<div class="page gut"><div class="form-head"><div><h2>Master Proyek Penjualan</h2>
+    <div class="desc">Nama dan grup di sini dipakai di dropdown Input Data dan di dashboard. Urutan menentukan urutan tampil. Yang nonaktif tidak muncul di dropdown.</div></div></div>
+    <div class="tbl-wrap" style="margin-top:16px"><table class="edit" style="min-width:760px"><thead><tr><th style="width:70px">Urutan</th><th>Proyek</th><th>Grup</th><th style="width:70px">Aktif</th></tr></thead><tbody>
+    ${items.map((x, i) => `<tr>
+      <td><button class="ord" data-smup="${x.id}" type="button" aria-label="Naikkan ${esc(x.nama)}" ${i === 0 ? "disabled" : ""}>↑</button></td>
+      <td><input type="text" id="smn-${x.id}" data-smn="${x.id}" value="${esc(x.nama)}" aria-label="Nama proyek"></td>
+      <td><input type="text" id="smg-${x.id}" data-smg="${x.id}" value="${esc(x.grup)}" aria-label="Grup proyek"></td>
+      <td><input type="checkbox" id="sma-${x.id}" data-sma="${x.id}" ${x.aktif ? "checked" : ""} aria-label="Proyek aktif"></td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="btn-row" style="margin-top:12px">
+      <input type="text" id="smNewN" placeholder="Nama proyek baru" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--input-bg);color:var(--ink)">
+      <input type="text" id="smNewG" placeholder="Grup" list="smGrupList" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--input-bg);color:var(--ink)">
+      <datalist id="smGrupList">${[...new Set(S.salesMaster.map(x => x.grup))].map(g => `<option value="${esc(g)}">`).join("")}</datalist>
+      <button class="btn" id="smAdd" type="button">Tambah</button></div>
+    <p class="hint">Mengganti nama proyek atau grup juga mengubahnya di semua laporan yang sudah tersimpan. Proyek yang sudah dipakai tidak bisa dihapus, hanya dinonaktifkan.</p></div>`;
+}
+function bindSalesMaster() {
+  const v = document.getElementById("view"), byId = id => S.salesMaster.find(x => x.id === +id);
+  const renameAll = (field, oldVal, newVal, proyekNama) => Object.values(S.sales.laporan).forEach(rows => rows.forEach(r => {
+    if (field === "proyek" && r.proyek.toLowerCase() === oldVal.toLowerCase()) r.proyek = newVal;
+    if (field === "grup" && r.proyek.toLowerCase() === proyekNama.toLowerCase()) r.grup = newVal;
+  }));
+  v.querySelectorAll("[data-smn]").forEach(inp => inp.onchange = () => {
+    const x = byId(inp.dataset.smn), nm = inp.value.trim();
+    if (!nm) { inp.value = x.nama; toast("Nama tidak boleh kosong"); return; }
+    if (S.salesMaster.some(o => o !== x && o.nama.toLowerCase() === nm.toLowerCase())) { inp.value = x.nama; toast("Nama sudah dipakai"); return; }
+    renameAll("proyek", x.nama, nm); x.nama = nm; sDraft = null; save(); toast("Nama disimpan");
+  });
+  v.querySelectorAll("[data-smg]").forEach(inp => inp.onchange = () => {
+    const x = byId(inp.dataset.smg), g = inp.value.trim();
+    if (!g) { inp.value = x.grup; toast("Grup tidak boleh kosong"); return; }
+    renameAll("grup", x.grup, g, x.nama); x.grup = g; sDraft = null; save(); toast("Grup disimpan");
+  });
+  v.querySelectorAll("[data-sma]").forEach(c => c.onchange = () => { byId(c.dataset.sma).aktif = c.checked; save(); toast(c.checked ? "Diaktifkan" : "Dinonaktifkan"); });
+  v.querySelectorAll("[data-smup]").forEach(b => b.onclick = () => {
+    const items = S.salesMaster.slice().sort(byUrut), x = byId(b.dataset.smup), i = items.indexOf(x), o = items[i - 1];
+    [x.urutan, o.urutan] = [o.urutan, x.urutan]; sDraft = null; save(); render();
+  });
+  document.getElementById("smAdd").onclick = () => {
+    const nm = document.getElementById("smNewN").value.trim(), g = document.getElementById("smNewG").value.trim();
+    if (!nm || !g) { toast("Isi nama proyek dan grup"); return; }
+    if (S.salesMaster.some(o => o.nama.toLowerCase() === nm.toLowerCase())) { toast("Nama sudah dipakai"); return; }
+    S.salesMaster.push({ id: Math.max(0, ...S.salesMaster.map(o => o.id)) + 1, nama: nm, grup: g, urutan: Math.max(0, ...S.salesMaster.map(o => o.urutan)) + 1, aktif: true });
+    save(); render(); toast(`${nm} ditambahkan`);
+  };
 }
 
 /* ===================== Daftar report (tambah report baru di sini) ===================== */
@@ -777,6 +852,7 @@ const REPORTS = [
     tabs: [
       { id: "penjualan", label: "Dashboard", view: viewSales, bind: bindSales },
       { id: "penjualan-input", label: "Input Data", view: viewSalesInput, bind: bindSalesInput, admin: true },
+      { id: "penjualan-master", label: "Master", view: viewSalesMaster, bind: bindSalesMaster, admin: true },
     ],
     meta: () => { const d = salesDates()[0]; if (!d) return "Belum ada laporan"; const T = sumSales(S.sales.laporan[d]); return `Laporan ${ddmmyyyy(d)} · ${T.b[0]} unit bulan ini · ${rp(T.b[1])}`; } },
 ];
@@ -836,7 +912,7 @@ const roleSel = document.getElementById("roleSel");
 roleSel.value = S.role;
 roleSel.onchange = () => { S.role = roleSel.value; save(); render(); toast(`Masuk sebagai ${S.role === "ADMIN" ? "Admin" : "Viewer"}`); };
 document.getElementById("resetBtn").onclick = () => {
-  const role = S.role; S = clone(SEED); S.role = role; S.sales = clone(SALES_SEED); save(); draft = null; sDraft = null; selDate = dates()[0]; salesSel = salesDates()[0]; render(); toast("Data contoh dikembalikan");
+  const role = S.role; S = clone(SEED); S.role = role; S.sales = clone(SALES_SEED); S.salesMaster = buildSalesMaster(); save(); draft = null; sDraft = null; selDate = dates()[0]; salesSel = salesDates()[0]; render(); toast("Data contoh dikembalikan");
 };
 window.addEventListener("hashchange", () => { if (current() === "bast-input" && draft === null) loadDraft(dates()[0] || todayISO()); if (current() === "penjualan-input" && sDraft === null) sLoad(salesDates()[0] || todayISO()); render(); window.scrollTo(0, 0); });
 if (!location.hash) history.replaceState(null, "", "#bast");
