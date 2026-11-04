@@ -1115,7 +1115,7 @@ function daftarBatalHold(d) {
     return `<tr class="${lk ? "row-locked" : ""}"><td class="proj-c">${lk ? ikonKunci + " " : ""}${esc(p.nama)}</td><td><input type="text" id="cat-${p.id}" data-cat="${p.id}" value="${esc(p.catatan || "")}" ${lk ? 'readonly class="locked"' : ""} placeholder="Kosongkan jika tidak perlu" aria-label="Catatan ${esc(p.nama)}"></td>
       <td><button type="button" class="cat-tg ${tampil ? "on" : ""}" id="cath-${p.id}" data-cathide="${p.id}" aria-pressed="${tampil}" ${lk ? "disabled" : ""} title="${tampil ? "Klik untuk menyembunyikan catatan ini dari dashboard" : "Klik untuk menampilkan catatan ini di dashboard"}">${tampil ? "Tampil" : "Disembunyikan"}</button></td></tr>`; }).join("");
   return `<div class="bh">
-    <div class="bh-box"><h3>Catatan proyek</h3><div class="desc">Tampil di dashboard di bawah baris proyeknya (tabel Penjualan per Proyek). Klik tombol di kolom “Di dashboard” untuk menyembunyikan atau menampilkan catatan tanpa menghapus teksnya. Klik Simpan data setelahnya.</div>
+    <div class="bh-box"><h3>Catatan proyek</h3><div class="desc">Tampil di dashboard di bawah baris proyeknya (tabel Penjualan per Proyek). Klik tombol di kolom “Di dashboard” untuk menyembunyikan atau menampilkan catatan tanpa menghapus teksnya. Tombol ini langsung tersimpan. Perubahan teks catatan tetap perlu Simpan data.</div>
       <div class="tbl-wrap"><table class="edit cat-t"><thead><tr><th style="width:220px">Proyek</th><th>Catatan</th><th style="width:150px">Di dashboard</th></tr></thead><tbody>${catRows}</tbody></table></div></div>
     <div class="bh-box"><div class="bh-head"><div><h3>Unit Batal</h3><div class="desc">Satu baris per unit yang batal. Tampil di kartu “Batal bulan …” sesuai bulan tanggalnya. Angka penjualan di tabel atas tidak berubah otomatis.</div></div>
       <button class="btn sec" id="addBatal" type="button">Tambah unit batal</button></div>
@@ -1138,8 +1138,15 @@ function bindSalesInput() {
   document.getElementById("addHold").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; }
     bhList("hold").push({ id: nextId("hold"), tanggal: todayISO(), proyekId: pid, kode: "", harga: 0, tandaJadi: 0, ket: "Belum di-create ke sistem" }); render(); };
   const v0 = document.getElementById("view");
-  v0.querySelectorAll("[data-cathide]").forEach(b => b.onclick = () => { const p = sDraft.proyek.find(x => x.id === +b.dataset.cathide); if (!p || !bolehEdit(p.nama)) return;
-    p.catatanTampil = p.catatanTampil === false; render(b.id); });
+  /* Tombol Tampil/Disembunyikan langsung tersimpan, tanpa perlu klik Simpan data */
+  v0.querySelectorAll("[data-cathide]").forEach(b => b.onclick = () => {
+    const id = +b.dataset.cathide, p = sDraft.proyek.find(x => x.id === id), o = S.sales2.proyek.find(x => x.id === id);
+    if (!p || !o || !bolehEdit(o.nama)) return;
+    const tampil = o.catatanTampil === false;
+    p.catatanTampil = tampil; o.catatanTampil = tampil;
+    catat("penjualan", "Input Data", [`${o.nama} · Catatan proyek ${tampil ? "ditampilkan" : "disembunyikan"} di dashboard`]);
+    save(); render(b.id); toast(tampil ? `Catatan ${o.nama} ditampilkan di dashboard` : `Catatan ${o.nama} disembunyikan dari dashboard`);
+  });
   v0.querySelectorAll("[data-cat]").forEach(inp => inp.onchange = () => { const p = sDraft.proyek.find(x => x.id === +inp.dataset.cat); if (!p || !bolehEdit(p.nama)) return; p.catatan = inp.value.trim(); });
   v0.querySelectorAll("[data-bh]").forEach(el => {
     const x = () => bhList(el.dataset.bh).find(r => r.id === +el.dataset.id), f = el.dataset.f;
@@ -1168,7 +1175,6 @@ function bindSalesInput() {
       f(`Akumulasi s.d. ${th - 1}`, o.base, p.base); p.bulan.forEach((v, i) => f(`${BULAN[i]} ${th}`, o.bulan[i], v));
       f("Total stok", o.stok, p.stok); f("Hari ini", o.hari, p.hari);
       if ((o.catatan || "") !== (p.catatan || "")) items.push(`Catatan proyek: "${o.catatan || ""}" → "${p.catatan || ""}"`);
-      if ((o.catatanTampil !== false) !== (p.catatanTampil !== false)) items.push(`Catatan proyek ${p.catatanTampil !== false ? "ditampilkan" : "disembunyikan"} di dashboard`);
       for (let i = pre; i < items.length; i++) items[i] = `${p.nama} · ${items[i]}`;
     });
     const lbl = x => `${namaProyekSales(x.proyekId)} ${x.kode || "(tanpa kode)"}`;
