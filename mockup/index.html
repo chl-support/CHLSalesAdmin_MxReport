@@ -453,6 +453,11 @@ const SEED = {
   }
 };
 const clone = o => JSON.parse(JSON.stringify(o));
+/* Bahasa tampilan. Ekspor Excel dan teks WhatsApp selalu Bahasa Indonesia (PAKSA_ID). */
+let PAKSA_ID = false;
+const isEN = () => !PAKSA_ID && typeof S !== "undefined" && S && S.lang === "en";
+const LOC = () => isEN() ? "en-US" : LOC();
+function denganID(f) { const o = PAKSA_ID; PAKSA_ID = true; try { return f(); } finally { PAKSA_ID = o; } }
 let S;
 try { S = JSON.parse(localStorage.getItem(KEY)) || clone(SEED); } catch (e) { S = clone(SEED); }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} try { jadwalKirim(); } catch (e) { /* belum siap saat halaman dimuat */ } }
@@ -519,7 +524,7 @@ function catat(report, bagian, items) {
 }
 const waktuID = iso => { const d = new Date(iso); const z = n => String(n).padStart(2, "0");
   return `${z(d.getDate())}-${z(d.getMonth() + 1)}-${d.getFullYear()} ${z(d.getHours())}:${z(d.getMinutes())}`; };
-const rpDot = v => Math.round(v).toLocaleString("id-ID");
+const rpDot = v => Math.round(v).toLocaleString(LOC());
 function viewHistory(report) {
   const list = (S.history || []).filter(h => h.report === report || h.report === "semua");
   if (!list.length) return `<div class="page gut"><div class="empty" style="margin-top:24px">Belum ada perubahan tercatat. Setiap perubahan yang disimpan di Input Data atau Master akan muncul di sini.</div></div>`;
@@ -533,7 +538,7 @@ function viewHistory(report) {
     <div class="tbl-wrap" style="margin-top:16px"><table class="hist"><thead><tr><th style="width:140px">Waktu</th><th style="width:120px">Bagian</th><th>Perubahan</th><th style="width:80px">Oleh</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
-function toast(m) { toastEl.textContent = m; toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => toastEl.hidden = true, 2400); }
+function toast(m) { try { if (isEN()) m = teksEN(m); } catch (e) {} toastEl.textContent = m; toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => toastEl.hidden = true, 2400); }
 
 /* ===================== Hitung (sesuai PRD bagian 5) ===================== */
 function hitung(tgl) {
@@ -652,14 +657,14 @@ function bindDashboard() {
   if (dl) dl.onclick = () => { pilihTgl = null; render(); };
   if (!document.getElementById("copyBtn")) return;
   document.getElementById("copyBtn").onclick = () => {
-    const txt = teksWA(selDate);
+    const txt = denganID(() => teksWA(selDate));
     navigator.clipboard.writeText(txt).then(() => toast("Teks laporan disalin")).catch(() => {
       const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select();
       try { document.execCommand("copy"); toast("Teks laporan disalin"); } catch (e) { toast("Gagal menyalin. Coba lagi."); }
       ta.remove();
     });
   };
-  document.getElementById("xlsBtn").onclick = () => exportExcel(selDate);
+  document.getElementById("xlsBtn").onclick = () => denganID(() => exportExcel(selDate));
   document.getElementById("shotBtn").onclick = () => unduhGambar("capBast", `Monitoring_BAST_${ddmmyyyy(pilihTgl || todayISO())}.png`);
 }
 
@@ -779,7 +784,7 @@ function viewInput() {
     <th colspan="2">PPN DTP</th><th colspan="2">Non PPN DTP</th><th colspan="2" class="gt-h">Grand Total</th><th rowspan="2">Keterangan</th><th rowspan="2">Cek</th><th rowspan="2"></th></tr>
     <tr><th>BAST</th><th>Total Unit</th><th>BAST</th><th>Total Unit</th><th class="gt-h">BAST</th><th class="gt-h">Total Unit</th></tr></thead>
     <tbody>${body}${(() => { const T = draft.reduce((a, r) => add(a, r.d), [0, 0, 0, 0]);
-      return `<tr class="sum"><td></td><td colspan="2" style="text-align:left;font-weight:800">TOTAL</td>${T.map(v => `<td>${v.toLocaleString("id-ID")}</td>`).join("")}<td class="gt">${(T[0] + T[2]).toLocaleString("id-ID")}</td><td class="gt">${(T[1] + T[3]).toLocaleString("id-ID")}</td><td colspan="3"></td></tr>`; })()}</tbody></table></div>`
+      return `<tr class="sum"><td></td><td colspan="2" style="text-align:left;font-weight:800">TOTAL</td>${T.map(v => `<td>${v.toLocaleString(LOC())}</td>`).join("")}<td class="gt">${(T[0] + T[2]).toLocaleString(LOC())}</td><td class="gt">${(T[1] + T[3]).toLocaleString(LOC())}</td><td colspan="3"></td></tr>`; })()}</tbody></table></div>`
     : `<div class="empty">Belum ada data untuk ${ddmmyyyy(draftDate)}. ${prev ? `Salin dari laporan ${ddmmyyyy(prev)} atau tambah baris baru.` : "Tambah baris untuk mulai mengisi."}</div>`}
   <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : S.laporan[draftDate] ? "Menyimpan akan mengganti laporan tanggal ini." : "Laporan baru untuk tanggal ini."}${userTerbatas() ? ` Akun Anda hanya bisa mengubah proyek: ${esc(S.proyek.filter(p => bolehEdit(p.nama)).sort(byUrut).map(p => p.nama).join(", ") || "–")}. Baris proyek lain dikunci.` : ""}</p>
   </div>`;
@@ -931,9 +936,9 @@ const M = v => v / 1e9;
 /* Rupiah ringkas untuk kartu: Rp1,23 M / Rp11,5 juta / Rp500.000 */
 function rpRingkas(v) {
   if (!v) return "Rp0";
-  if (Math.abs(v) >= 1e9) return "Rp" + (v / 1e9).toLocaleString("id-ID", { maximumFractionDigits: 2 }) + " M";
-  if (Math.abs(v) >= 1e6) return "Rp" + (v / 1e6).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " juta";
-  return "Rp" + Math.round(v).toLocaleString("id-ID");
+  if (Math.abs(v) >= 1e9) return "Rp" + (v / 1e9).toLocaleString(LOC(), { maximumFractionDigits: 2 }) + (isEN() ? " B" : " M");
+  if (Math.abs(v) >= 1e6) return "Rp" + (v / 1e6).toLocaleString(LOC(), { maximumFractionDigits: 1 }) + (isEN() ? " M" : " juta");
+  return "Rp" + Math.round(v).toLocaleString(LOC());
 }
 /* Format akuntansi: "Rp" rata kiri, angka rata kanan */
 const akRp = angka => `<span class="ak-rp"><span>Rp</span><span>${angka}</span></span>`;
@@ -942,10 +947,10 @@ function ringkasProyek(list) {
   const g = {}; list.forEach(x => { const n = namaProyekSales(x.proyekId); (g[n] = g[n] || []).push(x.kode); });
   return Object.entries(g).map(([n, k]) => `${n} (${k.join(", ")})`).join("; ");
 }
-const idn = (v, d = 2) => v.toLocaleString("id-ID", { minimumFractionDigits: d, maximumFractionDigits: d });
-const rp = vRupiah => "Rp" + idn(M(vRupiah)) + " M";
+const idn = (v, d = 2) => v.toLocaleString(LOC(), { minimumFractionDigits: d, maximumFractionDigits: d });
+const rp = vRupiah => "Rp" + idn(M(vRupiah)) + (isEN() ? " B" : " M");
 const rpN = vRupiah => vRupiah === 0 ? "–" : idn(M(vRupiah));
-const uN = v => v === 0 ? "–" : v.toLocaleString("id-ID");
+const uN = v => v === 0 ? "–" : v.toLocaleString(LOC());
 const bulanKe = (d = S.sales2.tanggal) => +d.slice(5, 7);
 const tahunKe = (d = S.sales2.tanggal) => +d.slice(0, 4);
 function hitungProyek(p, m = bulanKe()) {
@@ -978,7 +983,7 @@ function viewSales() {
   const m = bulanAktif(), cur = bulanIni(m), tgl = tanggalTampil(m), bln = `${BULAN[m - 1]} ${tahunKe()}`, { rows, tot: T } = hitungSales();
   if (!rows.length) return `<div class="page gut"><div class="empty">Belum ada proyek aktif. Tambahkan di tab Master.</div></div>`;
   const kpi = (c, lbl, v, note) => `<div class="kpi" style="--c:${c}"><div class="lbl">${lbl}</div>
-    <div class="val num">${v[0].toLocaleString("id-ID")} <small>unit</small></div><div class="pct num">${rp(v[1])}</div><div class="note">${note}</div></div>`;
+    <div class="val num">${v[0].toLocaleString(LOC())} <small>unit</small></div><div class="pct num">${rp(v[1])}</div><div class="note">${note}</div></div>`;
   const kontributor = (k, judul) => {
     const list = rows.filter(x => x[k][0] > 0 || x[k][1] > 0).sort((a, b) => b[k][1] - a[k][1]);
     const max = Math.max(0, ...list.map(x => x[k][1]));
@@ -993,11 +998,11 @@ function viewSales() {
   kelompok(rows).forEach((g, i) => {
     tbl += `<tr class="group" style="--gc:${COLORS[i % 4]}"><td colspan="7">${esc(g.nama)}</td></tr>`;
     g.rows.forEach(x => tbl += `<tr><td class="proj">${esc(x.p.nama)}</td><td>${uN(x.bln[0])}</td><td>${rpN(x.bln[1])}</td><td>${uN(x.ytd[0])}</td><td>${rpN(x.ytd[1])}</td>
-      <td class="tot">${uN(x.akum[0])}<small>dari ${x.stok[0].toLocaleString("id-ID")}</small></td><td class="tot">${rpN(x.akum[1])}<small>dari ${idn(M(x.stok[1]))}</small></td></tr>`
+      <td class="tot">${uN(x.akum[0])}<small>dari ${x.stok[0].toLocaleString(LOC())}</small></td><td class="tot">${rpN(x.akum[1])}<small>dari ${idn(M(x.stok[1]))}</small></td></tr>`
       + (x.p.catatan && x.p.catatanTampil !== false ? `<tr class="subnote"><td colspan="7">↳ ${esc(x.p.catatan)}</td></tr>` : ""));
   });
   tbl += `<tr class="grand"><td class="proj">Total CHL</td><td>${T.bln[0]}</td><td>${rpN(T.bln[1])}</td><td>${T.ytd[0]}</td><td>${rpN(T.ytd[1])}</td>
-    <td>${T.akum[0].toLocaleString("id-ID")}<small>dari ${T.stok[0].toLocaleString("id-ID")}</small></td><td>${rpN(T.akum[1])}<small>dari ${idn(M(T.stok[1]))}</small></td></tr></tbody>`;
+    <td>${T.akum[0].toLocaleString(LOC())}<small>dari ${T.stok[0].toLocaleString(LOC())}</small></td><td>${rpN(T.akum[1])}<small>dari ${idn(M(T.stok[1]))}</small></td></tr></tbody>`;
   const pctU = T.stok[0] ? T.akum[0] / T.stok[0] * 100 : 0, pctR = T.stok[1] ? T.akum[1] / T.stok[1] * 100 : 0;
   const y = tahunKe(), batalBln = (S.sales2.batal || []).filter(x => +x.tanggal.slice(0, 4) === y && +x.tanggal.slice(5, 7) === m);
   const batalRp = batalBln.reduce((a, x) => a + (x.rp || 0), 0), hold = S.sales2.hold || [], holdTj = hold.reduce((a, x) => a + (x.tandaJadi || 0), 0);
@@ -1023,7 +1028,7 @@ function viewSales() {
     ${kpi("var(--gold)", "Laporan hari ini", T.hari, cur ? `Penjualan ${panjang(tgl)}` : "Hanya untuk bulan berjalan")}
     ${kpi("var(--blue)", `Bulan ${esc(bln)}`, T.bln, `Penjualan selama ${esc(BULAN[m - 1])}`)}
     ${kpi("var(--green)", `YTD s.d. ${esc(BULAN[m - 1])}`, T.ytd, `Penjualan Januari–${esc(BULAN[m - 1])} ${tahunKe()}`)}
-    ${kpi("var(--gold)", "Akumulasi total terjual", T.akum, `Dari ${T.stok[0].toLocaleString("id-ID")} unit • ${idn(pctU, 1)}% terjual`)}
+    ${kpi("var(--gold)", "Akumulasi total terjual", T.akum, `Dari ${T.stok[0].toLocaleString(LOC())} unit • ${idn(pctU, 1)}% terjual`)}
   </div>
   <div class="kpis gut kpis-2">
     ${(() => {
@@ -1122,8 +1127,8 @@ function exportSalesExcel() {
 function bindSales() {
   const c = document.getElementById("salesCopy");
   if (!c) return;
-  c.onclick = () => navigator.clipboard.writeText(salesText()).then(() => toast("Teks laporan disalin")).catch(() => toast("Gagal menyalin. Coba lagi."));
-  document.getElementById("salesXls").onclick = exportSalesExcel;
+  c.onclick = () => navigator.clipboard.writeText(denganID(() => salesText())).then(() => toast("Teks laporan disalin")).catch(() => toast("Gagal menyalin. Coba lagi."));
+  document.getElementById("salesXls").onclick = () => denganID(exportSalesExcel);
   document.getElementById("salesShot").onclick = () => unduhGambar("capSales", `Dashboard_Penjualan_${BULAN[bulanAktif() - 1]}_${tahunKe()}.png`);
   document.getElementById("salesTgl").onchange = e => {
     const v = e.target.value; if (!v) return;
@@ -1149,7 +1154,7 @@ function viewSalesInput() {
   if (sDraft === null) sLoad();
   const d = sDraft, m = bulanKe(d.tanggal), th = tahunKe(d.tanggal), err = sErrors(d), hasErr = Object.keys(err).length > 0;
   const list = d.proyek.slice().sort(byUrut).filter(p => p.aktif);
-  const rpM = S.rpMode === "m", fRp = v => rpM ? idn(M(v)) : Math.round(v).toLocaleString("id-ID");
+  const rpM = S.rpMode === "m", fRp = v => rpM ? idn(M(v)) : Math.round(v).toLocaleString(LOC());
   const kunci = stokTerkunci(), ttlKunci = 'readonly class="locked" title="Dikunci. Hubungi Admin CHL untuk mengubah angka ini."';
   const inp = (p, k, j, v) => {
     const lock = (k === "stok" && kunci) || !bolehEdit(p.nama);
@@ -1159,8 +1164,8 @@ function viewSalesInput() {
   };
   const cell = (p, k, j, v, extra = "") => `<td class="${extra}">${inp(p, k, j, v)}</td>`;
   /* Akumulasi terjual (atas, dihitung) dan Total stok (bawah, diisi), seperti baris "dari" di Excel */
-  const akumStok = (p, v, j) => `<td class="calc akst"><div class="ak">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}</div><div class="dari-in"><span>dari</span>${inp(p, "stok", j, p.stok[j])}${kunci || !bolehEdit(p.nama) ? '<svg class="lock" viewBox="0 0 12 14" width="10" height="12" aria-hidden="true"><rect x="1" y="6" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M3.5 6V4.2a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' : ""}</div></td>`;
-  const calc = (v, j) => `<td class="calc">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}</td>`;
+  const akumStok = (p, v, j) => `<td class="calc akst"><div class="ak">${v ? (j ? fRp(v) : v.toLocaleString(LOC())) : "–"}</div><div class="dari-in"><span>dari</span>${inp(p, "stok", j, p.stok[j])}${kunci || !bolehEdit(p.nama) ? '<svg class="lock" viewBox="0 0 12 14" width="10" height="12" aria-hidden="true"><rect x="1" y="6" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M3.5 6V4.2a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' : ""}</div></td>`;
+  const calc = (v, j) => `<td class="calc">${v ? (j ? fRp(v) : v.toLocaleString(LOC())) : "–"}</td>`;
   const tot = { base: [0, 0], ytd: [0, 0], akum: [0, 0], stok: [0, 0], hari: [0, 0], bulan: Z12() };
   let body = "";
   kelompok(list.map(p => ({ p }))).forEach((g, gi) => {
@@ -1176,9 +1181,9 @@ function viewSalesInput() {
         ${cell(p, "hari", 0, p.hari[0])}${cell(p, "hari", 1, p.hari[1])}</tr>`;
     });
   });
-  const tc = (v, j) => `<td>${j ? fRp(v) : v.toLocaleString("id-ID")}</td>`;
+  const tc = (v, j) => `<td>${j ? fRp(v) : v.toLocaleString(LOC())}</td>`;
   body += `<tr class="sum"><td class="stick">TOTAL CHL</td>${tc(tot.base[0], 0)}${tc(tot.base[1], 1)}${tot.bulan.map(v => tc(v[0], 0) + tc(v[1], 1)).join("")}
-    ${tc(tot.ytd[0], 0)}${tc(tot.ytd[1], 1)}<td class="dari">${tot.akum[0].toLocaleString("id-ID")}<small>dari ${tot.stok[0].toLocaleString("id-ID")}</small></td><td class="dari">${fRp(tot.akum[1])}<small>dari ${fRp(tot.stok[1])}</small></td>${tc(tot.hari[0], 0)}${tc(tot.hari[1], 1)}</tr>`;
+    ${tc(tot.ytd[0], 0)}${tc(tot.ytd[1], 1)}<td class="dari">${tot.akum[0].toLocaleString(LOC())}<small>dari ${tot.stok[0].toLocaleString(LOC())}</small></td><td class="dari">${fRp(tot.akum[1])}<small>dari ${fRp(tot.stok[1])}</small></td>${tc(tot.hari[0], 0)}${tc(tot.hari[1], 1)}</tr>`;
   const h1 = `<th rowspan="2" class="stick">Proyek</th><th colspan="2">Akumulasi s.d. ${th - 1}</th>${BULAN.map((b, i) => `<th colspan="2">${b} ${th}</th>`).join("")}
     <th colspan="2" class="calc-h">YTD ${BULAN[m - 1]}</th><th colspan="2" class="calc-h">Akumulasi terjual<br><span style="font-weight:400;font-size:11.5px">dari total stok</span></th><th colspan="2">Hari ini</th>`;
   const h2 = Array.from({ length: 16 }, () => `<th>Unit</th><th>${rpM ? "Rp M" : "Rp"}</th>`).join("");
@@ -1280,7 +1285,7 @@ function bindSalesInput() {
       if (!bolehEdit(o.nama)) { p.base = clone(o.base); p.bulan = clone(o.bulan); p.stok = clone(o.stok); p.hari = clone(o.hari); p.catatan = o.catatan; p.catatanTampil = o.catatanTampil; }
       else if (stokTerkunci()) p.stok = clone(o.stok); });
     const items = [], th = tahunKe(sDraft.tanggal);
-    const f = (k, o, n) => { if (o[0] !== n[0]) items.push(`${k} unit: ${o[0].toLocaleString("id-ID")} → ${n[0].toLocaleString("id-ID")}`);
+    const f = (k, o, n) => { if (o[0] !== n[0]) items.push(`${k} unit: ${o[0].toLocaleString(LOC())} → ${n[0].toLocaleString(LOC())}`);
       if (o[1] !== n[1]) items.push(`${k} Rp: ${rpDot(o[1])} → ${rpDot(n[1])}`); };
     sDraft.proyek.forEach(p => {
       const o = S.sales2.proyek.find(x => x.id === p.id); if (!o) return;
@@ -1418,7 +1423,7 @@ function render(focusId) {
   const masuk = !!SESI;
   document.getElementById("loginScreen").hidden = masuk;
   document.getElementById("shell").hidden = !masuk;
-  if (!masuk) { document.title = "Masuk · Monitoring Laporan CHL"; return; }
+  if (!masuk) { document.title = "Masuk · Monitoring Laporan CHL"; try { terapkanBahasa(document.getElementById("loginScreen")); } catch (e) {} return; }
   document.title = "Monitoring Laporan CHL";
   const peran = SESI.role !== "ADMIN" ? "Viewer" : SESI.proyek ? "Admin Proyek" : "Admin";
   document.getElementById("whoName").textContent = SESI.nama;
@@ -1467,19 +1472,198 @@ const EN = {
   "Dari": "From", "Sampai": "To", "Waktu": "Time", "Bagian": "Section", "Perubahan": "Change", "Oleh": "By",
   "History Perubahan": "Change history", "Input Data BAST": "BAST data entry", "Input Data Penjualan": "Sales data entry",
   "Tampilan Rp": "Rp display", "Rp detail": "Full Rp", "Tampil": "Shown", "Disembunyikan": "Hidden", "Di dashboard": "On dashboard",
+  "Masuk untuk membuka Monitoring Laporan.": "Sign in to open Report Monitoring.",
+  "Lihat": "Show",
+  "Sembunyikan": "Hide",
+  "Masuk": "Sign in",
+  "Memeriksa…": "Checking…",
+  "Belum punya akun? Hubungi admin CHL.": "No account yet? Contact the CHL admin.",
+  "Username": "Username",
+  "Password": "Password",
+  "DASHBOARD PENJUALAN PROPERTI": "PROPERTY SALES DASHBOARD",
+  "Dashboard Penjualan Properti": "Property Sales Dashboard",
+  "DASHBOARD MONITORING BAST ALL DTP CATEGORY": "BAST MONITORING DASHBOARD – ALL DTP CATEGORIES",
+  "Dashboard Monitoring BAST All DTP Category": "BAST Monitoring Dashboard – All DTP Categories",
+  "Monitoring BAST All DTP Category": "BAST Monitoring – All DTP Categories",
+  "Unit dan nilai penjualan per proyek: hari ini, bulan laporan, YTD, dan akumulasi terjual. Mengikuti format Excel Daily Report.": "Units and sales value per project: today, report month, YTD, and total sold. Follows the Excel Daily Report format.",
+  "Progres BAST unit PPN DTP dan Non PPN DTP per periode dan proyek.": "BAST progress for VAT DTP and non-VAT DTP units by period and project.",
+  "Data awal disimpan ke server": "Initial data saved to the server",
+  "Sales Performance": "Sales Performance",
+  "Laporan BAST": "BAST Report",
+  "Tidak ada penjualan.": "No sales.",
+  "tanda jadi": "booking fee",
+  "Belum di-create ke sistem": "Not yet created in the system",
+  "Unit yang ditahan dan belum di-create ke sistem penjualan. Tetap tercantum sampai dihapus manual oleh admin. Tidak dihitung ke penjualan bulan ini, YTD, maupun akumulasi.": "Units on hold that are not yet created in the sales system. They stay listed until an admin removes them. Not counted in this month's sales, YTD, or total sold.",
+  "Unit yang ditahan dan belum di-create ke sistem. Tetap tercantum sampai dihapus manual (klik ×) setelah di-create. Tidak dihitung sebagai penjualan.": "Units on hold that are not yet created in the system. They stay listed until removed (click ×) after being created. Not counted as sales.",
+  "Data penjualan dicatat per bulan: tanggal yang dipilih menampilkan data bulannya": "Sales are recorded monthly: the chosen date shows its month",
+  "Format sama dengan sheet “input data”. Isi kolom kuning dalam": "Same format as the “input data” sheet. Enter the yellow cells as",
+  "Rupiah penuh": "full Rupiah",
+  "(contoh 946.000.000) saat tampilan": "(e.g. 946,000,000) in",
+  "Rp detail": "Full Rp",
+  ". Tampilan": " view. The",
+  "Rp M": "Rp B",
+  "Kolom abu-abu dihitung otomatis seperti di Excel: YTD = jumlah Januari–Desember": "Grey columns are calculated automatically, as in Excel: YTD = sum of January–December",
+  "Save data": "Save data",
+  "dari total stok": "of total stock",
+  "dari": "of",
+  "Catatan": "Note",
+  "Nilai (Rp)": "Value (Rp)",
+  "Harga unit (Rp)": "Unit price (Rp)",
+  "Tanda jadi (Rp)": "Booking fee (Rp)",
+  "Proyek dan grup diatur di tab Master.": "Projects and groups are managed in the Master tab.",
+  "Kosongkan jika tidak perlu": "Leave empty if not needed",
+  "Klik untuk menyembunyikan catatan ini dari dashboard": "Click to hide this note from the dashboard",
+  "Klik untuk menampilkan catatan ini di dashboard": "Click to show this note on the dashboard",
+  "Tampil di dashboard di bawah baris proyeknya (tabel Penjualan per Proyek). Klik tombol di kolom “Di dashboard” untuk menyembunyikan atau menampilkan catatan tanpa menghapus teksnya. Tombol ini langsung tersimpan. Perubahan teks catatan tetap perlu Simpan data.": "Shown on the dashboard under the project's row (Sales by project table). Use the button in the “On dashboard” column to hide or show a note without deleting it; it saves immediately. Editing the note text still needs Save data.",
+  "Satu baris per unit yang batal. Tampil di kartu “Batal bulan …” sesuai bulan tanggalnya. Angka penjualan di tabel atas tidak berubah otomatis.": "One row per cancelled unit. Shown in the “Cancelled in …” card for the month of its date. Sales figures in the table above do not change automatically.",
+  "Nama dan grup di sini dipakai di Input Data dan dashboard. Urutan menentukan urutan tampil. Proyek nonaktif tidak dihitung di dashboard.": "Names and groups here are used in Data Entry and on the dashboard. Order sets the display order. Inactive projects are not counted on the dashboard.",
+  "Grup": "Group",
+  "Nama": "Name",
+  "Nama proyek baru": "New project name",
+  "Nama periode baru": "New period name",
+  "Proyek baru mulai dengan angka 0; isi angkanya di tab Input Data.": "New projects start at 0; enter their figures in the Data Entry tab.",
+  "Belum ada perubahan tercatat. Setiap perubahan yang disimpan di Input Data atau Master akan muncul di sini.": "No changes recorded yet. Every change saved in Data Entry or Master will appear here.",
+  "Unit sudah BAST dibanding total unit pada periode PPN DTP.": "Units with BAST compared to total units in each VAT DTP period.",
+  "Gabungan seluruh periode, PPN DTP dan Non PPN DTP. Proyek tanpa angka tidak ditampilkan.": "All periods combined, VAT DTP and non-VAT DTP. Projects without figures are hidden.",
+  "Grand Total = PPN DTP + Non PPN DTP. Tanda “–” berarti 0 unit.": "Grand Total = VAT DTP + non-VAT DTP. “–” means 0 units.",
+  "Lihat kolom Status pada tabel rincian untuk proyek yang masih ada sisa unit.": "See the Status column in the details table for projects with units outstanding.",
+  "Data diambil dari tab Input Data. Untuk proyek atau periode baru, tambahkan namanya di tab Master.": "Data comes from the Data Entry tab. For a new project or period, add its name in the Master tab.",
+  "Pilih tanggal; jika tidak ada laporan di tanggal itu, tampil laporan terakhir sebelumnya": "Pick a date; if it has no report, the latest earlier report is shown",
+  "Isi satu baris per periode dan proyek. Kosongkan atau isi 0 untuk tanda “–”.": "One row per period and project. Leave empty or enter 0 for “–”.",
+  "Periode PPN DTP": "VAT DTP period",
+  "Menyimpan akan mengganti laporan tanggal ini.": "Saving will replace this date's report.",
+  "Laporan baru untuk tanggal ini.": "New report for this date.",
+  "Perbaiki baris bertanda merah sebelum menyimpan.": "Fix the rows marked in red before saving.",
+  "Nama di sini muncul di dropdown Input Data dan di dashboard. Yang nonaktif tidak muncul di dropdown.": "Names here appear in the Data Entry dropdowns and on the dashboard. Inactive ones are not shown in dropdowns.",
+  "Periode yang sudah dipakai di laporan tidak bisa dihapus, hanya dinonaktifkan.": "Periods already used in a report cannot be deleted, only deactivated.",
+  "Proyek yang sudah dipakai di laporan tidak bisa dihapus, hanya dinonaktifkan.": "Projects already used in a report cannot be deleted, only deactivated.",
+  "BAST PPN DTP": "BAST VAT DTP",
+  "BAST NON PPN DTP": "BAST NON-VAT DTP",
+  "BAST Non PPN DTP": "BAST non-VAT DTP",
+  "PPN DTP": "VAT DTP",
+  "Non PPN DTP": "Non-VAT DTP",
+  "Total Unit": "Total units",
+  "Cek": "Check",
+  "OK": "OK",
+  "Tambah unit": "Add unit",
+  "Pilih periode": "Choose period",
+  "Pilih proyek": "Choose project",
+  "Total CHL": "CHL total",
+  "Salin dari laporan sebelumnya": "Copy from previous report",
+  "Hapus": "Delete",
+  "Tersambung ke server": "Connected to server",
+  "Menghubungkan ke server…": "Connecting to server…",
+  "Menyimpan ke server…": "Saving to server…",
+  "Teks laporan disalin": "Report text copied",
+  "File Excel diunduh": "Excel file downloaded",
+  "Menyiapkan gambar…": "Preparing image…",
+  "Gambar diunduh": "Image downloaded",
+  "Anda sudah keluar": "You have signed out",
+  "Perubahan dibatalkan": "Changes discarded",
+  "Nama disimpan": "Name saved",
+  "Grup disimpan": "Group saved",
+  "Belum ada laporan.": "No reports yet.",
+  "Tidak ada unit batal": "No cancelled units",
+  "Tidak ada unit hold": "No units on hold",
+  "Tidak ada unit hold saat ini.": "No units on hold right now.",
+  "Belum ada unit batal.": "No cancelled units yet.",
+  "Belum ada unit hold.": "No units on hold yet.",
+  "Hanya untuk bulan berjalan": "Current month only",
+  "Rp belum diisi": "Rp not filled in",
+  "Selesai": "Done",
+  "Tidak ada unit": "No units",
+  "Belum ada data": "No data yet",
+  "Ganti Laporan": "Switch report",
+  "Admin Proyek": "Project admin",
   "Master Periode & Proyek": "Periods & projects master", "Master Proyek Penjualan": "Sales projects master", "Tambah": "Add", "Urutan": "Order", "Aktif": "Active",
 };
-const asliTeks = new WeakMap();
-function terapkanBahasa() {
+/* Pola kalimat dinamis (angka, nama, tanggal) */
+const BLN_EN = { Januari: "January", Februari: "February", Maret: "March", April: "April", Mei: "May", Juni: "June", Juli: "July",
+  Agustus: "August", September: "September", Oktober: "October", November: "November", Desember: "December",
+  Jan: "Jan", Feb: "Feb", Mar: "Mar", Apr: "Apr", Jun: "Jun", Jul: "Jul", Agu: "Aug", Sep: "Sep", Okt: "Oct", Nov: "Nov", Des: "Dec" };
+const POLA = [
+  [/^Perubahan hari ini \((.+?)\)(.*)$/, (m, a, b) => `Changes today (${a})${b.replace(/ • belum ada laporan baru, data dari laporan (\S+)/, " • no new report yet, data from the $1 report")}`],
+  [/• belum ada laporan baru, data dari laporan (\S+)/, (m, a) => `• no new report yet, data from the ${a} report`],
+  [/^Data BAST (\d+) proyek • (\d+) periode PPN DTP$/, (m, a, b) => `BAST data for ${a} projects • ${b} VAT DTP periods`],
+  [/^Data penjualan (\d+) proyek • (.*)$/, (m, a, b) => `Sales data for ${a} projects • ${teksEN(b)}`],
+  [/^Tidak ada perubahan pada (.+)$/, (m, a) => `No changes on ${a}`],
+  [/(\d+) unit terjual pada (.+)/, (m, a, b) => `${a} units sold on ${b}`],
+  [/^Posisi akhir (.+?)( \(data dicatat per bulan; dipilih (.+)\))?$/, (m, a, b, c) => `Position at end of ${a}${c ? ` (sales are recorded monthly; selected ${c})` : ""}`],
+  [/^(\d+) laporan tersimpan$/, (m, a) => `${a} saved report${a === "1" ? "" : "s"}`],
+  [/^Laporan (\S+) · (.+) unit BAST$/, (m, a, b) => `Report ${a} · ${b} BAST units`],
+  [/^Laporan (\S+) · (\d+) unit bulan ini · (.+)$/, (m, a, b, c) => `Report ${a} · ${b} units this month · ${c}`],
+  [/^Sisa (\d+) unit$/, (m, a) => `${a} left`],
+  [/^Dari (.+) unit total$/, (m, a) => `Out of ${a} units in total`],
+  [/^Dari (.+) unit • (.+) terjual$/, (m, a, b) => `Out of ${a} units • ${b} sold`],
+  [/^Penjualan selama (.+)$/, (m, a) => `Sales during ${a}`],
+  [/^Penjualan Januari–(.+)$/, (m, a) => `Sales January–${a}`],
+  [/^Penjualan (\d.+)$/, (m, a) => `Sales on ${a}`],
+  [/^Bulan (.+)$/, (m, a) => `Month: ${a}`],
+  [/^YTD s\.d\. (.+)$/, (m, a) => `YTD to ${a}`],
+  [/^Batal bulan (.+)$/, (m, a) => `Cancelled in ${a}`],
+  [/^Batal · Laporan hari ini$/, () => "Cancelled · Today's report"],
+  [/^Batal (\d.+)$/, (m, a) => `Cancelled on ${a}`],
+  [/^Kontributor Penjualan (.+)$/, (m, a) => `Sales contributors ${a}`],
+  [/^(\d+) proyek melakukan penjualan; (\d+) proyek lainnya nihil\.$/, (m, a, b) => `${a} projects made sales; ${b} other projects had none.`],
+  [/^BAST PPN DTP belum selesai: (\d+) unit dari (\d+) unit\.$/, (m, a, b) => `BAST VAT DTP outstanding: ${a} of ${b} units.`],
+  [/^BAST Non PPN DTP belum selesai: (\d+) unit dari (\d+) unit\.$/, (m, a, b) => `BAST non-VAT DTP outstanding: ${a} of ${b} units.`],
+  [/^CHL = total konsolidasi (\d+) proyek, bukan proyek tambahan\. Jangan dijumlahkan dua kali\.$/, (m, a) => `CHL = consolidated total of ${a} projects, not an extra project. Do not count it twice.`],
+  [/^Total nilai proyek CHL: (.+?)\s+\|\s+Total terjual: (.+)$/, (m, a, b) => `CHL total project value: ${a}  |  Total sold: ${b}`],
+  [/^Sumber: Daily Report per (.+?) • M = Rp miliar • “–” = nihil$/, (m, a) => `Source: Daily Report as of ${a} • B = Rp billion • “–” = none`],
+  [/^Periode PPN DTP \((.+)\)$/, (m, a) => `VAT DTP period (${a})`],
+  [/^dari (.+)$/, (m, a) => `of ${a}`],
+  [/^(\d+) catatan, terbaru di atas\. (.*)$/, (m, a) => `${a} entries, newest first. Recorded each time data is saved in Data Entry or changed in Master. Stored on the server.`],
+  [/^Menampilkan (\d+) dari (\d+) unit$/, (m, a, b) => `Showing ${a} of ${b} units`],
+  [/^(\d+) unit$/, (m, a) => `${a} unit${a === "1" ? "" : "s"}`],
+  [/^Tersambung ke server • diperbarui (.+)$/, (m, a) => `Connected to server • updated ${a}`],
+  [/^Tersimpan di server • (.+)$/, (m, a) => `Saved to server • ${a}`],
+  [/^Akumulasi s\.d\. (\d+)$/, (m, a) => `Total sold to ${a}`],
+  [/^Akumulasi terjual = akumulasi s\.d\. (\d+) \+ YTD (.+)\.$/, (m, a, b) => `Total sold = sold to ${a} + YTD ${b}.`],
+  [/^Unit dan nilai penjualan \(Rp miliar\)\. Akumulasi terjual = akumulasi s\.d\. (\d+) \+ YTD (.+)\.$/, (m, a, b) => `Units and sales value (Rp billion). Total sold = sold to ${a} + YTD ${b}.`],
+  [/^Akun Anda hanya bisa mengubah proyek: (.+?)\. (.*)$/, (m, a) => `Your account can only edit: ${a}. Other projects are locked.`],
+  [/^Belum ada angka BAST untuk laporan (\S+)\. (.*)$/, (m, a) => `No BAST figures in the ${a} report yet. Enter them in Data Entry; projects with all zeros are hidden.`],
+  [/^Belum ada laporan pada atau sebelum (\S+)\. Laporan pertama tersimpan tanggal (\S+)\.$/, (m, a, b) => `No report on or before ${a}. The first saved report is dated ${b}.`],
+  [/^(.+) • YTD (.+) • Total Terjual$/, (m, a, b) => `${a} • YTD ${b} • Total sold`],
+  [/^(−?\d+) unit • (.+)$/, (m, a, b) => `${a} unit${a.replace("−", "") === "1" ? "" : "s"} • ${teksEN(b)}`],
+  [/^(.+) • belum dihitung sebagai penjualan$/, (m, a) => `${a} • not counted as sales`],
+  [/^\/ (.+)$/, (m, a) => `/ ${EN[a] || a}`],
+  [/^Otomatis mengikuti tanggal hari ini\. Bulan aktif: (.+)\.$/, (m, a) => `Follows today's date automatically. Active month: ${a}.`],
+  [/^hanya untuk dibaca: angka dibagi 1\.000\.000\.000 dengan 2 angka di belakang koma\. Kolom abu-abu dihitung otomatis: YTD = Januari s\.d\. (.+?) \(bulan berjalan\), Akumulasi terjual = akumulasi s\.d\. (\d+) \+ YTD\.$/,
+    (m, a, b) => `view is read-only: values divided by 1,000,000,000 with 2 decimals. Grey columns are calculated automatically: YTD = January to ${a} (current month), Total sold = sold to ${b} + YTD.`],
+  [/^Selamat datang, (.+)$/, (m, a) => `Welcome, ${a}`],
+  [/^Laporan (\S+) tersimpan$/, (m, a) => `Report ${a} saved`],
+  [/^Data penjualan (\S+) tersimpan$/, (m, a) => `Sales data ${a} saved`],
+  [/^Catatan (.+) disembunyikan dari dashboard$/, (m, a) => `${a} note hidden from the dashboard`],
+  [/^Catatan (.+) ditampilkan di dashboard$/, (m, a) => `${a} note shown on the dashboard`],
+  [/^Data baru saja diubah oleh (.+?)\. (.*)$/, (m, a) => `${a} just changed the data. The latest data is loaded; please redo your change.`],
+];
+function teksEN(t) {
+  const k = t.trim(); if (!k) return t;
+  let out = EN[k];
+  if (!out) for (const [re, f] of POLA) { if (re.test(k)) { out = k.replace(re, f); break; } }
+  out = (out || k).replace(/\b(Januari|Februari|Maret|Mei|Juni|Juli|Agustus|Oktober|Desember|Agu|Okt|Des)\b/g, x => BLN_EN[x] || x).replace(/ s\.d /g, " to ");
+  return out === k ? t : t.replace(k, out);
+}
+const asliTeks = new WeakMap(), asliAttr = new WeakMap();
+function terapkanBahasa(root) {
   const en = S.lang === "en";
   document.documentElement.lang = en ? "en" : "id";
   document.getElementById("langID").setAttribute("aria-pressed", String(!en));
   document.getElementById("langEN").setAttribute("aria-pressed", String(en));
-  const w = document.createTreeWalker(document.getElementById("shell"), NodeFilter.SHOW_TEXT);
+  const akar = root || document.body;
+  const w = document.createTreeWalker(akar, NodeFilter.SHOW_TEXT, { acceptNode: n => n.parentElement && /^(SCRIPT|STYLE|TEXTAREA)$/.test(n.parentElement.tagName) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
   for (let n = w.nextNode(); n; n = w.nextNode()) {
-    if (en) { const t = n.nodeValue.trim(); if (EN[t]) { if (!asliTeks.has(n)) asliTeks.set(n, n.nodeValue); n.nodeValue = n.nodeValue.replace(t, EN[t]); } }
+    if (en) { const t2 = teksEN(n.nodeValue); if (t2 !== n.nodeValue) { if (!asliTeks.has(n)) asliTeks.set(n, n.nodeValue); n.nodeValue = t2; } }
     else if (asliTeks.has(n)) { n.nodeValue = asliTeks.get(n); asliTeks.delete(n); }
   }
+  akar.querySelectorAll("[placeholder],[title],[aria-label]").forEach(el => {
+    ["placeholder", "title", "aria-label"].forEach(at => {
+      if (!el.hasAttribute(at)) return;
+      const store = asliAttr.get(el) || {};
+      if (en) { const v = el.getAttribute(at), v2 = teksEN(v); if (v2 !== v) { if (!(at in store)) store[at] = v; el.setAttribute(at, v2); asliAttr.set(el, store); } }
+      else if (at in store) { el.setAttribute(at, store[at]); delete store[at]; }
+    });
+  });
 }
 document.getElementById("langID").onclick = () => { S.lang = "id"; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} render(); };
 document.getElementById("langEN").onclick = () => { S.lang = "en"; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} render(); };
