@@ -90,6 +90,9 @@ table { width: 100%; border-collapse: collapse; }
 .rincian thead tr:last-child th { font-weight: 500; font-size: 13.5px; padding-top: 0; }
 .rincian td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: center; }
 .rincian td.proj { text-align: left; font-weight: 700; color: var(--ink); }
+.rincian tr.nodata-row td { color: var(--grey); }
+.rincian tr.nodata-row td.proj { color: var(--muted); font-weight: 600; }
+.nodata { color: var(--grey); font-weight: 600; font-size: 13px; }
 .rincian td.tot { background: var(--blue-soft); font-weight: 700; color: var(--ink); }
 .rincian td.tot small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
 .rincian tr.group td { background: var(--blue-soft); text-align: left; font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--ink); padding: 8px 10px; border-left: 4px solid var(--gc); }
@@ -311,14 +314,16 @@ function toast(m) { toastEl.textContent = m; toastEl.hidden = false; clearTimeou
 function hitung(tgl) {
   const rows = S.laporan[tgl] || [];
   const grand = rows.reduce((a, r) => add(a, r.d), [0, 0, 0, 0]);
+  /* Semua proyek aktif ditampilkan; proyek nonaktif hanya jika punya data */
+  const tampil = S.proyek.filter(p => p.aktif || rows.some(r => r.proyekId === p.id)).sort(byUrut);
   const periodes = S.periode.slice().sort(byUrut).map(p => {
     const pr = rows.filter(r => r.periodeId === p.id)
       .sort((a, b) => (prjById(a.proyekId)?.urutan ?? 99) - (prjById(b.proyekId)?.urutan ?? 99));
-    return { p, rows: pr, sum: pr.reduce((a, r) => add(a, r.d), [0, 0, 0, 0]) };
-  }).filter(x => x.rows.length);
-  const proyeks = S.proyek.map(p => ({ p, sum: rows.filter(r => r.proyekId === p.id).reduce((a, r) => add(a, r.d), [0, 0, 0, 0]) }))
-    .filter(x => x.sum[1] + x.sum[3] > 0)
-    .sort((a, b) => (b.sum[1] + b.sum[3]) - (a.sum[1] + a.sum[3]));
+    const rincian = tampil.map(j => ({ j, r: pr.find(r => r.proyekId === j.id) || null }));
+    return { p, rows: pr, rincian, sum: pr.reduce((a, r) => add(a, r.d), [0, 0, 0, 0]) };
+  }).filter(x => x.p.aktif || x.rows.length);
+  const proyeks = tampil.map(p => ({ p, sum: rows.filter(r => r.proyekId === p.id).reduce((a, r) => add(a, r.d), [0, 0, 0, 0]) }))
+    .sort((a, b) => (b.sum[1] + b.sum[3]) - (a.sum[1] + a.sum[3]) || a.p.urutan - b.p.urutan);
   return { rows, grand, periodes, proyeks };
 }
 function teksWA(tgl) {
@@ -346,14 +351,19 @@ function viewDashboard() {
     <div class="val num">${val} <small>${unit}</small></div><div class="pct num">${p}%</div><div class="note">${note}</div></div>`;
   const bar = (nm, b, t, c) => `<div class="bar-row"><span class="nm">${esc(nm)}</span>
     <div class="track"><div class="fill" style="--c:${c};width:${pct(b, t)}%"></div></div>
-    <span class="u num">${b} / ${t} unit</span><span class="p num">${pct(b, t)}%</span></div>`;
+    ${t ? `<span class="u num">${b} / ${t} unit</span><span class="p num">${pct(b, t)}%</span>` : `<span class="u nodata">Belum ada data</span><span class="p num">–</span>`}</div>`;
   let tbl = `<thead><tr><th rowspan="2" style="text-align:center;width:30%">Proyek</th><th colspan="2">BAST PPN DTP</th><th colspan="2">BAST Non PPN DTP</th><th colspan="2">Total</th></tr>
     <tr><th>BAST</th><th>Unit</th><th>BAST</th><th>Unit</th><th>BAST</th><th>Status</th></tr></thead><tbody>`;
   const notes = [];
-  H.periodes.forEach(({ p, rows }, i) => {
+  H.periodes.forEach(({ p, rincian }, i) => {
     tbl += `<tr class="group" style="--gc:${COLORS[i % 4]}"><td colspan="7">Periode PPN DTP (${esc(p.nama)})</td></tr>`;
-    rows.forEach(r => {
-      const nm = prjById(r.proyekId).nama, b = r.d[0] + r.d[2], t = r.d[1] + r.d[3], st = status(b, t);
+    rincian.forEach(({ j, r }) => {
+      if (!r) {
+        tbl += `<tr class="nodata-row"><td class="proj">${esc(j.nama)}</td><td>–</td><td>–</td><td>–</td><td>–</td>
+          <td class="tot">–</td><td class="tot"><span class="st" style="--sc:var(--grey)">Belum ada data</span></td></tr>`;
+        return;
+      }
+      const nm = j.nama, b = r.d[0] + r.d[2], t = r.d[1] + r.d[3], st = status(b, t);
       tbl += `<tr><td class="proj">${esc(nm)}</td><td>${f(r.d[0])}</td><td>${f(r.d[1])}</td><td>${f(r.d[2])}</td><td>${f(r.d[3])}</td>
         <td class="tot">${f(b)}<small>dari ${t}</small></td><td class="tot"><span class="st" style="--sc:${st.c}">${st.t}</span></td></tr>`;
       if (r.d[1] > r.d[0]) notes.push(`<b>${esc(nm)}</b> (${esc(p.nama)}): BAST PPN DTP sisa <b>${r.d[1] - r.d[0]} unit</b> dari ${r.d[1]} unit.`);
