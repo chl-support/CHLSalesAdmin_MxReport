@@ -212,6 +212,10 @@ table { width: 100%; border-collapse: collapse; }
 .who b { font-size: 14px; color: var(--side-ink); }
 .who span { font-size: 12px; font-weight: 700; color: var(--gold-ink); }
 .kpis-2 { margin-top: 20px; }
+.rincian tr.subnote td { text-align: left; padding: 3px 10px 8px 26px; font-size: 12.5px; font-style: italic; color: var(--gold-ink); background: var(--bg); border-bottom: 1px solid var(--line); }
+.cat-t { min-width: 640px; }
+.cat-t td.proj-c { text-align: left; font-weight: 700; color: var(--ink); }
+.cat-t input[type="text"] { text-align: left !important; text-align-last: left !important; }
 .hold-t { width: 100%; border-collapse: collapse; margin-top: 12px; min-width: 640px; }
 .hold-t th { background: var(--navy); color: #fff; font-size: 13px; padding: 8px 10px; text-align: left; }
 .hold-t td { padding: 7px 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
@@ -810,6 +814,13 @@ SALES2_SEED.hold = [
   { id: 3, tanggal: "2026-11-04", proyekId: 4, kode: "B4-10", harga: 190000000, tandaJadi: 500000, ket: "Belum di-create ke sistem" },
 ];
 if (!S.sales2) { S.sales2 = clone(SALES2_SEED); delete S.sales; delete S.salesMaster; save(); }
+function migrasiCatatan() {
+  if (!S.sales2 || S.sales2.catatanV) return false;
+  const pi = S.sales2.proyek.find(p => p.nama.toLowerCase() === "permai indah");
+  if (pi && !pi.catatan) pi.catatan = "59 unit (Rp10,92 M) Full BF + Akad • 13 unit (Rp2,40 M) No BF + No SPK Bank";
+  S.sales2.catatanV = 1; return true;
+}
+if (migrasiCatatan()) save();
 if (!S.sales2.batal) { S.sales2.batal = clone(SALES2_SEED.batal); S.sales2.hold = clone(SALES2_SEED.hold); save(); }
 /* Tanggal laporan selalu mengikuti hari ini, sehingga bulan aktif ikut bulan berjalan.
    Angka "hari ini" dikosongkan otomatis saat hari berganti. */
@@ -887,7 +898,8 @@ function viewSales() {
   kelompok(rows).forEach((g, i) => {
     tbl += `<tr class="group" style="--gc:${COLORS[i % 4]}"><td colspan="7">${esc(g.nama)}</td></tr>`;
     g.rows.forEach(x => tbl += `<tr><td class="proj">${esc(x.p.nama)}</td><td>${uN(x.bln[0])}</td><td>${rpN(x.bln[1])}</td><td>${uN(x.ytd[0])}</td><td>${rpN(x.ytd[1])}</td>
-      <td class="tot">${uN(x.akum[0])}<small>dari ${x.stok[0].toLocaleString("id-ID")}</small></td><td class="tot">${rpN(x.akum[1])}<small>dari ${idn(M(x.stok[1]))}</small></td></tr>`);
+      <td class="tot">${uN(x.akum[0])}<small>dari ${x.stok[0].toLocaleString("id-ID")}</small></td><td class="tot">${rpN(x.akum[1])}<small>dari ${idn(M(x.stok[1]))}</small></td></tr>`
+      + (x.p.catatan && S.showCatatan !== false ? `<tr class="subnote"><td colspan="7">↳ ${esc(x.p.catatan)}</td></tr>` : ""));
   });
   tbl += `<tr class="grand"><td class="proj">Total CHL</td><td>${T.bln[0]}</td><td>${rpN(T.bln[1])}</td><td>${T.ytd[0]}</td><td>${rpN(T.ytd[1])}</td>
     <td>${T.akum[0].toLocaleString("id-ID")}<small>dari ${T.stok[0].toLocaleString("id-ID")}</small></td><td>${rpN(T.akum[1])}<small>dari ${idn(M(T.stok[1]))}</small></td></tr></tbody>`;
@@ -909,6 +921,7 @@ function viewSales() {
         <button class="btn-ghost" id="salesCopy" type="button">Salin teks laporan</button>
         <button class="btn-ghost" id="salesXls" type="button">Ekspor Excel</button>
         <button class="btn-ghost" id="salesShot" type="button">Unduh gambar</button>
+        ${S.sales2.proyek.some(p => p.catatan) ? `<button class="btn-ghost" id="catToggle" type="button" aria-pressed="${S.showCatatan !== false}">${S.showCatatan !== false ? "Sembunyikan catatan" : "Tampilkan catatan"}</button>` : ""}
       </div></div>
   </div>
   <div class="kpis gut">
@@ -1004,6 +1017,8 @@ function bindSales() {
   if (!c) return;
   c.onclick = () => navigator.clipboard.writeText(salesText()).then(() => toast("Teks laporan disalin")).catch(() => toast("Gagal menyalin. Coba lagi."));
   document.getElementById("salesXls").onclick = exportSalesExcel;
+  const ct = document.getElementById("catToggle");
+  if (ct) ct.onclick = () => { S.showCatatan = S.showCatatan === false; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} render("catToggle"); };
   document.getElementById("salesShot").onclick = () => unduhGambar("capSales", `Dashboard_Penjualan_${BULAN[bulanAktif() - 1]}_${tahunKe()}.png`);
   document.getElementById("salesBulan").onchange = e => { const v = +e.target.value; salesBulan = v === bulanKe() ? null : v; render(); };
 }
@@ -1084,7 +1099,11 @@ function daftarBatalHold(d) {
   const batal = (d.batal || []).map(x => row("batal", x, `<td>${txt("batal", x, "kode", "OR-OD3-012")}</td><td>${rpIn("batal", x, "rp")}</td><td>${txt("batal", x, "ket")}</td>`)).join("");
   const hold = (d.hold || []).map(x => row("hold", x, `<td>${txt("hold", x, "kode", "NS-NR1-06")}</td><td>${rpIn("hold", x, "harga")}</td><td>${rpIn("hold", x, "tandaJadi")}</td><td>${txt("hold", x, "ket")}</td>`)).join("");
   const kosong = (n, t) => `<tr><td colspan="${n}" style="color:var(--muted);text-align:center;padding:12px">${t}</td></tr>`;
+  const catRows = d.proyek.slice().sort(byUrut).filter(p => p.aktif).map(p => { const lk = !bolehEdit(p.nama);
+    return `<tr class="${lk ? "row-locked" : ""}"><td class="proj-c">${lk ? ikonKunci + " " : ""}${esc(p.nama)}</td><td><input type="text" id="cat-${p.id}" data-cat="${p.id}" value="${esc(p.catatan || "")}" ${lk ? 'readonly class="locked"' : ""} placeholder="Kosongkan jika tidak perlu" aria-label="Catatan ${esc(p.nama)}"></td></tr>`; }).join("");
   return `<div class="bh">
+    <div class="bh-box"><h3>Catatan proyek</h3><div class="desc">Tampil di dashboard di bawah baris proyeknya (tabel Penjualan per Proyek). Kosongkan jika tidak perlu. Catatan bisa disembunyikan dari dashboard dengan tombol “Sembunyikan catatan”.</div>
+      <div class="tbl-wrap"><table class="edit cat-t"><thead><tr><th style="width:220px">Proyek</th><th>Catatan</th></tr></thead><tbody>${catRows}</tbody></table></div></div>
     <div class="bh-box"><div class="bh-head"><div><h3>Unit Batal</h3><div class="desc">Satu baris per unit yang batal. Tampil di kartu “Batal bulan …” sesuai bulan tanggalnya. Angka penjualan di tabel atas tidak berubah otomatis.</div></div>
       <button class="btn sec" id="addBatal" type="button">Tambah unit batal</button></div>
       <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Nilai (Rp)</th><th>Keterangan</th><th></th></tr></thead>
@@ -1106,6 +1125,7 @@ function bindSalesInput() {
   document.getElementById("addHold").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; }
     bhList("hold").push({ id: nextId("hold"), tanggal: todayISO(), proyekId: pid, kode: "", harga: 0, tandaJadi: 0, ket: "Belum di-create ke sistem" }); render(); };
   const v0 = document.getElementById("view");
+  v0.querySelectorAll("[data-cat]").forEach(inp => inp.onchange = () => { const p = sDraft.proyek.find(x => x.id === +inp.dataset.cat); if (!p || !bolehEdit(p.nama)) return; p.catatan = inp.value.trim(); });
   v0.querySelectorAll("[data-bh]").forEach(el => {
     const x = () => bhList(el.dataset.bh).find(r => r.id === +el.dataset.id), f = el.dataset.f;
     const locked = () => !bolehEdit(namaProyekSales(x().proyekId));
@@ -1122,7 +1142,7 @@ function bindSalesInput() {
 
   document.getElementById("sSave").onclick = () => {
     sDraft.proyek.forEach(p => { const o = S.sales2.proyek.find(x => x.id === p.id); if (!o) return;
-      if (!bolehEdit(o.nama)) { p.base = clone(o.base); p.bulan = clone(o.bulan); p.stok = clone(o.stok); p.hari = clone(o.hari); }
+      if (!bolehEdit(o.nama)) { p.base = clone(o.base); p.bulan = clone(o.bulan); p.stok = clone(o.stok); p.hari = clone(o.hari); p.catatan = o.catatan; }
       else if (stokTerkunci()) p.stok = clone(o.stok); });
     const items = [], th = tahunKe(sDraft.tanggal);
     const f = (k, o, n) => { if (o[0] !== n[0]) items.push(`${k} unit: ${o[0].toLocaleString("id-ID")} → ${n[0].toLocaleString("id-ID")}`);
@@ -1132,6 +1152,7 @@ function bindSalesInput() {
       const pre = items.length;
       f(`Akumulasi s.d. ${th - 1}`, o.base, p.base); p.bulan.forEach((v, i) => f(`${BULAN[i]} ${th}`, o.bulan[i], v));
       f("Total stok", o.stok, p.stok); f("Hari ini", o.hari, p.hari);
+      if ((o.catatan || "") !== (p.catatan || "")) items.push(`Catatan proyek: "${o.catatan || ""}" → "${p.catatan || ""}"`);
       for (let i = pre; i < items.length; i++) items[i] = `${p.nama} · ${items[i]}`;
     });
     const lbl = x => `${namaProyekSales(x.proyekId)} ${x.kode || "(tanpa kode)"}`;
@@ -1288,7 +1309,7 @@ side.addEventListener("click", e => { if (e.target.closest("a")) setMenu(false);
 
 /* ===================== Sinkron dengan database server ===================== */
 const SERVER = { on: false, versi: null, terakhir: "", kirimT: null, sibuk: false, info: "Menghubungkan ke server…" };
-const LOKAL = ["role", "rpMode"];
+const LOKAL = ["role", "rpMode", "showCatatan"];
 const dataBersama = () => { const o = {}; Object.keys(S).forEach(k => { if (!LOKAL.includes(k)) o[k] = S[k]; }); return o; };
 async function api(metode, url, body) {
   const r = await fetch(url, { method: metode, headers: Object.assign({ "Content-Type": "application/json" }, SESI && SESI.token ? { Authorization: "Bearer " + SESI.token } : {}),
@@ -1298,7 +1319,7 @@ async function api(metode, url, body) {
   return { status: r.status, ok: r.ok, data: j };
 }
 function terapkan(st, versi) {
-  const simpan = { role: S.role, rpMode: S.rpMode };
+  const simpan = { role: S.role, rpMode: S.rpMode, showCatatan: S.showCatatan };
   S = Object.assign({}, st, simpan); SERVER.versi = versi; SERVER.terakhir = JSON.stringify(dataBersama());
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
 }
@@ -1313,7 +1334,7 @@ async function tarik(tampilkan) {
         /* Form yang belum diubah ikut memuat data terbaru; form yang sedang diubah dibiarkan */
         if (draft !== null && JSON.stringify(draft) === JSON.stringify((S.laporan || {})[draftDate] || [])) draft = null;
         if (sDraft !== null && JSON.stringify(sDraft) === JSON.stringify(S.sales2)) sDraft = null;
-        terapkan(r.data.state, r.data.version); if (tampilkan !== false) render();
+        terapkan(r.data.state, r.data.version); if (migrasiCatatan()) save(); if (tampilkan !== false) render();
       }
     } else if (SESI && SESI.role === "ADMIN" && !SESI.proyek) {
       SERVER.versi = 0; SERVER.on = true; await kirim(true);   /* database kosong: isi dengan data saat ini */
