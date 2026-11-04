@@ -1513,7 +1513,7 @@ function teksDailyReport() {
       const H = hitung(dBast), g = n => n === 0 ? "-" : n;
       t += `\n\nReport BAST Program PPN DTP\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n`;
       H.periodes.forEach(({ p, rincian }) => {
-        t += `\nPeriode PPN DTP (${p.nama})\n`;
+        t += `\n*Periode PPN DTP (${p.nama})*\n`;
         rincian.forEach(({ j, r }) => {
           t += `*${j.nama.toUpperCase()}*\nBAST PPN DTP\n    Total ${g(r.d[0])} unit dari ${g(r.d[1])} unit\nBAST Non PPN DTP\n    Total ${g(r.d[2])} unit dari ${g(r.d[3])} unit\n`;
         });
