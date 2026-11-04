@@ -219,7 +219,7 @@ table { width: 100%; border-collapse: collapse; }
 .hold-t td.ket { color: var(--muted); font-size: 13px; }
 .hold-t th:nth-child(3), .hold-t th:nth-child(4) { text-align: right; }
 .hold-t td.acc { width: 1%; white-space: nowrap; }
-.ak-rp { display: flex; justify-content: space-between; gap: 14px; min-width: 130px; font-variant-numeric: tabular-nums; }
+.ak-rp { display: flex; justify-content: space-between; gap: 14px; min-width: 150px; font-variant-numeric: tabular-nums; }
 .hold-t tr.t td { background: var(--blue-soft); font-weight: 800; color: var(--ink); }
 .bh { display: flex; flex-direction: column; gap: 22px; margin-top: 28px; }
 .bh-box { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
@@ -935,8 +935,8 @@ function viewSales() {
     <div class="desc">Unit yang ditahan dan belum di-create ke sistem penjualan. Tetap tercantum sampai dihapus manual oleh admin. Tidak dihitung ke penjualan bulan ini, YTD, maupun akumulasi.</div>
     ${hold.length ? `<div class="tbl-wrap"><table class="hold-t num"><thead><tr><th>Proyek</th><th>Kode unit</th><th>Harga unit</th><th>Tanda jadi</th><th>Keterangan</th></tr></thead><tbody>
       ${hold.slice().sort((a, b) => ((S.sales2.proyek.find(p => p.id === a.proyekId) || {}).urutan || 99) - ((S.sales2.proyek.find(p => p.id === b.proyekId) || {}).urutan || 99))
-        .map(x => `<tr><td class="proj">${esc(namaProyekSales(x.proyekId))}</td><td>${esc(x.kode || "–")}</td><td class="acc">${x.harga ? akRp(idn(M(x.harga)) + " M") : "–"}</td><td class="acc">${x.tandaJadi ? akRp(rpDot(x.tandaJadi)) : "–"}</td><td class="ket">${esc(x.ket || "")}</td></tr>`).join("")}
-      <tr class="t"><td class="proj">Total</td><td>${hold.length} unit</td><td class="acc">${hold.some(x => x.harga) ? akRp(idn(M(hold.reduce((a, x) => a + (x.harga || 0), 0))) + " M") : "–"}</td><td class="acc">${akRp(rpDot(holdTj))}</td><td></td></tr></tbody></table></div>`
+        .map(x => `<tr><td class="proj">${esc(namaProyekSales(x.proyekId))}</td><td>${esc(x.kode || "–")}</td><td class="acc">${x.harga ? akRp(rpDot(x.harga)) : "–"}</td><td class="acc">${x.tandaJadi ? akRp(rpDot(x.tandaJadi)) : "–"}</td><td class="ket">${esc(x.ket || "")}</td></tr>`).join("")}
+      <tr class="t"><td class="proj">Total</td><td>${hold.length} unit</td><td class="acc">${hold.some(x => x.harga) ? akRp(rpDot(hold.reduce((a, x) => a + (x.harga || 0), 0))) : "–"}</td><td class="acc">${akRp(rpDot(holdTj))}</td><td></td></tr></tbody></table></div>`
       : `<div class="empty" style="margin-top:12px">Tidak ada unit hold saat ini.</div>`}
   </section>
   <div class="notes gut"><h2>Catatan Penting</h2><ul>${notes.map(n => `<li>${n}</li>`).join("")}</ul>
