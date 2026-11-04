@@ -229,6 +229,18 @@ table { width: 100%; border-collapse: collapse; }
 .cat-tg.on { background: var(--green-soft); color: var(--green); border-color: var(--green-soft); }
 .cat-tg:disabled { cursor: not-allowed; opacity: .7; }
 .cat-t input[type="text"] { text-align: left !important; text-align-last: left !important; }
+.dr-side { margin: 10px 0 0 12px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--side-ink); background: var(--bg); border: 1.5px solid var(--gold); border-radius: 6px; padding: 7px 10px; cursor: pointer; text-align: left; }
+.dr-side:hover { background: var(--side-hover); }
+.rhead .btn[data-dr] { align-self: center; }
+.dr-wrap { position: fixed; inset: 0; z-index: 60; background: rgba(15, 33, 64, .45); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.dr-box { width: min(760px, 100%); max-height: calc(100vh - 32px); background: var(--bg); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+.dr-head { display: flex; justify-content: space-between; align-items: center; }
+.dr-head h2 { font-size: 18px; }
+.dr-x { font-size: 24px; line-height: 1; background: none; border: none; cursor: pointer; color: var(--muted); padding: 4px 8px; }
+.dr-box textarea { flex: 1; min-height: 320px; width: 100%; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--ink); resize: vertical; white-space: pre-wrap; }
+@media (max-width: 640px) { .dr-sp { display: none; } .dr-act .btn { flex: 1 1 auto; } .dr-box { padding: 14px; } }
+.dr-act { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.dr-sp { flex: 1; }
 .shot-menu { position: fixed; z-index: 50; width: 260px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(15, 33, 64, .2); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
 .shot-menu button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; font: inherit; background: none; border: none; border-radius: 6px; padding: 9px 10px; cursor: pointer; color: var(--ink); }
 .shot-menu button:hover, .shot-menu button:focus-visible { background: var(--blue-soft); }
@@ -388,6 +400,7 @@ a.rcard:hover { border-color: var(--gold); }
       <div class="grp-b solo">
         <a href="#laporan" data-v="laporan">Monitoring Laporan</a>
         <div class="sub" id="reportMenu"></div>
+        <button type="button" class="dr-side" data-dr>Kirim Daily Report</button>
       </div>
     </nav>
   </aside>
@@ -417,6 +430,20 @@ a.rcard:hover { border-color: var(--gold); }
       </div>
     </div>
     <main id="view"></main>
+  </div>
+</div>
+<div class="dr-wrap" id="drWrap" hidden>
+  <div class="dr-box" role="dialog" aria-modal="true" aria-labelledby="drTitle">
+    <div class="dr-head"><h2 id="drTitle">Daily Report</h2><button type="button" class="dr-x" id="drClose" aria-label="Tutup">×</button></div>
+    <p class="desc" id="drDesc"></p>
+    <textarea id="drText" spellcheck="false" aria-label="Teks Daily Report"></textarea>
+    <div class="dr-act">
+      <button type="button" class="btn sec" id="drReset">Buat ulang dari data</button>
+      <span class="dr-sp"></span>
+      <button type="button" class="btn sec" id="drCopy">Salin teks</button>
+      <button type="button" class="btn sec" id="drShare">Bagikan</button>
+      <button type="button" class="btn" id="drWA">Kirim ke WhatsApp</button>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -962,7 +989,7 @@ if (!S.sales2) { S.sales2 = clone(SALES2_SEED); delete S.sales; delete S.salesMa
 function migrasiCatatan() {
   if (!S.sales2 || S.sales2.catatanV) return false;
   const pi = S.sales2.proyek.find(p => p.nama.toLowerCase() === "permai indah");
-  if (pi && !pi.catatan) pi.catatan = "59 unit (Rp10,92 M) Full BF + Akad • 13 unit (Rp2,40 M) No BF + No SPK Bank";
+  if (pi && (!pi.catatan || pi.catatan === "59 unit (Rp10,92 M) Full BF + Akad • 13 unit (Rp2,40 M) No BF + No SPK Bank")) pi.catatan = "59 Unit (10,92 M) [FULL BF + AKAD] & 13 Unit (2,40 M) [NO BF + NO SPK BANK]";
   S.sales2.catatanV = 1; return true;
 }
 if (migrasiCatatan()) save();
@@ -1412,6 +1439,95 @@ function bindSalesMaster() {
   };
 }
 
+/* ===================== Daily Report (teks gabungan Penjualan + Hold + BAST) ===================== */
+const strip0 = v => v === 0 ? "-" : v;
+const fM = v => v === 0 ? "-" : idn(M(v));
+const fU = v => v === 0 ? "-" : v.toLocaleString("id-ID");
+function rpPendek(v) {
+  if (v >= 1e9) return "Rp " + (v / 1e9).toLocaleString("id-ID", { maximumFractionDigits: 2 }) + " M";
+  if (v >= 1e6) return "Rp " + (v / 1e6).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " juta";
+  if (v >= 1e3) return "Rp " + (v / 1e3).toLocaleString("id-ID", { maximumFractionDigits: 0 }) + " ribu";
+  return "Rp " + v.toLocaleString("id-ID");
+}
+/* Grup bermerek seperti "PT. … – The Sanctuary Collection" mendapat judul sendiri; singkatan untuk Hold: TSC */
+const merek = grup => { const i = String(grup || "").indexOf(" – "); return i < 0 ? null : grup.slice(i + 3).trim(); };
+const singkat = nama => nama.split(/\s+/).map(w => w[0]).join("").toUpperCase();
+function teksDailyReport() {
+  return denganID(() => {
+    const tgl = S.sales2.tanggal, m = bulanKe(tgl), bln = BULAN[m - 1];
+    const { rows, tot: T } = hitungSales(undefined, m);
+    const batalHari = (S.sales2.batal || []).filter(x => x.tanggal === tgl);
+    const blok = x => {
+      const bt = batalHari.filter(b => b.proyekId === x.p.id), L = [];
+      if (x.hari[0] || x.hari[1]) L.push(`Terjual hari ini : ${x.hari[0]} Unit (${fM(x.hari[1])} M)`);
+      if (bt.length) L.push(`Batal : ${bt.length} Unit (${bt.map(b => b.kode || "?").join(" & ")})`);
+      if (!L.length) L.push("Tidak ada perubahan");
+      L.push(`${bln} / YTD : ${fU(x.bln[0])}/${fU(x.ytd[0])} Unit (${fM(x.bln[1])}/${fM(x.ytd[1])} M)`);
+      L.push(`Total Terjual : ${fU(x.akum[0])}/${fU(x.stok[0])} Unit (${fM(x.akum[1])}/${fM(x.stok[1])} M)`);
+      if (x.p.catatan && x.p.catatanTampil !== false) L.push(`         dengan rincian sbb : ${x.p.catatan}`);
+      return `${x.p.nama} :\n${L.join("\n")}`;
+    };
+    /* Urutan: mengikuti Master; proyek bermerek dikumpulkan di posisi proyek pertamanya */
+    const out = [], sudah = new Set();
+    rows.forEach(x => {
+      if (sudah.has(x.p.id)) return;
+      const mk = merek(x.p.grup);
+      if (!mk) { out.push(blok(x)); sudah.add(x.p.id); return; }
+      const kel = rows.filter(y => merek(y.p.grup) === mk);
+      kel.forEach(y => sudah.add(y.p.id));
+      out.push(`${mk} :\n` + kel.map(blok).join("\n\n"));
+    });
+    const L = [];
+    if (T.hari[0] || T.hari[1]) L.push(`Terjual hari ini : ${T.hari[0]} Unit (${fM(T.hari[1])} M)`);
+    if (batalHari.length) L.push(`Batal : ${batalHari.length} Unit (${batalHari.map(b => b.kode || "?").join(" & ")})`);
+    if (!L.length) L.push("Tidak ada perubahan");
+    L.push(`${bln} / YTD : ${fU(T.bln[0])}/${fU(T.ytd[0])} Unit (${fM(T.bln[1])}/${fM(T.ytd[1])} M)`);
+    L.push(`Total Terjual : ${fU(T.akum[0])}/${fU(T.stok[0])} Unit (${fM(T.akum[1])}/${fM(T.stok[1])} M)`);
+    out.push(`CHL :\n${L.join("\n")}`);
+    let t = `Daily Report\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n\n` + out.join("\n\n");
+    /* Hold Reserved */
+    const hold = S.sales2.hold || [];
+    if (hold.length) {
+      const g = [];
+      hold.forEach(h => { const p = S.sales2.proyek.find(x => x.id === h.proyekId) || {}; const mk = merek(p.grup); const lbl = mk ? singkat(mk) : (p.nama || "?");
+        let e = g.find(x => x.lbl === lbl); if (!e) g.push(e = { lbl, items: [] }); e.items.push(h); });
+      t += `\n\n======================\nNote :\nHold Reserved :\n` + g.map(e => `${e.lbl} : ${e.items.length} Unit (${e.items.map(h => `${h.kode || "?"} / ${rpPendek(h.tandaJadi || 0)}`).join(", ")})`).join("\n") + `\n======================`;
+    }
+    /* Report BAST: laporan terakhir pada/sebelum hari ini */
+    const dBast = laporanPada(todayISO()) || dates()[0];
+    if (dBast) {
+      const H = hitung(dBast), g = n => n === 0 ? "-" : n;
+      t += `\n\nReport BAST Program PPN DTP${dBast !== todayISO() ? ` (data laporan ${ddmmyyyy(dBast)})` : ""}\n`;
+      H.periodes.forEach(({ p, rincian }) => {
+        t += `\nPeriode PPN DTP (${p.nama})\n`;
+        rincian.forEach(({ j, r }) => {
+          t += `${j.nama.toUpperCase()}\nBAST PPN DTP\n    Total ${g(r.d[0])} unit dari ${g(r.d[1])} unit\nBAST Non PPN DTP\n    Total ${g(r.d[2])} unit dari ${g(r.d[3])} unit\n`;
+        });
+      });
+      t = t.replace(/\n+$/, "");
+    }
+    return t;
+  });
+}
+function bukaDailyReport() {
+  const w = document.getElementById("drWrap"), ta = document.getElementById("drText");
+  ta.value = teksDailyReport();
+  document.getElementById("drDesc").textContent = isEN() ? `Generated from the data as of ${ddmmyyyy(S.sales2.tanggal)}. The report text stays in Indonesian and can be edited before sending.` : `Dibuat otomatis dari data per ${ddmmyyyy(S.sales2.tanggal)}. Teks bisa diedit sebelum dikirim.`;
+  document.getElementById("drShare").hidden = !navigator.share;
+  w.hidden = false; try { terapkanBahasa(w); } catch (e) {} ta.focus(); ta.setSelectionRange(0, 0); ta.scrollTop = 0;
+}
+function tutupDailyReport() { document.getElementById("drWrap").hidden = true; }
+document.addEventListener("click", e => { if (e.target.closest("[data-dr]")) { e.preventDefault(); setMenu(false); bukaDailyReport(); } });
+document.getElementById("drClose").onclick = tutupDailyReport;
+document.getElementById("drWrap").addEventListener("click", e => { if (e.target.id === "drWrap") tutupDailyReport(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !document.getElementById("drWrap").hidden) tutupDailyReport(); });
+document.getElementById("drReset").onclick = () => { document.getElementById("drText").value = teksDailyReport(); toast("Teks dibuat ulang dari data terbaru"); };
+document.getElementById("drCopy").onclick = () => { const ta = document.getElementById("drText");
+  navigator.clipboard.writeText(ta.value).then(() => toast("Daily Report disalin")).catch(() => { ta.select(); try { document.execCommand("copy"); toast("Daily Report disalin"); } catch (e) { toast("Gagal menyalin. Pilih teks lalu salin manual."); } }); };
+document.getElementById("drWA").onclick = () => { const t = document.getElementById("drText").value;
+  window.open("https://wa.me/?text=" + encodeURIComponent(t), "_blank", "noopener"); };
+document.getElementById("drShare").onclick = async () => { try { await navigator.share({ title: "Daily Report", text: document.getElementById("drText").value }); } catch (e) { if (e && e.name !== "AbortError") toast("Gagal membagikan. Coba Salin teks atau Kirim ke WhatsApp."); } };
+
 /* ===================== Daftar report (tambah report baru di sini) ===================== */
 const REPORTS = [
   { id: "penjualan", nama: "Dashboard Penjualan Properti", menu: "DASHBOARD PENJUALAN PROPERTI", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan laporan, YTD, dan akumulasi terjual. Mengikuti format Excel Daily Report.",
@@ -1433,7 +1549,8 @@ const REPORTS = [
 ];
 function viewLaporan() {
   return `<div class="page gut"><div class="rhead"><div><h2>Monitoring Laporan</h2>
-    <div class="desc">Pilih report untuk melihat dashboard atau mengisi data.</div></div></div>
+    <div class="desc">Pilih report untuk melihat dashboard atau mengisi data.</div></div>
+    <button type="button" class="btn" data-dr>Kirim Daily Report</button></div>
     <div class="cards">${REPORTS.map(r => `<a class="rcard" href="#${r.id}"><h3>${esc(r.nama)}</h3><p>${esc(r.desc)}</p><span class="meta">${esc(r.meta())}</span></a>`).join("")}
       <div class="rcard soon"><h3>Report lainnya</h3><p>Report berikutnya akan muncul di sini dengan format yang sama: dashboard, input data, dan master.</p></div></div></div>`;
 }
@@ -1625,6 +1742,8 @@ const EN = {
   "Di browser ini gambar akan diunduh dulu": "This browser will download the image first",
   "Gambar siap. Ketuk Bagikan sekali lagi.": "Image ready. Tap Share once more.",
   "Browser ini belum bisa membagikan gambar langsung. Gambar diunduh; bagikan dari galeri atau folder Download.": "This browser can't share images directly. The image was downloaded; share it from your gallery or Downloads folder.",
+  "Kirim Daily Report": "Send Daily Report", "Buat ulang dari data": "Rebuild from data", "Salin teks": "Copy text", "Kirim ke WhatsApp": "Send to WhatsApp",
+  "Daily Report disalin": "Daily Report copied", "Teks dibuat ulang dari data terbaru": "Text rebuilt from the latest data",
   "Master Periode & Proyek": "Periods & projects master", "Master Proyek Penjualan": "Sales projects master", "Tambah": "Add", "Urutan": "Order", "Aktif": "Active",
 };
 /* Pola kalimat dinamis (angka, nama, tanggal) */
