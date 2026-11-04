@@ -1466,7 +1466,7 @@ function teksDailyReport() {
     const batalHari = (S.sales2.batal || []).filter(x => x.tanggal === tgl);
     const blok = x => {
       const bt = batalHari.filter(b => b.proyekId === x.p.id), L = [];
-      if (x.hari[0] || x.hari[1]) L.push(`*Terjual : ${x.hari[0]} Unit (${fM(x.hari[1])} M)*`);
+      if (x.hari[0] || x.hari[1]) L.push(`*Terjual hari ini : ${x.hari[0]} Unit (${fM(x.hari[1])} M)*`);
       if (bt.length) L.push(`*Batal : ${bt.length} Unit (${bt.map(b => b.kode || "?").join(" & ")})*`);
       if (!L.length) L.push("Tidak ada perubahan");
       L.push(`${bln} / YTD : ${fU(x.bln[0])}/${fU(x.ytd[0])} Unit (${fM(x.bln[1])}/${fM(x.ytd[1])} M)`);
@@ -1488,7 +1488,7 @@ function teksDailyReport() {
       out.push(`*${mk} :*\n` + kel.map(blok).join("\n\n"));
     });
     const L = [];
-    if (T.hari[0] || T.hari[1]) L.push(`*Terjual : ${T.hari[0]} Unit (${fM(T.hari[1])} M)*`);
+    if (T.hari[0] || T.hari[1]) L.push(`*Terjual hari ini : ${T.hari[0]} Unit (${fM(T.hari[1])} M)*`);
     if (batalHari.length) L.push(`*Batal : ${batalHari.length} Unit (${batalHari.map(b => b.kode || "?").join(" & ")})*`);
     if (!L.length) L.push("Tidak ada perubahan");
     L.push(`${bln} / YTD : ${fU(T.bln[0])}/${fU(T.ytd[0])} Unit (${fM(T.bln[1])}/${fM(T.ytd[1])} M)`);
