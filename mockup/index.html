@@ -139,6 +139,22 @@ table { width: 100%; border-collapse: collapse; }
 .hint { font-size: 13px; color: var(--muted); margin-top: 8px; }
 .empty { border: 1px dashed var(--line); padding: 24px; text-align: center; color: var(--muted); margin-top: 16px; }
 
+.sales-in { min-width: 0; width: max-content; }
+.sales-in th, .sales-in td { padding: 5px 6px; font-size: 12.5px; }
+.sales-in input[type="number"] { width: 64px; max-width: none; padding: 5px 6px; font-size: 12.5px; }
+.sales-in input[data-j="1"] { width: 132px; }
+.sales-in .stick { position: sticky; left: 0; z-index: 2; background: var(--bg); text-align: left; min-width: 180px; max-width: 220px; }
+.sales-in thead .stick { background: var(--navy); z-index: 3; }
+.sales-in .proj-in { font-weight: 700; color: var(--ink); }
+.sales-in tr.grp td { background: var(--blue-soft); font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--ink); }
+.sales-in tr.grp td.stick { background: var(--blue-soft); border-left: 4px solid var(--gc); white-space: normal; line-height: 1.3; }
+.sales-in td.calc { background: var(--track); color: var(--ink); font-weight: 600; min-width: 70px; }
+.sales-in th.calc-h { background: var(--navy-2); }
+.sales-in .after input { opacity: .55; }
+.sales-in th.after { opacity: .7; }
+.sales-in tr.sum td { background: var(--blue-soft); font-weight: 800; color: var(--ink); }
+.sales-in tr.sum td.stick { background: var(--blue-soft); }
+.sales-in tr.err td.stick { background: color-mix(in srgb, var(--red) 8%, var(--bg)); }
 .master { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
 .master > div { min-width: 0; }
 .master table th { background: var(--navy); color: #fff; font-size: 13px; padding: 8px; text-align: left; }
@@ -572,273 +588,279 @@ function bindMaster() {
   });
 }
 
-/* ===================== Report Penjualan Properti ===================== */
-/* Satu baris per proyek. Angka Rp dalam miliar (M).
-   h = hari ini, b = bulan berjalan, y = YTD, a = akumulasi terjual, t = total stok. Masing-masing [unit, Rp M]. */
-const SALES_SEED = { laporan: { "2026-10-31": [
-  { grup: "Serpong", proyek: "Banara Serpong",       h: [0, 0], b: [1, 0.95],  y: [1, 0.95],   a: [174, 184.59], t: [205, 365.85] },
-  { grup: "Serpong", proyek: "Naraya Serpong",       h: [0, 0], b: [0, 0],     y: [2, 2.80],   a: [25, 35.74],   t: [48, 63.00] },
-  { grup: "Serpong", proyek: "Bio District",         h: [0, 0], b: [2, 6.33],  y: [10, 26.21], a: [35, 100.47],  t: [63, 172.94] },
-  { grup: "Serpong", proyek: "Permai Indah",         h: [0, 0], b: [5, 0.93],  y: [59, 10.92], a: [72, 13.32],   t: [156, 28.88] },
-  { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Tanglin Parc",    h: [0, 0], b: [0, 0], y: [1, 2.51],  a: [156, 525.47], t: [160, 544.37] },
-  { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Newton Springs",  h: [0, 0], b: [0, 0], y: [7, 21.14], a: [103, 403.82], t: [113, 437.74] },
-  { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Orchard Riviera", h: [0, 0], b: [0, 0], y: [10, 74.36], a: [37, 246.75], t: [110, 806.71] },
-  { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Scotts Vale",     h: [0, 0], b: [6, 12.45], y: [6, 12.45], a: [6, 12.45], t: [95, 199.85] },
-  { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Mozenta Residence", h: [0, 0], b: [0, 0], y: [3, 7.24], a: [88, 244.61], t: [91, 259.00] },
-  { grup: "Proyek Lainnya", proyek: "Marchand", h: [0, 0], b: [0, 0], y: [0, 0], a: [189, 103.70], t: [266, 178.00] },
-] } };
-/* Urutan proyek penjualan (nama lain di luar daftar ditaruh di akhir) */
-const SALES_ORDER = ["banara serpong", "naraya serpong", "bio district", "permai indah", "tanglin parc", "newton springs",
-  "scotts vale", "mazenta residence", "mozenta residence", "marchand", "orchard riviera"];
-const salesRank = r => {
-  const m = (S.salesMaster || []).find(x => x.nama.toLowerCase() === r.proyek.trim().toLowerCase());
-  if (m) return m.urutan;
-  const i = SALES_ORDER.indexOf(r.proyek.trim().toLowerCase()); return i < 0 ? 999 : 900 + i;
-};
-/* Grup tampil sesuai proyek teratasnya; di dalam grup, proyek mengikuti SALES_ORDER */
-function sortSales(rows) {
-  const gRank = {};
-  rows.forEach(r => { gRank[r.grup] = Math.min(gRank[r.grup] ?? 999, salesRank(r)); });
-  return rows.slice().sort((a, b) => (gRank[a.grup] - gRank[b.grup]) || (salesRank(a) - salesRank(b)));
+/* ===================== Dashboard Penjualan Properti ===================== */
+/* Struktur mengikuti Excel "Dashboard_Penjualan_Properti_Oktober_2026":
+   per proyek: akumulasi s.d. tahun lalu (base), penjualan per bulan tahun berjalan, total stok, dan penjualan hari ini.
+   Semua nilai Rupiah disimpan penuh (bukan miliar). YTD = Januari s.d. bulan laporan; Akumulasi = base + YTD. */
+const BLN3 = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+const Z12 = () => Array.from({ length: 12 }, () => [0, 0]);
+function proyekBaru(id, nama, grup, urutan, base = [0, 0], stok = [0, 0], bulan = {}) {
+  const b = Z12(); Object.entries(bulan).forEach(([m, v]) => b[m - 1] = v);
+  return { id, nama, grup, urutan, aktif: true, base, stok, bulan: b, hari: [0, 0] };
 }
-if (!S.sales) S.sales = clone(SALES_SEED);
-/* Master proyek penjualan: dibuat dari laporan terbaru bila belum ada */
-function buildSalesMaster() {
-  const latest = Object.keys(S.sales.laporan).sort().reverse()[0];
-  const seen = new Set(), list = [];
-  Object.keys(S.sales.laporan).sort().reverse().forEach(d => S.sales.laporan[d].forEach(r => {
-    const k = r.proyek.trim().toLowerCase(); if (!seen.has(k)) { seen.add(k); list.push({ nama: r.proyek.trim(), grup: r.grup.trim() }); }
-  }));
-  const rank = x => { const i = SALES_ORDER.indexOf(x.nama.toLowerCase()); return i < 0 ? 999 : i; };
-  const gr = {}; list.forEach(x => gr[x.grup] = Math.min(gr[x.grup] ?? 999, rank(x)));
-  list.sort((a, b) => (gr[a.grup] - gr[b.grup]) || (rank(a) - rank(b)));
-  return list.map((x, i) => ({ id: i + 1, nama: x.nama, grup: x.grup, urutan: i + 1, aktif: true }));
-}
-Object.values(S.sales.laporan).forEach(rows => rows.forEach(r => { if (r.proyek === "Marchand Hype Station") r.proyek = "Marchand"; }));
-if (!S.salesMaster) { S.salesMaster = buildSalesMaster(); save(); }
-const smByName = n => S.salesMaster.find(x => x.nama.toLowerCase() === String(n).trim().toLowerCase());
-const KOLOM = ["h", "b", "y", "a", "t"];
-const rp = v => "Rp" + v.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " M";
-const rpN = v => v === 0 ? "–" : v.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const G_CIPTA = "PT. Serpong Bangun Cipta", G_LESTARI = "PT. Serpong Bangun Lestari",
+  G_BUMI = "PT. Bumi Mahardhika Makmur", G_BHAKTI = "PT. Bhakti Bangun Harmoni – The Sanctuary Collection";
+const SALES2_SEED = { tanggal: "2026-10-31", proyek: [
+  proyekBaru(1, "Banara Serpong", G_CIPTA, 1, [173, 183646179400], [205, 288818828000], { 10: [1, 946000000] }),
+  proyekBaru(2, "Naraya Serpong", G_CIPTA, 2, [23, 32934240000], [48, 61102000000], { 5: [1, 1365240000], 9: [1, 1443000000] }),
+  proyekBaru(3, "Bio District", G_LESTARI, 3, [25, 74259871000], [63, 162132000000],
+    { 1: [1, 3422000000], 4: [1, 2439802703], 5: [1, 2517832432], 6: [2, 3058889000], 7: [1, 3277726589], 9: [2, 5157634234], 10: [2, 6333704784] }),
+  proyekBaru(4, "Permai Indah", G_BUMI, 4, [13, 2405000000], [156, 28860000000],
+    { 1: [2, 370000000], 3: [10, 1850000000], 4: [6, 1110000000], 5: [4, 740000000], 6: [6, 1150700000], 7: [17, 3145000000], 8: [5, 925000000], 9: [4, 740000000], 10: [5, 925000000] }),
+  proyekBaru(5, "Tanglin Parc", G_BHAKTI, 5, [155, 525472561821], [160, 680194650000], { 6: [1, 2506095850] }),
+  proyekBaru(6, "Newton Springs", G_BHAKTI, 6, [96, 382671215769], [113, 504196440000], { 5: [3, 10320220000], 8: [1, 2601464500], 9: [3, 8222290000] }),
+  proyekBaru(7, "Scotts Vale", G_BHAKTI, 7, [0, 0], [95, 199845470000], { 10: [6, 12445233000], 11: [1, 2980260000] }),
+  proyekBaru(8, "Mazenta Residence", G_CIPTA, 8, [86, 239560800000], [91, 293105000000], { 4: [1, 2053500000], 7: [1, 3010000000] }),
+  proyekBaru(9, "Marchand", G_CIPTA, 9, [189, 103670105213], [266, 174546018000]),
+  proyekBaru(10, "Orchard Riviera", G_BHAKTI, 10, [26, 172387258200], [110, 809712910000],
+    { 1: [1, 5702080500], 2: [1, 4542296050], 4: [3, 21961386200], 8: [3, 24690380800], 9: [1, 5600000000] }),
+] };
+if (!S.sales2) { S.sales2 = clone(SALES2_SEED); delete S.sales; delete S.salesMaster; save(); }
+
+const M = v => v / 1e9;
+const idn = (v, d = 2) => v.toLocaleString("id-ID", { minimumFractionDigits: d, maximumFractionDigits: d });
+const rp = vRupiah => "Rp" + idn(M(vRupiah)) + " M";
+const rpN = vRupiah => vRupiah === 0 ? "–" : idn(M(vRupiah));
 const uN = v => v === 0 ? "–" : v.toLocaleString("id-ID");
-const salesDates = () => Object.keys(S.sales.laporan).sort().reverse();
-const bulanTahun = iso => { const [y, m] = iso.split("-"); return `${BULAN[m - 1]} ${y}`; };
-function sumSales(rows) {
-  const z = {}; KOLOM.forEach(k => z[k] = [0, 0]);
-  rows.forEach(r => KOLOM.forEach(k => { z[k][0] += r[k][0]; z[k][1] += r[k][1]; }));
-  KOLOM.forEach(k => z[k][1] = Math.round(z[k][1] * 100) / 100);
-  return z;
+const bulanKe = (d = S.sales2.tanggal) => +d.slice(5, 7);
+const tahunKe = (d = S.sales2.tanggal) => +d.slice(0, 4);
+function hitungProyek(p, m = bulanKe()) {
+  const ytd = [0, 0];
+  for (let i = 0; i < m; i++) { ytd[0] += p.bulan[i][0]; ytd[1] += p.bulan[i][1]; }
+  return { hari: p.hari, bln: p.bulan[m - 1], ytd, akum: [p.base[0] + ytd[0], p.base[1] + ytd[1]], stok: p.stok };
 }
-function groupsOf(rows) {
+const KUNCI = ["hari", "bln", "ytd", "akum", "stok"];
+function hitungSales(list = S.sales2.proyek.filter(p => p.aktif)) {
+  const rows = list.slice().sort(byUrut).map(p => ({ p, ...hitungProyek(p) }));
+  const tot = {}; KUNCI.forEach(k => tot[k] = [rows.reduce((a, x) => a + x[k][0], 0), rows.reduce((a, x) => a + x[k][1], 0)]);
+  return { rows, tot };
+}
+function kelompok(rows) {
   const g = [];
-  rows.forEach(r => { let x = g.find(x => x.nama === r.grup); if (!x) g.push(x = { nama: r.grup, rows: [] }); x.rows.push(r); });
+  rows.forEach(x => { let y = g.find(y => y.nama === x.p.grup); if (!y) g.push(y = { nama: x.p.grup, rows: [] }); y.rows.push(x); });
   return g;
 }
-let salesSel = salesDates()[0];
+
 function viewSales() {
-  const ds = salesDates();
-  if (!ds.length) return `<div class="page gut"><div class="empty">Belum ada laporan penjualan.</div></div>`;
-  if (!ds.includes(salesSel)) salesSel = ds[0];
-  const rows = sortSales(S.sales.laporan[salesSel]), T = sumSales(rows), bln = bulanTahun(salesSel), thn = salesSel.slice(0, 4);
-  const kpi = (c, lbl, u, v, note) => `<div class="kpi" style="--c:${c}"><div class="lbl">${lbl}</div>
-    <div class="val num">${u.toLocaleString("id-ID")} <small>unit</small></div><div class="pct num">${rp(v)}</div><div class="note">${note}</div></div>`;
-  const contrib = (k, judul) => {
-    const list = rows.filter(r => r[k][0] > 0 || r[k][1] > 0).sort((a, b) => b[k][1] - a[k][1]);
-    const max = Math.max(0, ...list.map(r => r[k][1]));
-    const nihil = rows.length - list.length;
+  const tgl = S.sales2.tanggal, m = bulanKe(), bln = `${BULAN[m - 1]} ${tahunKe()}`, { rows, tot: T } = hitungSales();
+  if (!rows.length) return `<div class="page gut"><div class="empty">Belum ada proyek aktif. Tambahkan di tab Master.</div></div>`;
+  const kpi = (c, lbl, v, note) => `<div class="kpi" style="--c:${c}"><div class="lbl">${lbl}</div>
+    <div class="val num">${v[0].toLocaleString("id-ID")} <small>unit</small></div><div class="pct num">${rp(v[1])}</div><div class="note">${note}</div></div>`;
+  const kontributor = (k, judul) => {
+    const list = rows.filter(x => x[k][0] > 0 || x[k][1] > 0).sort((a, b) => b[k][1] - a[k][1]);
+    const max = Math.max(0, ...list.map(x => x[k][1]));
     return `<section class="gut"><h2>${judul}</h2>
-      <div class="desc">${list.length ? `${list.length} proyek melakukan penjualan; ${nihil} proyek lainnya nihil. Panjang batang = nilai penjualan.` : "Tidak ada penjualan pada periode ini."}</div>
-      <div class="bars">${list.map((r, i) => `<div class="bar-row"><span class="nm">${esc(r.proyek)}</span>
-        <div class="track"><div class="fill" style="--c:${COLORS[i % 4]};width:${max ? r[k][1] / max * 100 : 0}%"></div></div>
-        <span class="u num">${r[k][0]} unit</span><span class="p num">${rp(r[k][1])}</span></div>`).join("")}</div></section>`;
+      <div class="desc">${list.length ? `${list.length} proyek melakukan penjualan; ${rows.length - list.length} proyek lainnya nihil.` : "Tidak ada penjualan."}</div>
+      <div class="bars">${list.map((x, i) => `<div class="bar-row"><span class="nm">${esc(x.p.nama)}</span>
+        <div class="track"><div class="fill" style="--c:${COLORS[i % 4]};width:${max ? x[k][1] / max * 100 : 0}%"></div></div>
+        <span class="u num">${x[k][0]} unit</span><span class="p num">${rp(x[k][1])}</span></div>`).join("")}</div></section>`;
   };
-  let tbl = `<thead><tr><th rowspan="2" style="text-align:center;width:26%">Proyek</th><th colspan="2">${esc(bln)}</th><th colspan="2">YTD ${esc(BULAN[+salesSel.slice(5, 7) - 1])}</th><th colspan="2">Akumulasi terjual</th></tr>
+  let tbl = `<thead><tr><th rowspan="2" style="text-align:center">Proyek</th><th colspan="2">${esc(bln)}</th><th colspan="2">YTD ${esc(BULAN[m - 1])}</th><th colspan="2">Akumulasi terjual</th></tr>
     <tr><th>Unit</th><th>Rp M</th><th>Unit</th><th>Rp M</th><th>Unit</th><th>Rp M</th></tr></thead><tbody>`;
-  groupsOf(rows).forEach((g, i) => {
+  kelompok(rows).forEach((g, i) => {
     tbl += `<tr class="group" style="--gc:${COLORS[i % 4]}"><td colspan="7">${esc(g.nama)}</td></tr>`;
-    g.rows.forEach(r => tbl += `<tr><td class="proj">${esc(r.proyek)}</td><td>${uN(r.b[0])}</td><td>${rpN(r.b[1])}</td><td>${uN(r.y[0])}</td><td>${rpN(r.y[1])}</td>
-      <td class="tot">${uN(r.a[0])}<small>dari ${r.t[0].toLocaleString("id-ID")}</small></td><td class="tot">${rpN(r.a[1])}<small>dari ${rpN(r.t[1])}</small></td></tr>`);
+    g.rows.forEach(x => tbl += `<tr><td class="proj">${esc(x.p.nama)}</td><td>${uN(x.bln[0])}</td><td>${rpN(x.bln[1])}</td><td>${uN(x.ytd[0])}</td><td>${rpN(x.ytd[1])}</td>
+      <td class="tot">${uN(x.akum[0])}<small>dari ${x.stok[0].toLocaleString("id-ID")}</small></td><td class="tot">${rpN(x.akum[1])}<small>dari ${idn(M(x.stok[1]))}</small></td></tr>`);
   });
-  tbl += `<tr class="grand"><td class="proj">Total CHL</td><td>${T.b[0]}</td><td>${rpN(T.b[1])}</td><td>${T.y[0]}</td><td>${rpN(T.y[1])}</td>
-    <td>${T.a[0].toLocaleString("id-ID")}<small>dari ${T.t[0].toLocaleString("id-ID")}</small></td><td>${rpN(T.a[1])}<small>dari ${rpN(T.t[1])}</small></td></tr></tbody>`;
-  const notes = [];
-  if (T.h[0] === 0) notes.push(`Tidak ada penjualan pada ${panjang(salesSel)}.`);
-  const sisa = rows.filter(r => r.t[0] - r.a[0] > 0).sort((a, b) => (b.t[0] - b.a[0]) - (a.t[0] - a.a[0]))[0];
-  if (sisa) notes.push(`Stok belum terjual terbanyak: <b>${esc(sisa.proyek)}</b>, ${sisa.t[0] - sisa.a[0]} unit dari ${sisa.t[0]} unit.`);
-  const nihilYtd = rows.filter(r => r.y[0] === 0).map(r => esc(r.proyek));
-  if (nihilYtd.length) notes.push(`Belum ada penjualan sepanjang ${thn}: <b>${nihilYtd.join(", ")}</b>.`);
+  tbl += `<tr class="grand"><td class="proj">Total CHL</td><td>${T.bln[0]}</td><td>${rpN(T.bln[1])}</td><td>${T.ytd[0]}</td><td>${rpN(T.ytd[1])}</td>
+    <td>${T.akum[0].toLocaleString("id-ID")}<small>dari ${T.stok[0].toLocaleString("id-ID")}</small></td><td>${rpN(T.akum[1])}<small>dari ${idn(M(T.stok[1]))}</small></td></tr></tbody>`;
+  const pctU = T.stok[0] ? T.akum[0] / T.stok[0] * 100 : 0, pctR = T.stok[1] ? T.akum[1] / T.stok[1] * 100 : 0;
+  const notes = [
+    `CHL = total konsolidasi ${rows.length} proyek, bukan proyek tambahan. Jangan dijumlahkan dua kali.`,
+    `Total nilai proyek CHL: ${rp(T.stok[1])} &nbsp;|&nbsp; Total terjual: ${rp(T.akum[1])} (${idn(pctR, 1)}%).`,
+  ];
   return `<div class="page">
   <div class="hero">
-    <div class="tabs"><span class="tab">Sales Performance</span><span class="tab">${panjang(salesSel)}</span></div>
-    <div class="hero-body gut"><h1>Dashboard Penjualan Properti</h1><div class="sub">${esc(bln)} • YTD ${esc(bln)} • Total terjual</div></div>
-    <div class="strip gut"><span>Data penjualan ${rows.length} proyek${T.h[0] === 0 ? ` • Tidak ada perubahan pada ${panjang(salesSel)}` : ""}</span>
+    <div class="tabs"><span class="tab">Sales Performance</span><span class="tab">${panjang(tgl)}</span></div>
+    <div class="hero-body gut"><h1>Dashboard Penjualan Properti</h1><div class="sub">${esc(bln)} • YTD ${esc(bln)} • Total Terjual</div></div>
+    <div class="strip gut"><span>Data penjualan ${rows.length} proyek • ${T.hari[0] ? `${T.hari[0]} unit terjual pada ${panjang(tgl)}` : `Tidak ada perubahan pada ${panjang(tgl)}`}</span>
       <div class="strip-actions">
-        <label for="salesDate" style="font-size:13px">Tanggal</label>
-        <select id="salesDate">${ds.map(d => `<option value="${d}" ${d === salesSel ? "selected" : ""}>${ddmmyyyy(d)}</option>`).join("")}</select>
         <button class="btn-ghost" id="salesCopy" type="button">Salin teks laporan</button>
         <button class="btn-ghost" id="salesXls" type="button">Ekspor Excel</button>
       </div></div>
   </div>
   <div class="kpis gut">
-    ${kpi("var(--gold)", "Laporan hari ini", T.h[0], T.h[1], `Penjualan ${panjang(salesSel)}`)}
-    ${kpi("var(--blue)", `Bulan ${esc(bln)}`, T.b[0], T.b[1], `Penjualan selama ${esc(BULAN[+salesSel.slice(5, 7) - 1])}`)}
-    ${kpi("var(--green)", `YTD s.d. ${esc(BULAN[+salesSel.slice(5, 7) - 1])}`, T.y[0], T.y[1], `Penjualan Januari–${esc(BULAN[+salesSel.slice(5, 7) - 1])} ${thn}`)}
-    ${kpi("var(--gold)", "Akumulasi total terjual", T.a[0], T.a[1], `Dari ${T.t[0].toLocaleString("id-ID")} unit • ${pct(T.a[0], T.t[0])}% terjual`)}
+    ${kpi("var(--gold)", "Laporan hari ini", T.hari, `Penjualan ${panjang(tgl)}`)}
+    ${kpi("var(--blue)", `Bulan ${esc(bln)}`, T.bln, `Penjualan selama ${esc(BULAN[m - 1])}`)}
+    ${kpi("var(--green)", `YTD s.d. ${esc(BULAN[m - 1])}`, T.ytd, `Penjualan Januari–${esc(BULAN[m - 1])} ${tahunKe()}`)}
+    ${kpi("var(--gold)", "Akumulasi total terjual", T.akum, `Dari ${T.stok[0].toLocaleString("id-ID")} unit • ${idn(pctU, 1)}% terjual`)}
   </div>
-  ${contrib("h", "Kontributor Penjualan Hari Ini")}
-  ${contrib("b", `Kontributor Penjualan ${esc(bln)}`)}
-  <section><div class="gut"><h2>Penjualan per Proyek</h2><div class="desc">Unit dan nilai penjualan (Rp miliar). Akumulasi dihitung sejak awal pemasaran.</div></div>
+  ${kontributor("hari", "Kontributor Penjualan Hari Ini")}
+  ${kontributor("bln", `Kontributor Penjualan ${esc(bln)}`)}
+  <section><div class="gut"><h2>Penjualan per Proyek</h2><div class="desc">Unit dan nilai penjualan (Rp miliar). Akumulasi terjual = akumulasi s.d. ${tahunKe() - 1} + YTD ${esc(BULAN[m - 1])}.</div></div>
     <div class="tbl-wrap"><table class="rincian num">${tbl}</table></div></section>
-  <div class="notes gut"><h2>Catatan Penting</h2><ul>${notes.map(n => `<li>${n}</li>`).join("")}</ul></div>
+  <div class="notes gut"><h2>Catatan Penting</h2><ul>${notes.map(n => `<li>${n}</li>`).join("")}</ul>
+    <p class="desc" style="margin:10px 0 0">Sumber: Daily Report per ${panjang(tgl)} • M = Rp miliar • “–” = nihil</p></div>
   </div>`;
 }
-function salesText(tgl) {
-  const rows = sortSales(S.sales.laporan[tgl]), T = sumSales(rows), bln = bulanTahun(tgl);
+function salesText() {
+  const tgl = S.sales2.tanggal, m = bulanKe(), bln = `${BULAN[m - 1]} ${tahunKe()}`, { rows, tot: T } = hitungSales();
   let t = `*Dashboard Penjualan Properti*\n${panjang(tgl)}\n\n`;
-  t += `Hari ini: ${T.h[0]} unit (${rp(T.h[1])})\nBulan ${bln}: ${T.b[0]} unit (${rp(T.b[1])})\nYTD: ${T.y[0]} unit (${rp(T.y[1])})\nAkumulasi terjual: ${T.a[0]} dari ${T.t[0]} unit (${rp(T.a[1])})\n`;
-  const kontr = rows.filter(r => r.b[0] > 0).sort((a, b) => b.b[1] - a.b[1]);
-  if (kontr.length) { t += `\n*Kontributor ${bln}*\n`; kontr.forEach(r => t += `${r.proyek}: ${r.b[0]} unit, ${rp(r.b[1])}\n`); }
+  t += `Hari ini: ${T.hari[0]} unit (${rp(T.hari[1])})\nBulan ${bln}: ${T.bln[0]} unit (${rp(T.bln[1])})\nYTD s.d. ${BULAN[m - 1]}: ${T.ytd[0]} unit (${rp(T.ytd[1])})\nAkumulasi terjual: ${T.akum[0]} dari ${T.stok[0]} unit (${rp(T.akum[1])})\n`;
+  const k = rows.filter(x => x.bln[0] > 0).sort((a, b) => b.bln[1] - a.bln[1]);
+  if (k.length) { t += `\n*Kontributor ${bln}*\n`; k.forEach(x => t += `${x.p.nama}: ${x.bln[0]} unit, ${rp(x.bln[1])}\n`); }
   return t;
 }
+
+/* Ekspor Excel dengan rumus yang saling terhubung, seperti file aslinya */
+function exportSalesExcel() {
+  if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
+  const tgl = S.sales2.tanggal, m = bulanKe(), th = tahunKe(), list = S.sales2.proyek.filter(p => p.aktif).sort(byUrut);
+  const col = n => { let s = ""; n++; while (n) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; };
+  /* Kolom sheet "input data": A Proyek, B Grup, C-D akumulasi s.d. tahun lalu, E-AB Jan–Des, AC-AD YTD, AE-AF Akumulasi, AG-AH Stok, AI-AJ Hari ini */
+  const cU = i => col(4 + i * 2), cR = i => col(5 + i * 2);
+  const head1 = ["Proyek", "Grup", `Akumulasi s.d. ${th - 1}`, "", ...BULAN.flatMap(b => [`${b} ${th}`, ""]), `YTD ${BULAN[m - 1]}`, "", "Akumulasi terjual", "", "Total stok", "", "Hari ini", ""];
+  const head2 = ["", "", "Unit", "Rp", ...BULAN.flatMap(() => ["Unit", "Rp"]), "Unit", "Rp", "Unit", "Rp", "Unit", "Rp", "Unit", "Rp"];
+  const inp = [["INPUT DATA PENJUALAN PER PROYEK (Rupiah penuh)"], [`Bulan laporan: ${BULAN[m - 1]} ${th}. YTD menjumlahkan Januari s.d. ${BULAN[m - 1]}.`], head1, head2];
+  const first = 5;
+  list.forEach((p, k) => {
+    const r = first + k;
+    const ytdU = Array.from({ length: m }, (_, i) => cU(i) + r).join("+"), ytdR = Array.from({ length: m }, (_, i) => cR(i) + r).join("+");
+    inp.push([p.nama, p.grup, p.base[0], p.base[1], ...p.bulan.flat(), { f: ytdU }, { f: ytdR }, { f: `C${r}+AC${r}` }, { f: `D${r}+AD${r}` }, p.stok[0], p.stok[1], p.hari[0], p.hari[1]]);
+  });
+  const last = first + list.length - 1, totR = last + 1;
+  inp.push(["TOTAL CHL", "", ...Array.from({ length: 34 }, (_, i) => ({ f: `SUM(${col(2 + i)}${first}:${col(2 + i)}${last})` }))]);
+  const I = c => `'input data'!${c}`;
+  const dash = [["SALES PERFORMANCE", "", "", "", "", panjang(tgl).toUpperCase()], ["DASHBOARD PENJUALAN PROPERTI"], [`${BULAN[m - 1]} ${th}  •  YTD ${BULAN[m - 1]} ${th}  •  Total Terjual`], [],
+    ["", "Laporan hari ini", `Bulan ${BULAN[m - 1]} ${th}`, `YTD s.d. ${BULAN[m - 1]}`, "Akumulasi total terjual"],
+    ["Unit", { f: I(`AI${totR}`) }, { f: I(`${cU(m - 1)}${totR}`) }, { f: I(`AC${totR}`) }, { f: I(`AE${totR}`) }],
+    ["Rp M", { f: I(`AJ${totR}`) + "/10^9" }, { f: I(`${cR(m - 1)}${totR}`) + "/10^9" }, { f: I(`AD${totR}`) + "/10^9" }, { f: I(`AF${totR}`) + "/10^9" }],
+    [], ["Proyek", "Grup", `${BULAN[m - 1]} unit`, `${BULAN[m - 1]} Rp M`, "YTD unit", "YTD Rp M", "Terjual unit", "Terjual Rp M", "Stok unit", "Stok Rp M"]];
+  const d0 = dash.length + 1;
+  list.forEach((p, k) => {
+    const r = first + k;
+    dash.push([{ f: I(`A${r}`) }, { f: I(`B${r}`) }, { f: I(`${cU(m - 1)}${r}`) }, { f: I(`${cR(m - 1)}${r}`) + "/10^9" }, { f: I(`AC${r}`) }, { f: I(`AD${r}`) + "/10^9" },
+      { f: I(`AE${r}`) }, { f: I(`AF${r}`) + "/10^9" }, { f: I(`AG${r}`) }, { f: I(`AH${r}`) + "/10^9" }]);
+  });
+  const d1 = dash.length;
+  dash.push(["TOTAL CHL", "", ...["C", "D", "E", "F", "G", "H", "I", "J"].map(c => ({ f: `SUM(${c}${d0}:${c}${d1})` }))]);
+  const dt = dash.length;
+  dash.push([], ["CATATAN PENTING"], [`CHL = total konsolidasi ${list.length} proyek, bukan proyek tambahan. Jangan dijumlahkan dua kali.`],
+    [{ f: `"Total nilai proyek CHL: Rp"&TEXT(J${dt},"#,##0.00")&" M | Total terjual: Rp"&TEXT(H${dt},"#,##0.00")&" M ("&TEXT(H${dt}/J${dt},"0.0%")&")"` }],
+    [`Sumber: Daily Report per ${panjang(tgl)} • M = Rp miliar`]);
+  const wb = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.aoa_to_sheet(dash); ws1["!cols"] = [{ wch: 24 }, { wch: 34 }, ...Array(8).fill({ wch: 15 })];
+  const ws2 = XLSX.utils.aoa_to_sheet(inp); ws2["!cols"] = [{ wch: 22 }, { wch: 34 }, ...Array(34).fill({ wch: 15 })];
+  XLSX.utils.book_append_sheet(wb, ws1, "Dashboard");
+  XLSX.utils.book_append_sheet(wb, ws2, "input data");
+  XLSX.writeFile(wb, `Dashboard_Penjualan_Properti_${tgl}.xlsx`);
+  toast("File Excel diunduh");
+}
 function bindSales() {
-  const sel = document.getElementById("salesDate");
-  if (!sel) return;
-  sel.onchange = () => { salesSel = sel.value; render(); };
-  document.getElementById("salesCopy").onclick = () => {
-    const txt = salesText(salesSel);
-    navigator.clipboard.writeText(txt).then(() => toast("Teks laporan disalin")).catch(() => toast("Gagal menyalin. Coba lagi."));
-  };
-  document.getElementById("salesXls").onclick = () => {
-    if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
-    const rows = sortSales(S.sales.laporan[salesSel]), T = sumSales(rows);
-    const aoa = [["DASHBOARD PENJUALAN PROPERTI"], [panjang(salesSel)], [],
-      ["Grup", "Proyek", "Hari ini unit", "Hari ini Rp M", "Bulan unit", "Bulan Rp M", "YTD unit", "YTD Rp M", "Terjual unit", "Terjual Rp M", "Total unit", "Total Rp M"]];
-    rows.forEach(r => aoa.push([r.grup, r.proyek, ...KOLOM.flatMap(k => r[k])]));
-    aoa.push(["", "TOTAL CHL", ...KOLOM.flatMap(k => T[k])]);
-    const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(aoa);
-    ws["!cols"] = [{ wch: 36 }, { wch: 24 }, ...Array(10).fill({ wch: 13 })];
-    XLSX.utils.book_append_sheet(wb, ws, "Penjualan");
-    XLSX.writeFile(wb, `Dashboard_Penjualan_${salesSel}.xlsx`);
-    toast("File Excel diunduh");
-  };
+  const c = document.getElementById("salesCopy");
+  if (!c) return;
+  c.onclick = () => navigator.clipboard.writeText(salesText()).then(() => toast("Teks laporan disalin")).catch(() => toast("Gagal menyalin. Coba lagi."));
+  document.getElementById("salesXls").onclick = exportSalesExcel;
 }
 
-/* Input penjualan */
-let sDraft = null, sDraftDate = null;
-function sLoad(tgl) { sDraftDate = tgl; sDraft = sortSales(clone(S.sales.laporan[tgl] || [])); }
-function sValidate(rows) {
-  const seen = {};
-  return rows.map(r => {
-    if (!r.proyek.trim()) return "Pilih proyek";
-    if (KOLOM.some(k => r[k].some(v => !Number.isFinite(v) || v < 0)) || KOLOM.some(k => !Number.isInteger(r[k][0]))) return "Unit harus bilangan bulat, Rp harus angka 0 atau lebih";
-    if (r.h[0] > r.b[0] || r.b[0] > r.y[0]) return "Unit hari ini ≤ bulan ini ≤ YTD";
-    if (r.a[0] > r.t[0]) return "Unit terjual melebihi total stok";
-    const k = r.proyek.trim().toLowerCase();
-    if (seen[k]) return "Proyek ini sudah ada di baris lain";
-    seen[k] = 1; return "";
+/* Input data penjualan: tabel seperti sheet "input data" */
+let sDraft = null;
+const sLoad = () => { sDraft = clone(S.sales2); };
+function sErrors(d) {
+  const e = {};
+  d.proyek.forEach(p => {
+    const nums = [p.base, p.stok, p.hari, ...p.bulan];
+    if (nums.some(v => !Number.isInteger(v[0]) || v[0] < 0 || !Number.isFinite(v[1]) || v[1] < 0)) e[p.id] = "Unit harus bilangan bulat dan Rupiah tidak boleh negatif";
+    else if (hitungProyek(p, bulanKe(d.tanggal)).akum[0] > p.stok[0]) e[p.id] = "Akumulasi terjual melebihi total stok";
   });
+  return e;
 }
-const SKOL = [["h", "Hari ini"], ["b", "Bulan ini"], ["y", "YTD"], ["a", "Akumulasi terjual"], ["t", "Total stok"]];
 function viewSalesInput() {
-  if (sDraft === null) sLoad(salesDates()[0] || todayISO());
-  const errs = sValidate(sDraft), hasErr = errs.some(Boolean);
-  const prev = salesDates().filter(d => d < sDraftDate)[0];
-  const body = sDraft.map((r, i) => `<tr class="${errs[i] ? "err" : ""}">
-    <td><select id="sp-${i}" data-i="${i}" data-sp aria-label="Proyek baris ${i + 1}"><option value="">Pilih proyek</option>${S.salesMaster.slice().sort(byUrut)
-      .filter(m => m.aktif || m.nama.toLowerCase() === r.proyek.toLowerCase())
-      .map(m => `<option value="${esc(m.nama)}" ${m.nama.toLowerCase() === r.proyek.toLowerCase() ? "selected" : ""}>${esc(m.nama)}</option>`).join("")}</select>${errs[i] ? `<div class="msg">${errs[i]}</div>` : ""}</td>
-    <td class="grup-cell">${esc(r.grup || "–")}</td>
-    ${SKOL.map(([k]) => `<td><input type="number" min="0" step="1" id="s${k}0-${i}" data-i="${i}" data-k="${k}" data-j="0" value="${r[k][0]}" aria-label="${k} unit baris ${i + 1}"></td>
-      <td><input type="number" min="0" step="0.01" id="s${k}1-${i}" data-i="${i}" data-k="${k}" data-j="1" value="${r[k][1]}" aria-label="${k} Rp baris ${i + 1}"></td>`).join("")}
-    <td><button class="del" data-sdel="${i}" type="button" aria-label="Hapus baris ${i + 1}">×</button></td></tr>`).join("");
+  if (sDraft === null) sLoad();
+  const d = sDraft, m = bulanKe(d.tanggal), th = tahunKe(d.tanggal), err = sErrors(d), hasErr = Object.keys(err).length > 0;
+  const list = d.proyek.slice().sort(byUrut).filter(p => p.aktif);
+  const cell = (p, k, j, v, extra = "") => `<td class="${extra}"><input type="number" min="0" step="${j ? 1 : 1}" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="${j}" value="${v}" aria-label="${esc(p.nama)} ${k} ${j ? "Rp" : "unit"}"></td>`;
+  const calc = (v, j) => `<td class="calc">${j ? (v ? idn(M(v)) : "–") : (v ? v.toLocaleString("id-ID") : "–")}</td>`;
+  const tot = { base: [0, 0], ytd: [0, 0], akum: [0, 0], stok: [0, 0], hari: [0, 0], bulan: Z12() };
+  let body = "";
+  kelompok(list.map(p => ({ p }))).forEach((g, gi) => {
+    body += `<tr class="grp"><td class="stick" style="--gc:${COLORS[gi % 4]}">${esc(g.nama)}</td><td colspan="34"></td></tr>`;
+    g.rows.forEach(({ p }) => {
+      const h = hitungProyek(p, m);
+      ["base", "ytd", "akum", "stok", "hari"].forEach(k => { const v = k === "ytd" || k === "akum" ? h[k] : p[k]; tot[k][0] += v[0]; tot[k][1] += v[1]; });
+      p.bulan.forEach((v, i) => { tot.bulan[i][0] += v[0]; tot.bulan[i][1] += v[1]; });
+      body += `<tr class="${err[p.id] ? "err" : ""}"><td class="stick proj-in">${esc(p.nama)}${err[p.id] ? `<div class="msg">${err[p.id]}</div>` : ""}</td>
+        ${cell(p, "base", 0, p.base[0])}${cell(p, "base", 1, p.base[1])}
+        ${p.bulan.map((v, i) => cell(p, "b" + i, 0, v[0], i >= m ? "after" : "") + cell(p, "b" + i, 1, v[1], i >= m ? "after" : "")).join("")}
+        ${calc(h.ytd[0], 0)}${calc(h.ytd[1], 1)}${calc(h.akum[0], 0)}${calc(h.akum[1], 1)}
+        ${cell(p, "stok", 0, p.stok[0])}${cell(p, "stok", 1, p.stok[1])}${cell(p, "hari", 0, p.hari[0])}${cell(p, "hari", 1, p.hari[1])}</tr>`;
+    });
+  });
+  const tc = (v, j) => `<td>${j ? idn(M(v)) : v.toLocaleString("id-ID")}</td>`;
+  body += `<tr class="sum"><td class="stick">TOTAL CHL</td>${tc(tot.base[0], 0)}${tc(tot.base[1], 1)}${tot.bulan.map(v => tc(v[0], 0) + tc(v[1], 1)).join("")}
+    ${tc(tot.ytd[0], 0)}${tc(tot.ytd[1], 1)}${tc(tot.akum[0], 0)}${tc(tot.akum[1], 1)}${tc(tot.stok[0], 0)}${tc(tot.stok[1], 1)}${tc(tot.hari[0], 0)}${tc(tot.hari[1], 1)}</tr>`;
+  const h1 = `<th rowspan="2" class="stick">Proyek</th><th colspan="2">Akumulasi s.d. ${th - 1}</th>${BULAN.map((b, i) => `<th colspan="2" class="${i >= m ? "after" : ""}">${b} ${th}</th>`).join("")}
+    <th colspan="2" class="calc-h">YTD ${BULAN[m - 1]}</th><th colspan="2" class="calc-h">Akumulasi terjual</th><th colspan="2">Total stok</th><th colspan="2">Hari ini</th>`;
+  const h2 = Array.from({ length: 17 }, () => "<th>Unit</th><th>Rp</th>").join("");
   return `<div class="page gut">
-  <div class="form-head"><div><h2>Input Data Penjualan</h2><div class="desc">Satu baris per proyek. Nilai Rp dalam miliar, contoh 12,45 ditulis 12.45.</div></div></div>
+  <div class="form-head"><div><h2>Input Data Penjualan</h2>
+    <div class="desc">Format sama dengan sheet “input data”. Isi kolom kuning dalam <b>Rupiah penuh</b> (contoh 946000000). Kolom abu-abu dihitung otomatis: YTD = Januari s.d. bulan laporan, Akumulasi terjual = akumulasi s.d. ${th - 1} + YTD.</div></div></div>
   <div class="form-head">
-    <label class="field" for="sTgl">Tanggal laporan<input id="sTgl" type="date" value="${sDraftDate}"></label>
-    <div class="btn-row">
-      ${prev && !sDraft.length ? `<button class="btn sec" id="sCopyPrev" type="button">Salin dari laporan ${ddmmyyyy(prev)}</button>` : ""}
-      <button class="btn sec" id="sAdd" type="button">Tambah proyek</button>
-      <button class="btn" id="sSave" type="button" ${hasErr || !sDraft.length ? "disabled" : ""}>Simpan laporan</button>
-    </div>
+    <label class="field" for="sTgl">Tanggal laporan<input id="sTgl" type="date" value="${d.tanggal}"></label>
+    <div class="btn-row"><button class="btn sec" id="sReset" type="button">Batalkan perubahan</button>
+      <button class="btn" id="sSave" type="button" ${hasErr ? "disabled" : ""}>Simpan data</button></div>
   </div>
-  ${sDraft.length ? `<div class="tbl-wrap"><table class="edit num" style="min-width:1280px"><thead>
-    <tr><th rowspan="2">Proyek</th><th rowspan="2">Grup</th>${SKOL.map(([, l]) => `<th colspan="2">${l}</th>`).join("")}<th rowspan="2"></th></tr>
-    <tr>${SKOL.map(() => "<th>Unit</th><th>Rp M</th>").join("")}</tr></thead><tbody>${body}</tbody></table></div>`
-    : `<div class="empty">Belum ada data untuk ${ddmmyyyy(sDraftDate)}. ${prev ? `Salin dari laporan ${ddmmyyyy(prev)} atau tambah proyek.` : "Tambah proyek untuk mulai mengisi."}</div>`}
-  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : S.sales.laporan[sDraftDate] ? "Menyimpan akan mengganti laporan tanggal ini." : "Laporan baru untuk tanggal ini."}</p></div>`;
+  <div class="tbl-wrap"><table class="edit sales-in num"><thead><tr>${h1}</tr><tr>${h2}</tr></thead><tbody>${body}</tbody></table></div>
+  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : `Bulan setelah ${BULAN[m - 1]} ditandai pudar dan belum dihitung ke YTD maupun akumulasi.`} Proyek dan grup diatur di tab Master.</p></div>`;
 }
 function bindSalesInput() {
   const v = document.getElementById("view");
-  document.getElementById("sTgl").onchange = e => { if (e.target.value) { sLoad(e.target.value); render(); } };
-  const cp = document.getElementById("sCopyPrev");
-  if (cp) cp.onclick = () => {
-    const prev = salesDates().filter(d => d < sDraftDate)[0];
-    sDraft = sortSales(clone(S.sales.laporan[prev])).map(r => ({ ...r, h: [0, 0] }));
-    render(); toast(`Data ${ddmmyyyy(prev)} disalin, kolom hari ini dikosongkan.`);
-  };
-  document.getElementById("sAdd").onclick = () => { sDraft.push({ grup: "", proyek: "", h: [0, 0], b: [0, 0], y: [0, 0], a: [0, 0], t: [0, 0] }); render(); };
+  document.getElementById("sTgl").onchange = e => { if (e.target.value) { sDraft.tanggal = e.target.value; render("sTgl"); } };
+  document.getElementById("sReset").onclick = () => { sLoad(); render(); toast("Perubahan dibatalkan"); };
   document.getElementById("sSave").onclick = () => {
-    S.sales.laporan[sDraftDate] = clone(sDraft).map(r => ({ ...r, grup: r.grup.trim(), proyek: r.proyek.trim() }));
-    save(); salesSel = sDraftDate; toast(`Laporan ${ddmmyyyy(sDraftDate)} tersimpan`); render();
+    S.sales2 = clone(sDraft); save(); toast(`Data penjualan ${ddmmyyyy(S.sales2.tanggal)} tersimpan`); render();
   };
-  v.querySelectorAll("[data-sdel]").forEach(b => b.onclick = () => { sDraft.splice(+b.dataset.sdel, 1); render(); });
-  v.querySelectorAll("select[data-sp]").forEach(sel => sel.onchange = () => {
-    const r = sDraft[+sel.dataset.i], m = smByName(sel.value);
-    r.proyek = m ? m.nama : ""; r.grup = m ? m.grup : ""; render(sel.id);
-  });
-  v.querySelectorAll("input[data-k]").forEach(inp => inp.onchange = () => {
-    const raw = inp.value.trim().replace(",", ".");
-    sDraft[+inp.dataset.i][inp.dataset.k][+inp.dataset.j] = raw === "" ? 0 : Number(raw); render(inp.id);
+  v.querySelectorAll("input[data-pid]").forEach(inp => inp.onchange = () => {
+    const p = sDraft.proyek.find(x => x.id === +inp.dataset.pid), k = inp.dataset.k, j = +inp.dataset.j;
+    const raw = inp.value.trim(), val = raw === "" ? 0 : Number(raw);
+    if (k[0] === "b" && k !== "base") p.bulan[+k.slice(1)][j] = val; else p[k][j] = val;
+    render(inp.id);
   });
 }
 
 /* Master proyek penjualan */
 function viewSalesMaster() {
-  const items = S.salesMaster.slice().sort(byUrut);
+  const items = S.sales2.proyek.slice().sort(byUrut);
   return `<div class="page gut"><div class="form-head"><div><h2>Master Proyek Penjualan</h2>
-    <div class="desc">Nama dan grup di sini dipakai di dropdown Input Data dan di dashboard. Urutan menentukan urutan tampil. Yang nonaktif tidak muncul di dropdown.</div></div></div>
+    <div class="desc">Nama dan grup di sini dipakai di Input Data dan dashboard. Urutan menentukan urutan tampil. Proyek nonaktif tidak dihitung di dashboard.</div></div></div>
     <div class="tbl-wrap" style="margin-top:16px"><table class="edit" style="min-width:760px"><thead><tr><th style="width:70px">Urutan</th><th>Proyek</th><th>Grup</th><th style="width:70px">Aktif</th></tr></thead><tbody>
     ${items.map((x, i) => `<tr>
       <td><button class="ord" data-smup="${x.id}" type="button" aria-label="Naikkan ${esc(x.nama)}" ${i === 0 ? "disabled" : ""}>↑</button></td>
       <td><input type="text" id="smn-${x.id}" data-smn="${x.id}" value="${esc(x.nama)}" aria-label="Nama proyek"></td>
-      <td><input type="text" id="smg-${x.id}" data-smg="${x.id}" value="${esc(x.grup)}" aria-label="Grup proyek"></td>
+      <td><input type="text" id="smg-${x.id}" data-smg="${x.id}" value="${esc(x.grup)}" list="smGrupList" aria-label="Grup proyek"></td>
       <td><input type="checkbox" id="sma-${x.id}" data-sma="${x.id}" ${x.aktif ? "checked" : ""} aria-label="Proyek aktif"></td></tr>`).join("")}
     </tbody></table></div>
+    <datalist id="smGrupList">${[...new Set(S.sales2.proyek.map(x => x.grup))].map(g => `<option value="${esc(g)}">`).join("")}</datalist>
     <div class="btn-row" style="margin-top:12px">
       <input type="text" id="smNewN" placeholder="Nama proyek baru" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--input-bg);color:var(--ink)">
       <input type="text" id="smNewG" placeholder="Grup" list="smGrupList" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--input-bg);color:var(--ink)">
-      <datalist id="smGrupList">${[...new Set(S.salesMaster.map(x => x.grup))].map(g => `<option value="${esc(g)}">`).join("")}</datalist>
       <button class="btn" id="smAdd" type="button">Tambah</button></div>
-    <p class="hint">Mengganti nama proyek atau grup juga mengubahnya di semua laporan yang sudah tersimpan. Proyek yang sudah dipakai tidak bisa dihapus, hanya dinonaktifkan.</p></div>`;
+    <p class="hint">Proyek baru mulai dengan angka 0; isi angkanya di tab Input Data.</p></div>`;
 }
 function bindSalesMaster() {
-  const v = document.getElementById("view"), byId = id => S.salesMaster.find(x => x.id === +id);
-  const renameAll = (field, oldVal, newVal, proyekNama) => Object.values(S.sales.laporan).forEach(rows => rows.forEach(r => {
-    if (field === "proyek" && r.proyek.toLowerCase() === oldVal.toLowerCase()) r.proyek = newVal;
-    if (field === "grup" && r.proyek.toLowerCase() === proyekNama.toLowerCase()) r.grup = newVal;
-  }));
+  const v = document.getElementById("view"), byId = id => S.sales2.proyek.find(x => x.id === +id);
   v.querySelectorAll("[data-smn]").forEach(inp => inp.onchange = () => {
     const x = byId(inp.dataset.smn), nm = inp.value.trim();
     if (!nm) { inp.value = x.nama; toast("Nama tidak boleh kosong"); return; }
-    if (S.salesMaster.some(o => o !== x && o.nama.toLowerCase() === nm.toLowerCase())) { inp.value = x.nama; toast("Nama sudah dipakai"); return; }
-    renameAll("proyek", x.nama, nm); x.nama = nm; sDraft = null; save(); toast("Nama disimpan");
+    if (S.sales2.proyek.some(o => o !== x && o.nama.toLowerCase() === nm.toLowerCase())) { inp.value = x.nama; toast("Nama sudah dipakai"); return; }
+    x.nama = nm; sDraft = null; save(); toast("Nama disimpan");
   });
   v.querySelectorAll("[data-smg]").forEach(inp => inp.onchange = () => {
     const x = byId(inp.dataset.smg), g = inp.value.trim();
     if (!g) { inp.value = x.grup; toast("Grup tidak boleh kosong"); return; }
-    renameAll("grup", x.grup, g, x.nama); x.grup = g; sDraft = null; save(); toast("Grup disimpan");
+    x.grup = g; sDraft = null; save(); toast("Grup disimpan");
   });
-  v.querySelectorAll("[data-sma]").forEach(c => c.onchange = () => { byId(c.dataset.sma).aktif = c.checked; save(); toast(c.checked ? "Diaktifkan" : "Dinonaktifkan"); });
+  v.querySelectorAll("[data-sma]").forEach(c => c.onchange = () => { byId(c.dataset.sma).aktif = c.checked; sDraft = null; save(); toast(c.checked ? "Diaktifkan" : "Dinonaktifkan"); });
   v.querySelectorAll("[data-smup]").forEach(b => b.onclick = () => {
-    const items = S.salesMaster.slice().sort(byUrut), x = byId(b.dataset.smup), i = items.indexOf(x), o = items[i - 1];
+    const items = S.sales2.proyek.slice().sort(byUrut), x = byId(b.dataset.smup), o = items[items.indexOf(x) - 1];
     [x.urutan, o.urutan] = [o.urutan, x.urutan]; sDraft = null; save(); render();
   });
   document.getElementById("smAdd").onclick = () => {
     const nm = document.getElementById("smNewN").value.trim(), g = document.getElementById("smNewG").value.trim();
     if (!nm || !g) { toast("Isi nama proyek dan grup"); return; }
-    if (S.salesMaster.some(o => o.nama.toLowerCase() === nm.toLowerCase())) { toast("Nama sudah dipakai"); return; }
-    S.salesMaster.push({ id: Math.max(0, ...S.salesMaster.map(o => o.id)) + 1, nama: nm, grup: g, urutan: Math.max(0, ...S.salesMaster.map(o => o.urutan)) + 1, aktif: true });
-    save(); render(); toast(`${nm} ditambahkan`);
+    if (S.sales2.proyek.some(o => o.nama.toLowerCase() === nm.toLowerCase())) { toast("Nama sudah dipakai"); return; }
+    const id = Math.max(0, ...S.sales2.proyek.map(o => o.id)) + 1, ur = Math.max(0, ...S.sales2.proyek.map(o => o.urutan)) + 1;
+    S.sales2.proyek.push(proyekBaru(id, nm, g, ur)); sDraft = null; save(); render(); toast(`${nm} ditambahkan`);
   };
 }
 
@@ -851,13 +873,13 @@ const REPORTS = [
       { id: "bast-master", label: "Master", view: viewMaster, bind: bindMaster, admin: true },
     ],
     meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
-  { id: "penjualan", nama: "Dashboard Penjualan Properti", menu: "DASHBOARD PENJUALAN PROPERTI", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan berjalan, YTD, dan akumulasi terjual.",
+  { id: "penjualan", nama: "Dashboard Penjualan Properti", menu: "DASHBOARD PENJUALAN PROPERTI", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan laporan, YTD, dan akumulasi terjual. Mengikuti format Excel Daily Report.",
     tabs: [
       { id: "penjualan", label: "Dashboard", view: viewSales, bind: bindSales },
       { id: "penjualan-input", label: "Input Data", view: viewSalesInput, bind: bindSalesInput, admin: true },
       { id: "penjualan-master", label: "Master", view: viewSalesMaster, bind: bindSalesMaster, admin: true },
     ],
-    meta: () => { const d = salesDates()[0]; if (!d) return "Belum ada laporan"; const T = sumSales(S.sales.laporan[d]); return `Laporan ${ddmmyyyy(d)} · ${T.b[0]} unit bulan ini · ${rp(T.b[1])}`; } },
+    meta: () => { const T = hitungSales().tot; return `Laporan ${ddmmyyyy(S.sales2.tanggal)} · ${T.bln[0]} unit bulan ini · ${rp(T.bln[1])}`; } },
 ];
 function viewLaporan() {
   return `<div class="page gut"><div class="rhead"><div><h2>Monitoring Laporan</h2>
@@ -915,9 +937,9 @@ const roleSel = document.getElementById("roleSel");
 roleSel.value = S.role;
 roleSel.onchange = () => { S.role = roleSel.value; save(); render(); toast(`Masuk sebagai ${S.role === "ADMIN" ? "Admin" : "Viewer"}`); };
 document.getElementById("resetBtn").onclick = () => {
-  const role = S.role; S = clone(SEED); S.role = role; S.sales = clone(SALES_SEED); S.salesMaster = buildSalesMaster(); save(); draft = null; sDraft = null; selDate = dates()[0]; salesSel = salesDates()[0]; render(); toast("Data contoh dikembalikan");
+  const role = S.role; S = clone(SEED); S.role = role; S.sales2 = clone(SALES2_SEED); save(); draft = null; sDraft = null; selDate = dates()[0]; render(); toast("Data contoh dikembalikan");
 };
-window.addEventListener("hashchange", () => { if (current() === "bast-input" && draft === null) loadDraft(dates()[0] || todayISO()); if (current() === "penjualan-input" && sDraft === null) sLoad(salesDates()[0] || todayISO()); render(); window.scrollTo(0, 0); });
+window.addEventListener("hashchange", () => { if (current() === "bast-input" && draft === null) loadDraft(dates()[0] || todayISO()); if (current() === "penjualan-input" && sDraft === null) sLoad(); render(); window.scrollTo(0, 0); });
 if (!location.hash) history.replaceState(null, "", "#bast");
 render();
 </script>
