@@ -591,7 +591,7 @@ function bindMaster() {
 /* ===================== Dashboard Penjualan Properti ===================== */
 /* Struktur mengikuti Excel "Dashboard_Penjualan_Properti_Oktober_2026":
    per proyek: akumulasi s.d. tahun lalu (base), penjualan per bulan tahun berjalan, total stok, dan penjualan hari ini.
-   Semua nilai Rupiah disimpan penuh (bukan miliar). YTD = Januari s.d. bulan laporan; Akumulasi = base + YTD. */
+   Semua nilai Rupiah disimpan penuh (bukan miliar). Seperti Excel: YTD = jumlah Januari–Desember yang terisi; Akumulasi = base + YTD. */
 const BLN3 = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 const Z12 = () => Array.from({ length: 12 }, () => [0, 0]);
 function proyekBaru(id, nama, grup, urutan, base = [0, 0], stok = [0, 0], bulan = {}) {
@@ -626,7 +626,7 @@ const bulanKe = (d = S.sales2.tanggal) => +d.slice(5, 7);
 const tahunKe = (d = S.sales2.tanggal) => +d.slice(0, 4);
 function hitungProyek(p, m = bulanKe()) {
   const ytd = [0, 0];
-  for (let i = 0; i < m; i++) { ytd[0] += p.bulan[i][0]; ytd[1] += p.bulan[i][1]; }
+  for (let i = 0; i < 12; i++) { ytd[0] += p.bulan[i][0]; ytd[1] += p.bulan[i][1]; }
   return { hari: p.hari, bln: p.bulan[m - 1], ytd, akum: [p.base[0] + ytd[0], p.base[1] + ytd[1]], stok: p.stok };
 }
 const KUNCI = ["hari", "bln", "ytd", "akum", "stok"];
@@ -711,11 +711,11 @@ function exportSalesExcel() {
   const cU = i => col(4 + i * 2), cR = i => col(5 + i * 2);
   const head1 = ["Proyek", "Grup", `Akumulasi s.d. ${th - 1}`, "", ...BULAN.flatMap(b => [`${b} ${th}`, ""]), `YTD ${BULAN[m - 1]}`, "", "Akumulasi terjual", "", "Total stok", "", "Hari ini", ""];
   const head2 = ["", "", "Unit", "Rp", ...BULAN.flatMap(() => ["Unit", "Rp"]), "Unit", "Rp", "Unit", "Rp", "Unit", "Rp", "Unit", "Rp"];
-  const inp = [["INPUT DATA PENJUALAN PER PROYEK (Rupiah penuh)"], [`Bulan laporan: ${BULAN[m - 1]} ${th}. YTD menjumlahkan Januari s.d. ${BULAN[m - 1]}.`], head1, head2];
+  const inp = [["INPUT DATA PENJUALAN PER PROYEK (Rupiah penuh)"], [`Bulan laporan: ${BULAN[m - 1]} ${th}. YTD menjumlahkan semua bulan Januari–Desember ${th} yang terisi.`], head1, head2];
   const first = 5;
   list.forEach((p, k) => {
     const r = first + k;
-    const ytdU = Array.from({ length: m }, (_, i) => cU(i) + r).join("+"), ytdR = Array.from({ length: m }, (_, i) => cR(i) + r).join("+");
+    const ytdU = Array.from({ length: 12 }, (_, i) => cU(i) + r).join("+"), ytdR = Array.from({ length: 12 }, (_, i) => cR(i) + r).join("+");
     inp.push([p.nama, p.grup, p.base[0], p.base[1], ...p.bulan.flat(), { f: ytdU }, { f: ytdR }, { f: `C${r}+AC${r}` }, { f: `D${r}+AD${r}` }, p.stok[0], p.stok[1], p.hari[0], p.hari[1]]);
   });
   const last = first + list.length - 1, totR = last + 1;
@@ -781,7 +781,7 @@ function viewSalesInput() {
       p.bulan.forEach((v, i) => { tot.bulan[i][0] += v[0]; tot.bulan[i][1] += v[1]; });
       body += `<tr class="${err[p.id] ? "err" : ""}"><td class="stick proj-in">${esc(p.nama)}${err[p.id] ? `<div class="msg">${err[p.id]}</div>` : ""}</td>
         ${cell(p, "base", 0, p.base[0])}${cell(p, "base", 1, p.base[1])}
-        ${p.bulan.map((v, i) => cell(p, "b" + i, 0, v[0], i >= m ? "after" : "") + cell(p, "b" + i, 1, v[1], i >= m ? "after" : "")).join("")}
+        ${p.bulan.map((v, i) => cell(p, "b" + i, 0, v[0]) + cell(p, "b" + i, 1, v[1])).join("")}
         ${calc(h.ytd[0], 0)}${calc(h.ytd[1], 1)}${calc(h.akum[0], 0)}${calc(h.akum[1], 1)}
         ${cell(p, "stok", 0, p.stok[0])}${cell(p, "stok", 1, p.stok[1])}${cell(p, "hari", 0, p.hari[0])}${cell(p, "hari", 1, p.hari[1])}</tr>`;
     });
@@ -789,19 +789,19 @@ function viewSalesInput() {
   const tc = (v, j) => `<td>${j ? idn(M(v)) : v.toLocaleString("id-ID")}</td>`;
   body += `<tr class="sum"><td class="stick">TOTAL CHL</td>${tc(tot.base[0], 0)}${tc(tot.base[1], 1)}${tot.bulan.map(v => tc(v[0], 0) + tc(v[1], 1)).join("")}
     ${tc(tot.ytd[0], 0)}${tc(tot.ytd[1], 1)}${tc(tot.akum[0], 0)}${tc(tot.akum[1], 1)}${tc(tot.stok[0], 0)}${tc(tot.stok[1], 1)}${tc(tot.hari[0], 0)}${tc(tot.hari[1], 1)}</tr>`;
-  const h1 = `<th rowspan="2" class="stick">Proyek</th><th colspan="2">Akumulasi s.d. ${th - 1}</th>${BULAN.map((b, i) => `<th colspan="2" class="${i >= m ? "after" : ""}">${b} ${th}</th>`).join("")}
+  const h1 = `<th rowspan="2" class="stick">Proyek</th><th colspan="2">Akumulasi s.d. ${th - 1}</th>${BULAN.map((b, i) => `<th colspan="2">${b} ${th}</th>`).join("")}
     <th colspan="2" class="calc-h">YTD ${BULAN[m - 1]}</th><th colspan="2" class="calc-h">Akumulasi terjual</th><th colspan="2">Total stok</th><th colspan="2">Hari ini</th>`;
   const h2 = Array.from({ length: 17 }, () => "<th>Unit</th><th>Rp</th>").join("");
   return `<div class="page gut">
   <div class="form-head"><div><h2>Input Data Penjualan</h2>
-    <div class="desc">Format sama dengan sheet “input data”. Isi kolom kuning dalam <b>Rupiah penuh</b> (contoh 946000000). Kolom abu-abu dihitung otomatis: YTD = Januari s.d. bulan laporan, Akumulasi terjual = akumulasi s.d. ${th - 1} + YTD.</div></div></div>
+    <div class="desc">Format sama dengan sheet “input data”. Isi kolom kuning dalam <b>Rupiah penuh</b> (contoh 946000000). Kolom abu-abu dihitung otomatis seperti di Excel: YTD = jumlah Januari–Desember ${th}, Akumulasi terjual = akumulasi s.d. ${th - 1} + YTD.</div></div></div>
   <div class="form-head">
     <label class="field" for="sTgl">Tanggal laporan<input id="sTgl" type="date" value="${d.tanggal}"></label>
     <div class="btn-row"><button class="btn sec" id="sReset" type="button">Batalkan perubahan</button>
       <button class="btn" id="sSave" type="button" ${hasErr ? "disabled" : ""}>Simpan data</button></div>
   </div>
   <div class="tbl-wrap"><table class="edit sales-in num"><thead><tr>${h1}</tr><tr>${h2}</tr></thead><tbody>${body}</tbody></table></div>
-  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : `Bulan setelah ${BULAN[m - 1]} ditandai pudar dan belum dihitung ke YTD maupun akumulasi.`} Proyek dan grup diatur di tab Master.</p></div>`;
+  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan. " : ""}Proyek dan grup diatur di tab Master.</p></div>`;
 }
 function bindSalesInput() {
   const v = document.getElementById("view");
