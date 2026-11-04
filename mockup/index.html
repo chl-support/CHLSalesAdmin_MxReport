@@ -163,6 +163,9 @@ table { width: 100%; border-collapse: collapse; }
 .sales-in td.calc { background: var(--track); color: var(--ink); font-weight: 600; min-width: 70px; }
 .sales-in th.calc-h { background: var(--navy-2); }
 .sales-in td.dari { line-height: 1.2; white-space: nowrap; }
+.sales-in td.akst { padding: 4px 6px; }
+.sales-in td.akst .ak { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.sales-in td.akst .dari-in { display: flex; align-items: center; gap: 4px; justify-content: center; font-size: 11px; color: var(--muted); font-weight: 400; }
 .sales-in td.dari small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 2px; }
 .sales-in .after input { opacity: .55; }
 .sales-in th.after { opacity: .7; }
@@ -922,16 +925,17 @@ function viewSalesInput() {
   const d = sDraft, m = bulanKe(d.tanggal), th = tahunKe(d.tanggal), err = sErrors(d), hasErr = Object.keys(err).length > 0;
   const list = d.proyek.slice().sort(byUrut).filter(p => p.aktif);
   const rpM = S.rpMode === "m", fRp = v => rpM ? idn(M(v)) : Math.round(v).toLocaleString("id-ID");
-  const cell = (p, k, j, v, extra = "") => j
-    ? `<td class="${extra}"><input type="text" inputmode="numeric" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="1" value="${fRp(v)}" ${rpM ? 'readonly title="Pilih Rp detail untuk mengubah angka"' : ""} aria-label="${esc(p.nama)} ${k} Rp"></td>`
-    : `<td class="${extra}"><input type="number" min="0" step="1" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="0" value="${v}" aria-label="${esc(p.nama)} ${k} unit"></td>`;
+  const inp = (p, k, j, v) => j
+    ? `<input type="text" inputmode="numeric" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="1" value="${fRp(v)}" ${rpM ? 'readonly title="Pilih Rp detail untuk mengubah angka"' : ""} aria-label="${esc(p.nama)} ${k} Rp">`
+    : `<input type="number" min="0" step="1" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="0" value="${v}" aria-label="${esc(p.nama)} ${k} unit">`;
+  const cell = (p, k, j, v, extra = "") => `<td class="${extra}">${inp(p, k, j, v)}</td>`;
+  /* Akumulasi terjual (atas, dihitung) dan Total stok (bawah, diisi), seperti baris "dari" di Excel */
+  const akumStok = (p, v, j) => `<td class="calc akst"><div class="ak">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}</div><div class="dari-in"><span>dari</span>${inp(p, "stok", j, p.stok[j])}</div></td>`;
   const calc = (v, j) => `<td class="calc">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}</td>`;
-  /* Akumulasi terjual + "dari <total stok>" di bawahnya, seperti kolom AE/AF dengan AI/AK di Excel */
-  const calcDari = (v, stok, j) => `<td class="calc dari">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}<small>dari ${j ? fRp(stok) : stok.toLocaleString("id-ID")}</small></td>`;
   const tot = { base: [0, 0], ytd: [0, 0], akum: [0, 0], stok: [0, 0], hari: [0, 0], bulan: Z12() };
   let body = "";
   kelompok(list.map(p => ({ p }))).forEach((g, gi) => {
-    body += `<tr class="grp"><td class="stick" style="--gc:${COLORS[gi % 4]}"><span class="grp-name">${esc(g.nama)}</span></td><td colspan="34"></td></tr>`;
+    body += `<tr class="grp"><td class="stick" style="--gc:${COLORS[gi % 4]}"><span class="grp-name">${esc(g.nama)}</span></td><td colspan="32"></td></tr>`;
     g.rows.forEach(({ p }) => {
       const h = hitungProyek(p, m);
       ["base", "ytd", "akum", "stok", "hari"].forEach(k => { const v = k === "ytd" || k === "akum" ? h[k] : p[k]; tot[k][0] += v[0]; tot[k][1] += v[1]; });
@@ -939,16 +943,16 @@ function viewSalesInput() {
       body += `<tr class="${err[p.id] ? "err" : ""}"><td class="stick proj-in">${esc(p.nama)}${err[p.id] ? `<div class="msg">${err[p.id]}</div>` : ""}</td>
         ${cell(p, "base", 0, p.base[0])}${cell(p, "base", 1, p.base[1])}
         ${p.bulan.map((v, i) => cell(p, "b" + i, 0, v[0]) + cell(p, "b" + i, 1, v[1])).join("")}
-        ${calc(h.ytd[0], 0)}${calc(h.ytd[1], 1)}${calcDari(h.akum[0], p.stok[0], 0)}${calcDari(h.akum[1], p.stok[1], 1)}
-        ${cell(p, "stok", 0, p.stok[0])}${cell(p, "stok", 1, p.stok[1])}${cell(p, "hari", 0, p.hari[0])}${cell(p, "hari", 1, p.hari[1])}</tr>`;
+        ${calc(h.ytd[0], 0)}${calc(h.ytd[1], 1)}${akumStok(p, h.akum[0], 0)}${akumStok(p, h.akum[1], 1)}
+        ${cell(p, "hari", 0, p.hari[0])}${cell(p, "hari", 1, p.hari[1])}</tr>`;
     });
   });
   const tc = (v, j) => `<td>${j ? fRp(v) : v.toLocaleString("id-ID")}</td>`;
   body += `<tr class="sum"><td class="stick">TOTAL CHL</td>${tc(tot.base[0], 0)}${tc(tot.base[1], 1)}${tot.bulan.map(v => tc(v[0], 0) + tc(v[1], 1)).join("")}
-    ${tc(tot.ytd[0], 0)}${tc(tot.ytd[1], 1)}<td class="dari">${tot.akum[0].toLocaleString("id-ID")}<small>dari ${tot.stok[0].toLocaleString("id-ID")}</small></td><td class="dari">${fRp(tot.akum[1])}<small>dari ${fRp(tot.stok[1])}</small></td>${tc(tot.stok[0], 0)}${tc(tot.stok[1], 1)}${tc(tot.hari[0], 0)}${tc(tot.hari[1], 1)}</tr>`;
+    ${tc(tot.ytd[0], 0)}${tc(tot.ytd[1], 1)}<td class="dari">${tot.akum[0].toLocaleString("id-ID")}<small>dari ${tot.stok[0].toLocaleString("id-ID")}</small></td><td class="dari">${fRp(tot.akum[1])}<small>dari ${fRp(tot.stok[1])}</small></td>${tc(tot.hari[0], 0)}${tc(tot.hari[1], 1)}</tr>`;
   const h1 = `<th rowspan="2" class="stick">Proyek</th><th colspan="2">Akumulasi s.d. ${th - 1}</th>${BULAN.map((b, i) => `<th colspan="2">${b} ${th}</th>`).join("")}
-    <th colspan="2" class="calc-h">YTD ${BULAN[m - 1]}</th><th colspan="2" class="calc-h">Akumulasi terjual</th><th colspan="2">Total stok</th><th colspan="2">Hari ini</th>`;
-  const h2 = Array.from({ length: 17 }, () => `<th>Unit</th><th>${rpM ? "Rp M" : "Rp"}</th>`).join("");
+    <th colspan="2" class="calc-h">YTD ${BULAN[m - 1]}</th><th colspan="2" class="calc-h">Akumulasi terjual<br><span style="font-weight:400;font-size:11.5px">dari total stok</span></th><th colspan="2">Hari ini</th>`;
+  const h2 = Array.from({ length: 16 }, () => `<th>Unit</th><th>${rpM ? "Rp M" : "Rp"}</th>`).join("");
   return `<div class="page gut">
   <div class="form-head"><div><h2>Input Data Penjualan</h2>
     <div class="desc">Format sama dengan sheet “input data”. Isi kolom kuning dalam <b>Rupiah penuh</b> (contoh 946.000.000) saat tampilan <b>Rp detail</b>. Tampilan <b>Rp M</b> hanya untuk dibaca: angka dibagi 1.000.000.000 dengan 2 angka di belakang koma. Kolom abu-abu dihitung otomatis: YTD = Januari s.d. ${BULAN[m - 1]} ${th} (bulan berjalan), Akumulasi terjual = akumulasi s.d. ${th - 1} + YTD.</div></div></div>
