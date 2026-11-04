@@ -1498,7 +1498,7 @@ function teksDailyReport() {
       const CONTOH = ["permai indah", "bio district", "tsc"], posR = l => rows.findIndex(x => x.p.nama === l || singkat(merek(x.p.grup) || "") === l);
       const rank = l => { const i = CONTOH.indexOf(l.toLowerCase()); return i >= 0 ? i : 100 + (posR(l) < 0 ? 99 : posR(l)); };
       g.sort((a, b) => rank(a.lbl) - rank(b.lbl));
-      t += `\n\n======================\nNote :\nHold Reserved :\n` + g.map(e => `${e.lbl} : ${e.items.length} Unit (${e.items.map(h => `${h.kode || "?"} / ${rpPendek(h.tandaJadi || 0)}`).join(", ")})`).join("\n") + `\n======================`;
+      t += `\n\n======================\nNote :\n*Hold Reserved :*\n` + g.map(e => `${e.lbl} : ${e.items.length} Unit (${e.items.map(h => `${h.kode || "?"} / ${rpPendek(h.tandaJadi || 0)}`).join(", ")})`).join("\n") + `\n======================`;
     }
     /* Report BAST: laporan terakhir pada/sebelum hari ini */
     const dBast = laporanPada(todayISO()) || dates()[0];
