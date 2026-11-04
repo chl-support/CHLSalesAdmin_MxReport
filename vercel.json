@@ -8,10 +8,6 @@
     {
       "source": "/",
       "destination": "/mockup/index.html"
-    },
-    {
-      "source": "/logo.png",
-      "destination": "/mockup/logo.png"
     }
   ]
 }
