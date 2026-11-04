@@ -284,7 +284,7 @@ table { width: 100%; border-collapse: collapse; }
 .side-foot { margin-top: auto; padding: 18px 18px 0 0; font-size: 12.5px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .side-foot p { margin: 0; }
 .side-foot { position: relative; }
-.prof-btn { width: calc(100% - 18px); display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--side-line); border-radius: 10px; padding: 8px 10px; cursor: pointer; text-align: left; color: var(--side-ink); }
+.prof-btn { width: auto; min-width: 200px; display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--side-line); border-radius: 10px; padding: 8px 10px; cursor: pointer; text-align: left; color: var(--side-ink); }
 .prof-btn:hover { border-color: var(--gold); }
 .prof-btn .chev { margin-left: auto; transform: rotate(-135deg); margin-top: 4px; }
 .prof-btn[aria-expanded="true"] .chev { transform: rotate(45deg); margin-top: -4px; }
@@ -292,7 +292,7 @@ table { width: 100%; border-collapse: collapse; }
 .pp-who { display: flex; flex-direction: column; min-width: 0; }
 .pp-who b { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pp-who small { font-size: 11.5px; color: var(--muted); }
-.prof-pop { position: absolute; left: 0; right: 18px; bottom: calc(100% + 8px); background: var(--bg); border: 1px solid var(--side-line); border-radius: 12px; box-shadow: 0 10px 30px rgba(15, 33, 64, .18); padding: 14px; z-index: 40; display: flex; flex-direction: column; gap: 8px; color: var(--ink); }
+.prof-pop { position: absolute; right: 0; top: calc(100% + 8px); width: 300px; background: var(--bg); border: 1px solid var(--side-line); border-radius: 12px; box-shadow: 0 10px 30px rgba(15, 33, 64, .18); padding: 14px; z-index: 40; display: flex; flex-direction: column; gap: 8px; color: var(--ink); }
 .prof-pop hr { border: none; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
 .pp-name { font-size: 15px; font-weight: 800; }
 .pp-badge { align-self: flex-start; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; color: var(--ink); }
@@ -308,7 +308,9 @@ table { width: 100%; border-collapse: collapse; }
 .pp-sync { margin: 0; font-size: 11.5px; color: var(--muted); }
 .side-foot .role select { background: var(--bg); color: var(--ink); border: 1px solid var(--side-line); border-radius: 4px; padding: 4px 6px; }
 .main { flex: 1; min-width: 0; }
-.mtop { display: none; }
+.topbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; }
+.topbar .burger, .topbar .mtop-t { display: none; }
+.prof-wrap { position: relative; margin-left: auto; }
 .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 29; }
 
 /* Report sub-header */
@@ -335,7 +337,12 @@ a.rcard:hover { border-color: var(--gold); }
 @media (max-width: 900px) {
   .side { position: fixed; left: 0; top: 0; z-index: 30; transform: translateX(-100%); transition: transform .2s; padding-top: calc(22px + env(safe-area-inset-top, 0px)); padding-left: max(18px, env(safe-area-inset-left, 0px)); }
   .side.open { transform: none; }
-  .mtop { display: flex; align-items: center; gap: 12px; background: var(--side-bg); border-bottom: 2px solid var(--gold); padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); position: sticky; top: 0; z-index: 10; }
+  .topbar { background: var(--side-bg); border-bottom: 2px solid var(--gold); justify-content: flex-start; }
+  .topbar .burger { display: flex; }
+  .topbar .mtop-t { display: block; }
+  .prof-btn { min-width: 0; }
+  .prof-btn .pp-who { display: none; }
+  .prof-pop { width: min(300px, calc(100vw - 32px)); }
   .mtop-t { font-weight: 800; color: var(--side-ink); }
   .burger { background: none; border: 1px solid var(--side-line); border-radius: 6px; padding: 8px 7px; cursor: pointer; display: flex; flex-direction: column; gap: 3px; }
   .burger span { display: block; width: 18px; height: 2px; background: var(--side-ink); }
@@ -378,7 +385,14 @@ a.rcard:hover { border-color: var(--gold); }
         <div class="sub" id="reportMenu"></div>
       </div>
     </nav>
-    <div class="side-foot">
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+  <div class="main">
+    <div class="topbar"><button class="burger" id="burger" type="button" aria-label="Buka menu" aria-controls="side" aria-expanded="false"><span></span><span></span><span></span></button><span class="mtop-t">CHL Sales Admin System MxReport</span>
+      <div class="prof-wrap">
+      <button class="prof-btn" id="profBtn" type="button" aria-expanded="false" aria-controls="profPop">
+        <span class="pp-av" id="profAv"></span><span class="pp-who"><b id="profName"></b><small id="profRole"></small></span><span class="chev" aria-hidden="true"></span>
+      </button>
       <div class="prof-pop" id="profPop" hidden role="dialog" aria-label="Profil">
         <div class="pp-name" id="whoName"></div>
         <span class="pp-badge" id="whoRole"></span>
@@ -395,14 +409,8 @@ a.rcard:hover { border-color: var(--gold); }
         <p class="pp-sync" id="syncInfo" aria-live="polite">Menghubungkan ke server…</p>
         <button class="linkbtn" id="resetBtn" type="button">Kembalikan data contoh</button>
       </div>
-      <button class="prof-btn" id="profBtn" type="button" aria-expanded="false" aria-controls="profPop">
-        <span class="pp-av" id="profAv"></span><span class="pp-who"><b id="profName"></b><small id="profRole"></small></span><span class="chev" aria-hidden="true"></span>
-      </button>
+      </div>
     </div>
-  </aside>
-  <div class="scrim" id="scrim" hidden></div>
-  <div class="main">
-    <div class="mtop"><button class="burger" id="burger" type="button" aria-label="Buka menu" aria-controls="side" aria-expanded="false"><span></span><span></span><span></span></button><span class="mtop-t">CHL Sales Admin System MxReport</span></div>
     <main id="view"></main>
   </div>
 </div>
@@ -684,7 +692,7 @@ async function unduhGambar(id, nama) {
         c.style.width = LEBAR + "px"; c.style.maxWidth = LEBAR + "px"; c.style.margin = "0";
         c.querySelectorAll(".tbl-wrap").forEach(w => { w.style.overflow = "visible"; });
         const sd = doc.getElementById("side"); if (sd) sd.style.display = "none";
-        const mt = doc.querySelector(".mtop"); if (mt) mt.style.display = "none";
+        const mt = doc.querySelector(".topbar"); if (mt) mt.style.display = "none";
       } });
     const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
     const url = URL.createObjectURL(blob), a = document.createElement("a");
