@@ -366,7 +366,12 @@ function viewDashboard() {
     ${t ? `<span class="u num">${b} / ${t} unit</span><span class="p num">${pct(b, t)}%</span>` : `<span class="u nodata">Belum ada data</span><span class="p num">–</span>`}</div>`;
   let tbl = `<thead><tr><th rowspan="2" style="text-align:center;width:30%">Proyek</th><th colspan="2">BAST PPN DTP</th><th colspan="2">BAST Non PPN DTP</th><th colspan="2">Total</th></tr>
     <tr><th>BAST</th><th>Unit</th><th>BAST</th><th>Unit</th><th>BAST</th><th>Status</th></tr></thead><tbody>`;
-  const notes = [];
+  const notes = [
+    `BAST PPN DTP belum selesai: ${G[1] - G[0]} unit dari ${G[1]} unit.`,
+    `BAST Non PPN DTP belum selesai: ${G[3] - G[2]} unit dari ${G[3]} unit.`,
+    "Lihat kolom Status pada tabel rincian untuk proyek yang masih ada sisa unit.",
+    "Data diambil dari tab Input Data. Untuk proyek atau periode baru, tambahkan namanya di tab Master.",
+  ];
   H.periodes.forEach(({ p, rincian }, i) => {
     tbl += `<tr class="group" style="--gc:${COLORS[i % 4]}"><td colspan="7">Periode PPN DTP (${esc(p.nama)})</td></tr>`;
     rincian.forEach(({ j, r }) => {
@@ -378,8 +383,6 @@ function viewDashboard() {
       const nm = j.nama, b = r.d[0] + r.d[2], t = r.d[1] + r.d[3], st = status(b, t);
       tbl += `<tr><td class="proj">${esc(nm)}</td><td>${f(r.d[0])}</td><td>${f(r.d[1])}</td><td>${f(r.d[2])}</td><td>${f(r.d[3])}</td>
         <td class="tot">${f(b)}<small>dari ${t}</small></td><td class="tot"><span class="st" style="--sc:${st.c}">${st.t}</span></td></tr>`;
-      if (r.d[1] > r.d[0]) notes.push(`<b>${esc(nm)}</b> (${esc(p.nama)}): BAST PPN DTP sisa <b>${r.d[1] - r.d[0]} unit</b> dari ${r.d[1]} unit.`);
-      if (r.d[3] > r.d[2]) notes.push(`<b>${esc(nm)}</b> (${esc(p.nama)}): BAST Non PPN DTP sisa <b>${r.d[3] - r.d[2]} unit</b> dari ${r.d[3]} unit.`);
     });
   });
   tbl += `<tr class="grand"><td class="proj">Total</td><td>${G[0]}</td><td>${G[1]}</td><td>${G[2]}</td><td>${G[3]}</td><td>${gB}<small>dari ${gT}</small></td><td>${pct(gB, gT)}%</td></tr></tbody>`;
@@ -408,7 +411,7 @@ function viewDashboard() {
     <div class="bars">${H.proyeks.map((x, i) => bar(x.p.nama, x.sum[0] + x.sum[2], x.sum[1] + x.sum[3], COLORS[i % 4])).join("")}</div></section>
   <section><div class="gut"><h2>Rincian per Periode &amp; Proyek</h2><div class="desc">Angka dibaca “BAST dari total unit”. Tanda “–” berarti 0 unit.</div></div>
     <div class="tbl-wrap"><table class="rincian num">${tbl}</table></div></section>
-  <div class="notes gut"><h2>Catatan Penting</h2><ul>${notes.length ? notes.map(n => `<li>${n}</li>`).join("") : "<li>Semua unit sudah BAST.</li>"}</ul></div>
+  <div class="notes gut"><h2>Catatan Penting</h2><ul>${notes.map(n => `<li>${n}</li>`).join("")}</ul></div>
   </div>`;
 }
 function bindDashboard() {
