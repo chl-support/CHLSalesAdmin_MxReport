@@ -601,8 +601,19 @@ async function unduhGambar(id, nama) {
     await muatH2C();
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const bg = getComputedStyle(document.body).backgroundColor;
+    /* Gambar selalu dibuat dengan tata letak laptop (lebar 1240 px), juga saat tombol diklik dari HP,
+       supaya kartu tidak bertumpuk dan tabel tidak terpotong. */
+    const LEBAR = 1240;
     const canvas = await html2canvas(el, { scale: 2, backgroundColor: bg, useCORS: true, logging: false,
-      ignoreElements: n => n.classList && n.classList.contains("no-cap") });
+      windowWidth: LEBAR + 300, windowHeight: 1000, scrollX: 0, scrollY: 0,
+      ignoreElements: n => n.classList && n.classList.contains("no-cap"),
+      onclone: doc => {
+        const c = doc.getElementById(id); if (!c) return;
+        c.style.width = LEBAR + "px"; c.style.maxWidth = LEBAR + "px"; c.style.margin = "0";
+        c.querySelectorAll(".tbl-wrap").forEach(w => { w.style.overflow = "visible"; });
+        const sd = doc.getElementById("side"); if (sd) sd.style.display = "none";
+        const mt = doc.querySelector(".mtop"); if (mt) mt.style.display = "none";
+      } });
     const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
     const url = URL.createObjectURL(blob), a = document.createElement("a");
     a.href = url; a.download = nama; document.body.appendChild(a); a.click(); a.remove();
