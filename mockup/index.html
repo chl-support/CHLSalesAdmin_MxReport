@@ -124,11 +124,12 @@ table { width: 100%; border-collapse: collapse; }
 .edit { border: 1px solid var(--line); }
 .edit th { border: 1px solid rgba(255, 255, 255, .28); }
 .edit td { border: 1px solid var(--line); vertical-align: middle; }
-.edit td:nth-child(2) select, .edit td:nth-child(2) input[type="text"] { min-width: 230px; }
-.edit td:nth-child(3) select, .edit td:nth-child(3) input[type="text"] { min-width: 210px; }
+.edit td:nth-child(2) select, .edit td:nth-child(2) input[type="text"] { min-width: 205px; }
+.edit td:nth-child(3) select, .edit td:nth-child(3) input[type="text"] { min-width: 190px; }
+.edit td input[data-d] { min-width: 58px; }
 .edit td.grup-cell { min-width: 220px; font-size: 13px; color: var(--muted); }
 .edit select[data-sp] { min-width: 210px; }
-.edit td input[id^="k-"] { min-width: 230px; }
+.edit td input[id^="k-"] { min-width: 130px; }
 .edit th { background: var(--navy); color: #fff; font-size: 13px; font-weight: 700; padding: 8px; text-align: center; white-space: nowrap; line-height: 1.3; }
 .edit td { border-bottom: 1px solid var(--line); padding: 6px; text-align: center; vertical-align: middle; }
 .edit select, .edit input[type="number"], .edit input[type="text"] { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); }
@@ -172,6 +173,10 @@ table { width: 100%; border-collapse: collapse; }
 .sales-in .lock { font-size: 11px; line-height: 1; }
 .lock { color: var(--muted); vertical-align: -1px; }
 .edit tr.row-locked td { background: var(--grey-soft); }
+.edit td.gt { background: var(--track); font-weight: 700; color: var(--ink); min-width: 64px; }
+.edit th.gt-h { background: var(--navy-2); }
+.edit tr.sum td { background: var(--blue-soft); font-weight: 800; color: var(--ink); }
+.edit tr.sum td.gt { background: var(--blue-soft); }
 .edit tr.row-locked input, .edit tr.row-locked select { background: var(--grey-soft); color: var(--muted); cursor: not-allowed; }
 .edit select:disabled { opacity: 1; }
 .sales-in tr.row-locked td.stick { background: var(--grey-soft); color: var(--muted); }
@@ -643,6 +648,7 @@ function viewInput() {
     <td><select id="p-${i}" data-i="${i}" data-k="periodeId" ${dis} aria-label="Periode baris ${i + 1}">${optP(r.periodeId)}</select>${errs[i] ? `<div class="msg">${errs[i]}</div>` : ""}</td>
     <td><select id="j-${i}" data-i="${i}" data-k="proyekId" ${dis} aria-label="Proyek baris ${i + 1}">${optJ(r.proyekId)}</select></td>
     ${r.d.map((v, k) => `<td><input id="d-${i}-${k}" type="number" min="0" step="1" inputmode="numeric" data-i="${i}" data-d="${k}" value="${v}" ${ro} aria-label="Angka ${k + 1} baris ${i + 1}"></td>`).join("")}
+    <td class="gt">${uN(r.d[0] + r.d[2])}</td><td class="gt">${uN(r.d[1] + r.d[3])}</td>
     <td><input id="k-${i}" type="text" data-i="${i}" data-k="ket" value="${esc(r.ket || "")}" ${ro} aria-label="Keterangan baris ${i + 1}"></td>
     <td>${errs[i] ? "" : '<span class="ok">OK</span>'}</td>
     <td>${lk ? "" : `<button class="del" data-del="${i}" type="button" aria-label="Hapus baris ${i + 1}">×</button>`}</td></tr>`; }).join("");
@@ -660,9 +666,10 @@ function viewInput() {
     </div>
   </div>
   ${draft.length ? `<div class="tbl-wrap"><table class="edit num"><thead><tr><th rowspan="2">No</th><th rowspan="2">Periode PPN DTP</th><th rowspan="2">Proyek</th>
-    <th colspan="2">PPN DTP</th><th colspan="2">Non PPN DTP</th><th rowspan="2">Keterangan</th><th rowspan="2">Cek</th><th rowspan="2"></th></tr>
-    <tr><th>BAST</th><th>Total Unit</th><th>BAST</th><th>Total Unit</th></tr></thead>
-    <tbody>${body}</tbody></table></div>`
+    <th colspan="2">PPN DTP</th><th colspan="2">Non PPN DTP</th><th colspan="2" class="gt-h">Grand Total</th><th rowspan="2">Keterangan</th><th rowspan="2">Cek</th><th rowspan="2"></th></tr>
+    <tr><th>BAST</th><th>Total Unit</th><th>BAST</th><th>Total Unit</th><th class="gt-h">BAST</th><th class="gt-h">Total Unit</th></tr></thead>
+    <tbody>${body}${(() => { const T = draft.reduce((a, r) => add(a, r.d), [0, 0, 0, 0]);
+      return `<tr class="sum"><td></td><td colspan="2" style="text-align:left;font-weight:800">TOTAL</td>${T.map(v => `<td>${v.toLocaleString("id-ID")}</td>`).join("")}<td class="gt">${(T[0] + T[2]).toLocaleString("id-ID")}</td><td class="gt">${(T[1] + T[3]).toLocaleString("id-ID")}</td><td colspan="3"></td></tr>`; })()}</tbody></table></div>`
     : `<div class="empty">Belum ada data untuk ${ddmmyyyy(draftDate)}. ${prev ? `Salin dari laporan ${ddmmyyyy(prev)} atau tambah baris baru.` : "Tambah baris untuk mulai mengisi."}</div>`}
   <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : S.laporan[draftDate] ? "Menyimpan akan mengganti laporan tanggal ini." : "Laporan baru untuk tanggal ini."}${userTerbatas() ? ` Akun Anda hanya bisa mengubah proyek: ${esc(S.proyek.filter(p => bolehEdit(p.nama)).sort(byUrut).map(p => p.nama).join(", ") || "–")}. Baris proyek lain dikunci.` : ""}</p>
   </div>`;
