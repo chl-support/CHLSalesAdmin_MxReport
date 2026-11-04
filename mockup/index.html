@@ -283,6 +283,29 @@ table { width: 100%; border-collapse: collapse; }
 .sub a.cur { font-weight: 700; color: var(--gold-ink); }
 .side-foot { margin-top: auto; padding: 18px 18px 0 0; font-size: 12.5px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .side-foot p { margin: 0; }
+.side-foot { position: relative; }
+.prof-btn { width: calc(100% - 18px); display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--side-line); border-radius: 10px; padding: 8px 10px; cursor: pointer; text-align: left; color: var(--side-ink); }
+.prof-btn:hover { border-color: var(--gold); }
+.prof-btn .chev { margin-left: auto; transform: rotate(-135deg); margin-top: 4px; }
+.prof-btn[aria-expanded="true"] .chev { transform: rotate(45deg); margin-top: -4px; }
+.pp-av { width: 32px; height: 32px; border-radius: 50%; background: var(--navy); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex: 0 0 auto; }
+.pp-who { display: flex; flex-direction: column; min-width: 0; }
+.pp-who b { font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pp-who small { font-size: 11.5px; color: var(--muted); }
+.prof-pop { position: absolute; left: 0; right: 18px; bottom: calc(100% + 8px); background: var(--bg); border: 1px solid var(--side-line); border-radius: 12px; box-shadow: 0 10px 30px rgba(15, 33, 64, .18); padding: 14px; z-index: 40; display: flex; flex-direction: column; gap: 8px; color: var(--ink); }
+.prof-pop hr { border: none; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
+.pp-name { font-size: 15px; font-weight: 800; }
+.pp-badge { align-self: flex-start; font-size: 11.5px; font-weight: 600; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px; color: var(--ink); }
+.pp-row { display: flex; justify-content: space-between; align-items: center; font-size: 13.5px; color: var(--muted); }
+.pp-lang { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; }
+.pp-lang button { font: inherit; font-size: 12px; font-weight: 800; border: none; background: none; padding: 3px 10px; border-radius: 999px; cursor: pointer; color: var(--muted); }
+.pp-lang button[aria-pressed="true"] { background: var(--side-active); color: #fff; }
+.pp-btn { display: block; text-align: center; font-weight: 700; font-size: 14px; padding: 8px 10px; border: 1.5px solid var(--side-active); border-radius: 8px; background: var(--bg); color: var(--ink); text-decoration: none; cursor: pointer; font-family: inherit; }
+.pp-btn:hover { background: var(--side-hover); }
+.pp-help { margin: 0; font-size: 12.5px; color: var(--muted); }
+.pp-contact { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink); text-decoration: none; }
+.pp-contact:hover { color: var(--blue); }
+.pp-sync { margin: 0; font-size: 11.5px; color: var(--muted); }
 .side-foot .role select { background: var(--bg); color: var(--ink); border: 1px solid var(--side-line); border-radius: 4px; padding: 4px 6px; }
 .main { flex: 1; min-width: 0; }
 .mtop { display: none; }
@@ -356,10 +379,25 @@ a.rcard:hover { border-color: var(--gold); }
       </div>
     </nav>
     <div class="side-foot">
-      <div class="who">Masuk sebagai<b id="whoName"></b><span id="whoRole"></span></div>
-      <button class="btn sec" id="logoutBtn" type="button" style="padding:6px 12px">Keluar</button>
-      <p id="syncInfo" aria-live="polite">Menghubungkan ke server…</p>
-      <button class="linkbtn" id="resetBtn" type="button">Kembalikan data contoh</button>
+      <div class="prof-pop" id="profPop" hidden role="dialog" aria-label="Profil">
+        <div class="pp-name" id="whoName"></div>
+        <span class="pp-badge" id="whoRole"></span>
+        <hr>
+        <div class="pp-row"><span>Bahasa</span>
+          <div class="pp-lang" role="group" aria-label="Bahasa"><button type="button" id="langID" aria-pressed="true">ID</button><button type="button" id="langEN" aria-pressed="false">EN</button></div></div>
+        <a class="pp-btn" href="#laporan" id="gantiLaporan">Ganti Laporan</a>
+        <button class="pp-btn" id="logoutBtn" type="button">Keluar</button>
+        <hr>
+        <p class="pp-help">Jika ada kendala, silakan hubungi Admin IT:</p>
+        <a class="pp-contact" href="https://wa.me/6281290676408" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg>6281290676408</a>
+        <a class="pp-contact" href="mailto:it.software@ciptaharmoni.com"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" d="M3 6h18v12H3z M3 7l9 6 9-6"/></svg>it.software@ciptaharmoni.com</a>
+        <hr>
+        <p class="pp-sync" id="syncInfo" aria-live="polite">Menghubungkan ke server…</p>
+        <button class="linkbtn" id="resetBtn" type="button">Kembalikan data contoh</button>
+      </div>
+      <button class="prof-btn" id="profBtn" type="button" aria-expanded="false" aria-controls="profPop">
+        <span class="pp-av" id="profAv"></span><span class="pp-who"><b id="profName"></b><small id="profRole"></small></span><span class="chev" aria-hidden="true"></span>
+      </button>
     </div>
   </aside>
   <div class="scrim" id="scrim" hidden></div>
@@ -1318,14 +1356,6 @@ function bindSalesMaster() {
 
 /* ===================== Daftar report (tambah report baru di sini) ===================== */
 const REPORTS = [
-  { id: "bast", nama: "Dashboard Monitoring BAST All DTP Category", menu: "DASHBOARD MONITORING BAST ALL DTP CATEGORY", desc: "Progres BAST unit PPN DTP dan Non PPN DTP per periode dan proyek.",
-    tabs: [
-      { id: "bast", label: "Dashboard", view: viewDashboard, bind: bindDashboard },
-      { id: "bast-input", label: "Input Data", view: viewInput, bind: bindInput, admin: true },
-      { id: "bast-master", label: "Master", view: viewMaster, bind: bindMaster, admin: true, master: true },
-      { id: "bast-history", label: "History", view: () => viewHistory("bast"), bind: () => {} },
-    ],
-    meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
   { id: "penjualan", nama: "Dashboard Penjualan Properti", menu: "DASHBOARD PENJUALAN PROPERTI", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan laporan, YTD, dan akumulasi terjual. Mengikuti format Excel Daily Report.",
     tabs: [
       { id: "penjualan", label: "Dashboard", view: viewSales, bind: bindSales },
@@ -1334,6 +1364,14 @@ const REPORTS = [
       { id: "penjualan-history", label: "History", view: () => viewHistory("penjualan"), bind: () => {} },
     ],
     meta: () => { const T = hitungSales().tot; return `Laporan ${ddmmyyyy(S.sales2.tanggal)} · ${T.bln[0]} unit bulan ini · ${rp(T.bln[1])}`; } },
+  { id: "bast", nama: "Dashboard Monitoring BAST All DTP Category", menu: "DASHBOARD MONITORING BAST ALL DTP CATEGORY", desc: "Progres BAST unit PPN DTP dan Non PPN DTP per periode dan proyek.",
+    tabs: [
+      { id: "bast", label: "Dashboard", view: viewDashboard, bind: bindDashboard },
+      { id: "bast-input", label: "Input Data", view: viewInput, bind: bindInput, admin: true },
+      { id: "bast-master", label: "Master", view: viewMaster, bind: bindMaster, admin: true, master: true },
+      { id: "bast-history", label: "History", view: () => viewHistory("bast"), bind: () => {} },
+    ],
+    meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
 ];
 function viewLaporan() {
   return `<div class="page gut"><div class="rhead"><div><h2>Monitoring Laporan</h2>
@@ -1374,8 +1412,12 @@ function render(focusId) {
   document.getElementById("shell").hidden = !masuk;
   if (!masuk) { document.title = "Masuk · Monitoring Laporan CHL"; return; }
   document.title = "Monitoring Laporan CHL";
+  const peran = SESI.role !== "ADMIN" ? "Viewer" : SESI.proyek ? "Admin Proyek" : "Admin";
   document.getElementById("whoName").textContent = SESI.nama;
-  document.getElementById("whoRole").textContent = SESI.role === "ADMIN" ? "Admin" : "Viewer";
+  document.getElementById("whoRole").textContent = peran;
+  document.getElementById("profName").textContent = SESI.nama;
+  document.getElementById("profRole").textContent = peran;
+  document.getElementById("profAv").textContent = SESI.nama.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
   document.getElementById("resetBtn").hidden = !(SESI.role === "ADMIN" && !SESI.proyek);
   document.getElementById("syncInfo").textContent = SERVER.info;
   rendering = true;
@@ -1385,9 +1427,54 @@ function render(focusId) {
     if (ft) { view.innerHTML = reportFrame(ft.r, ft.t, ft.t.view()); ft.t.bind(); }
     else view.innerHTML = viewLaporan();
     renderMenu(v);
+    terapkanBahasa();
   } finally { rendering = false; }
   if (focusId) { const el = document.getElementById(focusId); if (el) el.focus(); }
 }
+
+/* ===================== Menu profil + bahasa ===================== */
+const profBtn = document.getElementById("profBtn"), profPop = document.getElementById("profPop");
+function bukaProfil(buka) { profPop.hidden = !buka; profBtn.setAttribute("aria-expanded", String(buka)); }
+profBtn.onclick = e => { e.stopPropagation(); bukaProfil(profPop.hidden); };
+document.addEventListener("click", e => { if (!profPop.hidden && !profPop.contains(e.target) && e.target !== profBtn) bukaProfil(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !profPop.hidden) { bukaProfil(false); profBtn.focus(); } });
+document.getElementById("gantiLaporan").onclick = () => bukaProfil(false);
+window.addEventListener("hashchange", () => bukaProfil(false));
+const EN = {
+  "Monitoring Laporan": "Report Monitoring", "Input Data": "Data Entry", "History": "History", "Master": "Master",
+  "Bahasa": "Language", "Ganti Laporan": "Switch report", "Keluar": "Sign out", "Masuk sebagai": "Signed in as",
+  "Jika ada kendala, silakan hubungi Admin IT:": "Need help? Contact the IT Admin:", "Kembalikan data contoh": "Restore sample data",
+  "Pilih report untuk melihat dashboard atau mengisi data.": "Choose a report to view its dashboard or enter data.",
+  "Report lainnya": "Other reports", "Report berikutnya akan muncul di sini dengan format yang sama: dashboard, input data, dan master.": "More reports will appear here in the same format: dashboard, data entry, and master.",
+  "Belum BAST": "Not yet BAST", "Seluruh periode & jenis": "All periods & types", "Progres BAST per Periode": "BAST progress by period",
+  "Progres BAST per Proyek": "BAST progress by project", "Rincian per Periode & Proyek": "Details by period & project",
+  "Catatan Penting": "Key notes", "Salin teks laporan": "Copy report text", "Ekspor Excel": "Export Excel", "Unduh gambar": "Download image",
+  "Tanggal": "Date", "Hari ini": "Today", "Bulan berjalan": "Current month", "Laporan hari ini": "Today's report",
+  "Akumulasi total terjual": "Total sold to date", "Kontributor Penjualan Hari Ini": "Today's sales contributors",
+  "Penjualan per Proyek": "Sales by project", "Proyek": "Project", "Status": "Status", "Selesai": "Done", "Total": "Total",
+  "Unit": "Unit", "Keterangan": "Notes", "Simpan data": "Save data", "Simpan laporan": "Save report", "Tambah baris": "Add row",
+  "Batalkan perubahan": "Discard changes", "Kode unit": "Unit code", "Harga unit": "Unit price", "Tanda jadi": "Booking fee",
+  "Tanggal laporan": "Report date", "Akumulasi terjual": "Total sold", "Unit Batal": "Cancelled units", "Catatan proyek": "Project notes",
+  "Tambah unit batal": "Add cancelled unit", "Tambah unit hold": "Add held unit", "Semua tanggal": "All dates", "Filter tanggal": "Date filter",
+  "Dari": "From", "Sampai": "To", "Waktu": "Time", "Bagian": "Section", "Perubahan": "Change", "Oleh": "By",
+  "History Perubahan": "Change history", "Input Data BAST": "BAST data entry", "Input Data Penjualan": "Sales data entry",
+  "Tampilan Rp": "Rp display", "Rp detail": "Full Rp", "Tampil": "Shown", "Disembunyikan": "Hidden", "Di dashboard": "On dashboard",
+  "Master Periode & Proyek": "Periods & projects master", "Master Proyek Penjualan": "Sales projects master", "Tambah": "Add", "Urutan": "Order", "Aktif": "Active",
+};
+const asliTeks = new WeakMap();
+function terapkanBahasa() {
+  const en = S.lang === "en";
+  document.documentElement.lang = en ? "en" : "id";
+  document.getElementById("langID").setAttribute("aria-pressed", String(!en));
+  document.getElementById("langEN").setAttribute("aria-pressed", String(en));
+  const w = document.createTreeWalker(document.getElementById("shell"), NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()) {
+    if (en) { const t = n.nodeValue.trim(); if (EN[t]) { if (!asliTeks.has(n)) asliTeks.set(n, n.nodeValue); n.nodeValue = n.nodeValue.replace(t, EN[t]); } }
+    else if (asliTeks.has(n)) { n.nodeValue = asliTeks.get(n); asliTeks.delete(n); }
+  }
+}
+document.getElementById("langID").onclick = () => { S.lang = "id"; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} render(); };
+document.getElementById("langEN").onclick = () => { S.lang = "en"; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} render(); };
 
 /* Sidebar: grup lipat dan menu ponsel */
 const side = document.getElementById("side"), scrim = document.getElementById("scrim"), burger = document.getElementById("burger");
@@ -1398,7 +1485,7 @@ side.addEventListener("click", e => { if (e.target.closest("a")) setMenu(false);
 
 /* ===================== Sinkron dengan database server ===================== */
 const SERVER = { on: false, versi: null, terakhir: "", kirimT: null, sibuk: false, info: "Menghubungkan ke server…" };
-const LOKAL = ["role", "rpMode", "showCatatan"];
+const LOKAL = ["role", "rpMode", "showCatatan", "lang"];
 const dataBersama = () => { const o = {}; Object.keys(S).forEach(k => { if (!LOKAL.includes(k)) o[k] = S[k]; }); return o; };
 async function api(metode, url, body) {
   const r = await fetch(url, { method: metode, headers: Object.assign({ "Content-Type": "application/json" }, SESI && SESI.token ? { Authorization: "Bearer " + SESI.token } : {}),
@@ -1408,7 +1495,7 @@ async function api(metode, url, body) {
   return { status: r.status, ok: r.ok, data: j };
 }
 function terapkan(st, versi) {
-  const simpan = { role: S.role, rpMode: S.rpMode, showCatatan: S.showCatatan };
+  const simpan = { role: S.role, rpMode: S.rpMode, showCatatan: S.showCatatan, lang: S.lang };
   S = Object.assign({}, st, simpan); SERVER.versi = versi; SERVER.terakhir = JSON.stringify(dataBersama());
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
 }
@@ -1486,7 +1573,7 @@ document.getElementById("lgShow").onclick = () => {
   const i = document.getElementById("lgPass"), b = document.getElementById("lgShow"), show = i.type === "password";
   i.type = show ? "text" : "password"; b.textContent = show ? "Sembunyikan" : "Lihat"; b.setAttribute("aria-label", show ? "Sembunyikan password" : "Tampilkan password");
 };
-document.getElementById("logoutBtn").onclick = () => keluar("Anda sudah keluar");
+document.getElementById("logoutBtn").onclick = () => { bukaProfil(false); keluar("Anda sudah keluar"); };
 let konfirmReset = 0;
 document.getElementById("resetBtn").onclick = () => {
   const btn = document.getElementById("resetBtn");
