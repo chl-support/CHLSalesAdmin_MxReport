@@ -616,6 +616,15 @@ const SALES2_SEED = { tanggal: "2026-10-31", proyek: [
     { 1: [1, 5702080500], 2: [1, 4542296050], 4: [3, 21961386200], 8: [3, 24690380800], 9: [1, 5600000000] }),
 ] };
 if (!S.sales2) { S.sales2 = clone(SALES2_SEED); delete S.sales; delete S.salesMaster; save(); }
+/* Tanggal laporan selalu mengikuti hari ini, sehingga bulan aktif ikut bulan berjalan.
+   Angka "hari ini" dikosongkan otomatis saat hari berganti. */
+function ikutiHariIni() {
+  const t = todayISO();
+  if (S.sales2.tanggal === t) return;
+  if (S.sales2.hariTanggal !== t) S.sales2.proyek.forEach(p => p.hari = [0, 0]);
+  S.sales2.tanggal = t; S.sales2.hariTanggal = t; save();
+}
+ikutiHariIni();
 
 const M = v => v / 1e9;
 const idn = (v, d = 2) => v.toLocaleString("id-ID", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -796,7 +805,7 @@ function viewSalesInput() {
   <div class="form-head"><div><h2>Input Data Penjualan</h2>
     <div class="desc">Format sama dengan sheet “input data”. Isi kolom kuning dalam <b>Rupiah penuh</b> (contoh 946000000). Kolom abu-abu dihitung otomatis seperti di Excel: YTD = jumlah Januari–Desember ${th}, Akumulasi terjual = akumulasi s.d. ${th - 1} + YTD.</div></div></div>
   <div class="form-head">
-    <label class="field" for="sTgl">Tanggal laporan<input id="sTgl" type="date" value="${d.tanggal}"></label>
+    <div class="field">Tanggal laporan<span style="font-size:15px;font-weight:700;color:var(--ink)">${panjang(d.tanggal)}</span><span style="font-weight:400">Otomatis mengikuti tanggal hari ini. Bulan aktif: ${BULAN[m - 1]} ${th}.</span></div>
     <div class="btn-row"><button class="btn sec" id="sReset" type="button">Batalkan perubahan</button>
       <button class="btn" id="sSave" type="button" ${hasErr ? "disabled" : ""}>Simpan data</button></div>
   </div>
@@ -805,7 +814,6 @@ function viewSalesInput() {
 }
 function bindSalesInput() {
   const v = document.getElementById("view");
-  document.getElementById("sTgl").onchange = e => { if (e.target.value) { sDraft.tanggal = e.target.value; render("sTgl"); } };
   document.getElementById("sReset").onclick = () => { sLoad(); render(); toast("Perubahan dibatalkan"); };
   document.getElementById("sSave").onclick = () => {
     S.sales2 = clone(sDraft); save(); toast(`Data penjualan ${ddmmyyyy(S.sales2.tanggal)} tersimpan`); render();
@@ -937,7 +945,7 @@ const roleSel = document.getElementById("roleSel");
 roleSel.value = S.role;
 roleSel.onchange = () => { S.role = roleSel.value; save(); render(); toast(`Masuk sebagai ${S.role === "ADMIN" ? "Admin" : "Viewer"}`); };
 document.getElementById("resetBtn").onclick = () => {
-  const role = S.role; S = clone(SEED); S.role = role; S.sales2 = clone(SALES2_SEED); save(); draft = null; sDraft = null; selDate = dates()[0]; render(); toast("Data contoh dikembalikan");
+  const role = S.role; S = clone(SEED); S.role = role; S.sales2 = clone(SALES2_SEED); S.sales2.hariTanggal = null; ikutiHariIni(); save(); draft = null; sDraft = null; selDate = dates()[0]; render(); toast("Data contoh dikembalikan");
 };
 window.addEventListener("hashchange", () => { if (current() === "bast-input" && draft === null) loadDraft(dates()[0] || todayISO()); if (current() === "penjualan-input" && sDraft === null) sLoad(); render(); window.scrollTo(0, 0); });
 if (!location.hash) history.replaceState(null, "", "#bast");
