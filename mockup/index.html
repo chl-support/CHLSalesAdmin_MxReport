@@ -1465,7 +1465,7 @@ function teksDailyReport() {
       L.push(`${bln} / YTD : ${fU(x.bln[0])}/${fU(x.ytd[0])} Unit (${fM(x.bln[1])}/${fM(x.ytd[1])} M)`);
       L.push(`Total Terjual : ${fU(x.akum[0])}/${fU(x.stok[0])} Unit (${fM(x.akum[1])}/${fM(x.stok[1])} M)`);
       if (x.p.catatan && x.p.catatanTampil !== false) L.push(`         dengan rincian sbb : ${x.p.catatan}`);
-      return `${x.p.nama} :\n${L.join("\n")}`;
+      return `*${x.p.nama} :*\n${L.join("\n")}`;
     };
     /* Urutan: mengikuti Master; proyek bermerek dikumpulkan di posisi proyek pertamanya */
     const out = [], sudah = new Set();
@@ -1478,7 +1478,7 @@ function teksDailyReport() {
       if (!mk) { out.push(blok(x)); sudah.add(x.p.id); return; }
       const kel = rows.filter(y => merek(y.p.grup) === mk);
       kel.forEach(y => sudah.add(y.p.id));
-      out.push(`${mk} :\n` + kel.map(blok).join("\n\n"));
+      out.push(`*${mk} :*\n` + kel.map(blok).join("\n\n"));
     });
     const L = [];
     if (T.hari[0] || T.hari[1]) L.push(`Terjual hari ini : ${T.hari[0]} Unit (${fM(T.hari[1])} M)`);
@@ -1486,7 +1486,7 @@ function teksDailyReport() {
     if (!L.length) L.push("Tidak ada perubahan");
     L.push(`${bln} / YTD : ${fU(T.bln[0])}/${fU(T.ytd[0])} Unit (${fM(T.bln[1])}/${fM(T.ytd[1])} M)`);
     L.push(`Total Terjual : ${fU(T.akum[0])}/${fU(T.stok[0])} Unit (${fM(T.akum[1])}/${fM(T.stok[1])} M)`);
-    out.push(`CHL :\n${L.join("\n")}`);
+    out.push(`*CHL :*\n${L.join("\n")}`);
     let t = `Daily Report\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n\n` + out.join("\n\n");
     /* Hold Reserved */
     const hold = S.sales2.hold || [];
@@ -1508,7 +1508,7 @@ function teksDailyReport() {
       H.periodes.forEach(({ p, rincian }) => {
         t += `\nPeriode PPN DTP (${p.nama})\n`;
         rincian.forEach(({ j, r }) => {
-          t += `${j.nama.toUpperCase()}\nBAST PPN DTP\n    Total ${g(r.d[0])} unit dari ${g(r.d[1])} unit\nBAST Non PPN DTP\n    Total ${g(r.d[2])} unit dari ${g(r.d[3])} unit\n`;
+          t += `*${j.nama.toUpperCase()}*\nBAST PPN DTP\n    Total ${g(r.d[0])} unit dari ${g(r.d[1])} unit\nBAST Non PPN DTP\n    Total ${g(r.d[2])} unit dari ${g(r.d[3])} unit\n`;
         });
       });
       t = t.replace(/\n+$/, "");
