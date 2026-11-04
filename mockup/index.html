@@ -229,6 +229,11 @@ table { width: 100%; border-collapse: collapse; }
 .cat-tg.on { background: var(--green-soft); color: var(--green); border-color: var(--green-soft); }
 .cat-tg:disabled { cursor: not-allowed; opacity: .7; }
 .cat-t input[type="text"] { text-align: left !important; text-align-last: left !important; }
+.shot-menu { position: fixed; z-index: 50; width: 260px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(15, 33, 64, .2); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+.shot-menu button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; font: inherit; background: none; border: none; border-radius: 6px; padding: 9px 10px; cursor: pointer; color: var(--ink); }
+.shot-menu button:hover, .shot-menu button:focus-visible { background: var(--blue-soft); }
+.shot-menu b { font-size: 14px; }
+.shot-menu small { font-size: 12px; color: var(--muted); }
 .hold-t { width: 100%; border-collapse: collapse; margin-top: 12px; min-width: 640px; }
 .hold-t th { background: var(--navy); color: #fff; font-size: 13px; padding: 8px 10px; text-align: left; }
 .hold-t td { padding: 7px 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
@@ -456,7 +461,7 @@ const clone = o => JSON.parse(JSON.stringify(o));
 /* Bahasa tampilan. Ekspor Excel dan teks WhatsApp selalu Bahasa Indonesia (PAKSA_ID). */
 let PAKSA_ID = false;
 const isEN = () => !PAKSA_ID && typeof S !== "undefined" && S && S.lang === "en";
-const LOC = () => isEN() ? "en-US" : LOC();
+const LOC = () => isEN() ? "en-US" : "id-ID";
 function denganID(f) { const o = PAKSA_ID; PAKSA_ID = true; try { return f(); } finally { PAKSA_ID = o; } }
 let S;
 try { S = JSON.parse(localStorage.getItem(KEY)) || clone(SEED); } catch (e) { S = clone(SEED); }
@@ -632,7 +637,7 @@ function viewDashboard() {
         ${kalender(tglTampil, ds)}
         <button class="btn-ghost" id="copyBtn" type="button">Salin teks laporan</button>
         <button class="btn-ghost" id="xlsBtn" type="button">Ekspor Excel</button>
-        <button class="btn-ghost" id="shotBtn" type="button">Unduh gambar</button>
+        <button class="btn-ghost" id="shotBtn" type="button" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button>
       </div></div>
   </div>
   <div class="kpis gut">
@@ -665,7 +670,7 @@ function bindDashboard() {
     });
   };
   document.getElementById("xlsBtn").onclick = () => denganID(() => exportExcel(selDate));
-  document.getElementById("shotBtn").onclick = () => unduhGambar("capBast", `Monitoring_BAST_${ddmmyyyy(pilihTgl || todayISO())}.png`);
+  document.getElementById("shotBtn").onclick = e => menuGambar(e.currentTarget, "capBast", `Monitoring_BAST_${ddmmyyyy(pilihTgl || todayISO())}.png`);
 }
 
 /* ===================== Unduh gambar (screenshot dashboard) ===================== */
@@ -678,35 +683,75 @@ function muatH2C() {
   });
 }
 let sedangGambar = false;
-async function unduhGambar(id, nama) {
+/* Membuat gambar PNG dashboard (selalu tata letak laptop) */
+async function buatGambar(id) {
   const el = document.getElementById(id);
-  if (!el || sedangGambar) return;
-  sedangGambar = true; toast("Menyiapkan gambar…");
+  await muatH2C();
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  const bg = getComputedStyle(document.body).backgroundColor;
+  const LEBAR = 1240;
+  const canvas = await html2canvas(el, { scale: 2, backgroundColor: bg, useCORS: true, logging: false,
+    windowWidth: LEBAR + 300, windowHeight: 1000, scrollX: 0, scrollY: 0,
+    ignoreElements: n => n.classList && n.classList.contains("no-cap"),
+    onclone: doc => {
+      const c = doc.getElementById(id); if (!c) return;
+      c.style.width = LEBAR + "px"; c.style.maxWidth = LEBAR + "px"; c.style.margin = "0";
+      c.querySelectorAll(".tbl-wrap").forEach(w => { w.style.overflow = "visible"; });
+      const sd = doc.getElementById("side"); if (sd) sd.style.display = "none";
+      const mt = doc.querySelector(".topbar"); if (mt) mt.style.display = "none";
+    } });
+  return await new Promise(r => canvas.toBlob(r, "image/png"));
+}
+function simpanBlob(blob, nama) {
+  const url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = nama; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+const bisaBagikan = () => { try { return !!(navigator.share && navigator.canShare && navigator.canShare({ files: [new File([""], "x.png", { type: "image/png" })] })); } catch (e) { return false; } };
+const gambarSiap = {}; /* gambar yang sudah dibuat, untuk ketukan kedua Bagikan */
+async function unduhGambar(id, nama, cara = "unduh") {
+  if (!document.getElementById(id) || sedangGambar) return;
+  const siap = gambarSiap[id] && gambarSiap[id].nama === nama && Date.now() - gambarSiap[id].t < 120000 ? gambarSiap[id].blob : null;
+  sedangGambar = true; if (!siap) toast("Menyiapkan gambar…");
   try {
-    await muatH2C();
-    if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    const bg = getComputedStyle(document.body).backgroundColor;
-    /* Gambar selalu dibuat dengan tata letak laptop (lebar 1240 px), juga saat tombol diklik dari HP,
-       supaya kartu tidak bertumpuk dan tabel tidak terpotong. */
-    const LEBAR = 1240;
-    const canvas = await html2canvas(el, { scale: 2, backgroundColor: bg, useCORS: true, logging: false,
-      windowWidth: LEBAR + 300, windowHeight: 1000, scrollX: 0, scrollY: 0,
-      ignoreElements: n => n.classList && n.classList.contains("no-cap"),
-      onclone: doc => {
-        const c = doc.getElementById(id); if (!c) return;
-        c.style.width = LEBAR + "px"; c.style.maxWidth = LEBAR + "px"; c.style.margin = "0";
-        c.querySelectorAll(".tbl-wrap").forEach(w => { w.style.overflow = "visible"; });
-        const sd = doc.getElementById("side"); if (sd) sd.style.display = "none";
-        const mt = doc.querySelector(".topbar"); if (mt) mt.style.display = "none";
-      } });
-    const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
-    const url = URL.createObjectURL(blob), a = document.createElement("a");
-    a.href = url; a.download = nama; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    toast("Gambar diunduh");
+    const blob = siap || await buatGambar(id);
+    if (cara === "bagikan") {
+      const file = new File([blob], nama, { type: "image/png" });
+      if (!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }))) {
+        simpanBlob(blob, nama); toast("Browser ini belum bisa membagikan gambar langsung. Gambar diunduh; bagikan dari galeri atau folder Download.");
+        return;
+      }
+      try { await navigator.share({ files: [file], title: nama.replace(/\.png$/, "") }); delete gambarSiap[id]; }
+      catch (e) {
+        if (e && e.name === "AbortError") return;
+        if (e && e.name === "NotAllowedError") { gambarSiap[id] = { blob, nama, t: Date.now() }; toast("Gambar siap. Ketuk Bagikan sekali lagi."); return; }
+        throw e;
+      }
+    } else { simpanBlob(blob, nama); delete gambarSiap[id]; toast("Gambar diunduh"); }
   } catch (e) {
     toast(e && e.message === "load" ? "Gagal memuat alat gambar. Periksa koneksi internet lalu coba lagi." : "Gagal membuat gambar. Coba lagi.");
   } finally { sedangGambar = false; }
+}
+/* Menu kecil Unduh / Bagikan di bawah tombol "Unduh gambar" */
+function menuGambar(btn, id, nama) {
+  let m = document.getElementById("shotMenu");
+  if (!m) {
+    m = document.createElement("div"); m.id = "shotMenu"; m.className = "shot-menu"; m.setAttribute("role", "menu"); document.body.appendChild(m);
+    document.addEventListener("click", e => { if (!m.hidden && !m.contains(e.target) && !e.target.closest("[data-shot]")) m.hidden = true; });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") m.hidden = true; });
+    window.addEventListener("scroll", () => { m.hidden = true; }, { passive: true });
+  }
+  if (!m.hidden && m.dataset.for === btn.id) { m.hidden = true; return; }
+  const share = bisaBagikan();
+  m.innerHTML = `<button type="button" role="menuitem" data-act="unduh"><b>Unduh</b><small>Simpan gambar PNG ke perangkat</small></button>
+    <button type="button" role="menuitem" data-act="bagikan"><b>Bagikan</b><small>${share ? "WhatsApp, Instagram, Telegram, email, dll." : "Di browser ini gambar akan diunduh dulu"}</small></button>`;
+  m.dataset.for = btn.id;
+  const r = btn.getBoundingClientRect();
+  m.style.top = (r.bottom + 6) + "px";
+  m.style.left = Math.max(8, Math.min(r.right - 260, window.innerWidth - 268)) + "px";
+  m.hidden = false;
+  try { terapkanBahasa(m); } catch (e) {}
+  m.querySelectorAll("[data-act]").forEach(x => x.onclick = () => { m.hidden = true; unduhGambar(id, nama, x.dataset.act); });
 }
 
 /* ===================== Ekspor Excel ===================== */
@@ -1021,7 +1066,7 @@ function viewSales() {
         ${salesBulan ? '<button class="btn-ghost" id="salesLatest" type="button">Bulan berjalan</button>' : ""}
         <button class="btn-ghost" id="salesCopy" type="button">Salin teks laporan</button>
         <button class="btn-ghost" id="salesXls" type="button">Ekspor Excel</button>
-        <button class="btn-ghost" id="salesShot" type="button">Unduh gambar</button>
+        <button class="btn-ghost" id="salesShot" type="button" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button>
       </div></div>
   </div>
   <div class="kpis gut">
@@ -1129,7 +1174,7 @@ function bindSales() {
   if (!c) return;
   c.onclick = () => navigator.clipboard.writeText(denganID(() => salesText())).then(() => toast("Teks laporan disalin")).catch(() => toast("Gagal menyalin. Coba lagi."));
   document.getElementById("salesXls").onclick = () => denganID(exportSalesExcel);
-  document.getElementById("salesShot").onclick = () => unduhGambar("capSales", `Dashboard_Penjualan_${BULAN[bulanAktif() - 1]}_${tahunKe()}.png`);
+  document.getElementById("salesShot").onclick = e => menuGambar(e.currentTarget, "capSales", `Dashboard_Penjualan_${BULAN[bulanAktif() - 1]}_${tahunKe()}.png`);
   document.getElementById("salesTgl").onchange = e => {
     const v = e.target.value; if (!v) return;
     if (+v.slice(0, 4) !== tahunKe() || v > S.sales2.tanggal) { toast(`Pilih tanggal antara 01-01-${tahunKe()} dan ${ddmmyyyy(S.sales2.tanggal)}`); render("salesTgl"); return; }
@@ -1575,6 +1620,11 @@ const EN = {
   "Belum ada data": "No data yet",
   "Ganti Laporan": "Switch report",
   "Admin Proyek": "Project admin",
+  "Unduh / Bagikan ▾": "Download / Share ▾", "Unduh": "Download", "Bagikan": "Share",
+  "Simpan gambar PNG ke perangkat": "Save the PNG image to this device", "WhatsApp, Instagram, Telegram, email, dll.": "WhatsApp, Instagram, Telegram, email, etc.",
+  "Di browser ini gambar akan diunduh dulu": "This browser will download the image first",
+  "Gambar siap. Ketuk Bagikan sekali lagi.": "Image ready. Tap Share once more.",
+  "Browser ini belum bisa membagikan gambar langsung. Gambar diunduh; bagikan dari galeri atau folder Download.": "This browser can't share images directly. The image was downloaded; share it from your gallery or Downloads folder.",
   "Master Periode & Proyek": "Periods & projects master", "Master Proyek Penjualan": "Sales projects master", "Tambah": "Add", "Urutan": "Order", "Aktif": "Active",
 };
 /* Pola kalimat dinamis (angka, nama, tanggal) */
