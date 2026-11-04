@@ -143,6 +143,9 @@ table { width: 100%; border-collapse: collapse; }
 .sales-in th, .sales-in td { padding: 5px 6px; font-size: 12.5px; }
 .sales-in input[type="number"] { width: 64px; max-width: none; padding: 5px 6px; font-size: 12.5px; }
 .sales-in input[data-j="1"] { width: 150px; }
+.edit.sales-in td input[data-j="1"][type="text"] { min-width: 0; width: 150px; }
+.edit.sales-in.rp-m td input[data-j="1"][type="text"] { width: 78px; }
+.sales-in.rp-m td.calc { min-width: 0; }
 .sales-in input[readonly] { background: var(--track); color: var(--ink); cursor: default; }
 .seg { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
 .seg-l { font-size: 13px; font-weight: 600; color: var(--muted); margin-right: 8px; }
@@ -869,7 +872,7 @@ function viewSalesInput() {
     <div class="btn-row"><button class="btn sec" id="sReset" type="button">Batalkan perubahan</button>
       <button class="btn" id="sSave" type="button" ${hasErr ? "disabled" : ""}>Simpan data</button></div>
   </div>
-  <div class="tbl-wrap"><table class="edit sales-in num"><thead><tr>${h1}</tr><tr>${h2}</tr></thead><tbody>${body}</tbody></table></div>
+  <div class="tbl-wrap"><table class="edit sales-in num ${rpM ? "rp-m" : ""}"><thead><tr>${h1}</tr><tr>${h2}</tr></thead><tbody>${body}</tbody></table></div>
   <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan. " : ""}Proyek dan grup diatur di tab Master.</p></div>`;
 }
 function bindSalesInput() {
