@@ -216,6 +216,11 @@ table { width: 100%; border-collapse: collapse; }
 .who b { font-size: 14px; color: var(--side-ink); }
 .who span { font-size: 12px; font-weight: 700; color: var(--gold-ink); }
 .kpis-2 { margin-top: 20px; }
+.kpi-sub { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.kpi-sub .lbl { font-size: 11.5px; }
+.kpi-sub .sub-val { font-size: 20px; font-weight: 800; color: var(--ink); line-height: 1.2; margin-top: 2px; }
+.kpi-sub .sub-val small { font-size: 13px; font-weight: 600; color: var(--muted); }
+.kpi-sub .sub-rp { font-size: 15px; font-weight: 700; color: var(--red); }
 .rincian tr.subnote td { text-align: left; padding: 3px 10px 8px 26px; font-size: 12.5px; font-style: italic; color: var(--gold-ink); background: var(--bg); border-bottom: 1px solid var(--line); }
 .cat-t { min-width: 640px; }
 .cat-t td.proj-c { text-align: left; font-weight: 700; color: var(--ink); }
@@ -975,7 +980,9 @@ function viewSales() {
     <div class="kpi" style="--c:var(--red)"><div class="lbl">Batal bulan ${esc(BULAN[m - 1])}</div>
       <div class="val num">${batalBln.length ? "−" + batalBln.length : 0} <small>unit</small></div>
       <div class="pct num">${batalRp ? "−" + rpRingkas(batalRp) : batalBln.length ? "Rp belum diisi" : "Rp0"}</div>
-      <div class="note">${batalBln.length ? esc(ringkasProyek(batalBln)) : "Tidak ada unit batal"}</div></div>
+      <div class="note">${batalBln.length ? esc(ringkasProyek(batalBln)) : "Tidak ada unit batal"}</div>
+      ${cur ? (() => { const bh = (S.sales2.batal || []).filter(x => x.tanggal === S.sales2.tanggal), rph = bh.reduce((a, x) => a + (x.rp || 0), 0);
+        return `<div class="kpi-sub"><div class="lbl">Laporan hari ini</div><div class="sub-val num">−${bh.length} <small>unit</small></div><div class="sub-rp num">−${rp(rph)}</div>${bh.length ? `<div class="note">${esc(ringkasProyek(bh))}</div>` : ""}</div>`; })() : ""}</div>
     <div class="kpi" style="--c:var(--purple)"><div class="lbl">Hold Reserved</div>
       <div class="val num">${hold.length} <small>unit</small></div>
       <div class="pct num">${rpRingkas(holdTj)} <small style="font-size:13px;font-weight:600;color:var(--muted)">tanda jadi</small></div>
