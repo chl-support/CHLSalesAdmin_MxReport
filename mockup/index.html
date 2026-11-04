@@ -14,6 +14,8 @@
   --navy: #0d2a57; --navy-2: #163a70; --blue: #2a6fc0; --blue-soft: #e8eef7;
   --green: #1f8a55; --gold: #c98a12; --red: #c0392b; --grey: #8a9893; --track: #f1f4f8;
   --input-bg: #fffbea; --on-navy: #ffffff;
+  --side-bg: #f3f2ee; --side-ink: #1b1d22; --side-line: #dcdad3; --side-hover: #e8e6df; --side-active: #1c1d21;
+  --gold: #c9971c; --gold-ink: #a87a0e;
   --font: "Archivo", "Helvetica Neue", Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
@@ -22,6 +24,8 @@
     --navy: #0b2148; --navy-2: #15346a; --blue: #6aa6ec; --blue-soft: #18263d;
     --green: #4fc788; --gold: #e8b04a; --red: #ef7a6c; --grey: #7d8d87; --track: #172234;
     --input-bg: #1d2433; color-scheme: dark;
+    --side-bg: #141a24; --side-ink: #e4e7ee; --side-line: #2a3343; --side-hover: #1d2533; --side-active: #2a3446;
+    --gold: #e0b44a; --gold-ink: #e8c46a;
   }
 }
 * { box-sizing: border-box; }
@@ -126,6 +130,64 @@ table { width: 100%; border-collapse: collapse; }
 .master input[type="text"] { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); }
 .ord { background: none; border: 1px solid var(--line); border-radius: 3px; cursor: pointer; padding: 2px 6px; color: var(--muted); }
 
+/* Shell + sidebar */
+.shell { display: flex; min-height: 100vh; }
+.side { width: 272px; flex: 0 0 272px; background: var(--side-bg); border-right: 1px solid var(--side-line); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 22px 0 18px 18px; }
+.logo { padding-right: 18px; padding-bottom: 18px; border-bottom: 2px solid var(--gold); margin-right: 0; }
+.logo-co { margin-top: 10px; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--gold-ink); }
+.logo-app { margin-top: 4px; font-size: 17px; font-weight: 800; line-height: 1.2; color: var(--side-ink); }
+.menu { padding: 18px 12px 0 0; display: flex; flex-direction: column; gap: 14px; }
+.grp-h { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: none; border: none; text-align: left; font-weight: 700; font-size: 14px; color: var(--side-ink); cursor: pointer; padding: 4px 6px 4px 0; }
+.chev { width: 8px; height: 8px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); margin-top: -4px; flex: 0 0 auto; transition: transform .15s; }
+.grp-h[aria-expanded="false"] .chev { transform: rotate(-45deg); margin-top: 0; }
+.grp-h[aria-expanded="false"] + .grp-b { display: none; }
+.grp-b { margin: 8px 0 0 6px; border-left: 1px solid var(--side-line); padding-left: 10px; display: flex; flex-direction: column; gap: 2px; }
+.grp-b a { display: flex; justify-content: space-between; align-items: center; gap: 8px; text-decoration: none; color: var(--side-ink); font-size: 13.5px; padding: 8px 10px; border-radius: 6px; position: relative; }
+.grp-b a:hover { background: var(--side-hover); }
+.grp-b a.on { background: var(--side-active); color: #fff; font-weight: 700; }
+.grp-b a.on::before { content: ""; position: absolute; left: -2px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--gold); }
+.more { color: var(--muted); font-size: 16px; line-height: 1; }
+.grp-b a.on .more { color: #fff; }
+.sub { display: flex; flex-direction: column; gap: 2px; margin-left: 12px; }
+.sub a { font-size: 13px; padding: 6px 10px; }
+.sub a.cur { font-weight: 700; color: var(--gold-ink); }
+.side-foot { margin-top: auto; padding: 18px 18px 0 0; font-size: 12.5px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.side-foot p { margin: 0; }
+.side-foot .role select { background: var(--bg); color: var(--ink); border: 1px solid var(--side-line); border-radius: 4px; padding: 4px 6px; }
+.main { flex: 1; min-width: 0; }
+.mtop { display: none; }
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 29; }
+
+/* Report sub-header */
+.rhead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; padding-block: 18px 0; }
+.crumb { font-size: 12.5px; color: var(--muted); }
+.crumb a { color: var(--muted); }
+.rhead h2 { margin-top: 2px; }
+.rtabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-top: 12px; }
+.rtabs a { text-decoration: none; color: var(--muted); font-weight: 700; font-size: 14px; padding: 10px 14px; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.rtabs a:hover { color: var(--ink); }
+.rtabs a.on { color: var(--ink); border-bottom-color: var(--gold); }
+
+/* Report catalogue */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-top: 20px; }
+.rcard { border: 1px solid var(--line); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: var(--text); min-width: 0; }
+a.rcard:hover { border-color: var(--gold); }
+.rcard h3 { margin: 0; font-size: 16px; color: var(--ink); }
+.rcard p { margin: 0; font-size: 13.5px; color: var(--muted); }
+.rcard .meta { font-size: 13px; font-weight: 700; color: var(--ink); }
+.rcard.soon { border-style: dashed; }
+.placeholder { margin-top: 24px; border: 1px dashed var(--line); border-radius: 8px; padding: 32px; text-align: center; color: var(--muted); }
+.placeholder h2 { margin-bottom: 6px; }
+
+@media (max-width: 900px) {
+  .side { position: fixed; left: 0; top: 0; z-index: 30; transform: translateX(-100%); transition: transform .2s; padding-top: calc(22px + env(safe-area-inset-top, 0px)); padding-left: max(18px, env(safe-area-inset-left, 0px)); }
+  .side.open { transform: none; }
+  .mtop { display: flex; align-items: center; gap: 12px; background: var(--side-bg); border-bottom: 2px solid var(--gold); padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); position: sticky; top: 0; z-index: 10; }
+  .mtop-t { font-weight: 800; color: var(--side-ink); }
+  .burger { background: none; border: 1px solid var(--side-line); border-radius: 6px; padding: 8px 7px; cursor: pointer; display: flex; flex-direction: column; gap: 3px; }
+  .burger span { display: block; width: 18px; height: 2px; background: var(--side-ink); }
+}
+
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; z-index: 20; }
 
 @media (max-width: 760px) {
@@ -139,22 +201,53 @@ table { width: 100%; border-collapse: collapse; }
 </style>
 </head>
 <body>
-<header class="appbar">
-  <div class="page gut appbar-in" style="padding-bottom:10px">
-    <span class="brand">BAST PPN DTP</span>
-    <nav class="nav" id="nav">
-      <a href="#dashboard" data-v="dashboard">Dashboard</a>
-      <a href="#input" data-v="input" data-admin>Input Data</a>
-      <a href="#master" data-v="master" data-admin>Master</a>
+<div class="shell">
+  <aside class="side" id="side" aria-label="Menu utama">
+    <div class="logo">
+      <svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
+        <g fill="none" stroke="var(--gold)" stroke-width="2.2" stroke-linecap="round">
+          <path d="M20 20c0-7 3-11 7-12-1 5-3 9-7 12z"/><path d="M20 20c0-7-3-11-7-12 1 5 3 9 7 12z"/>
+          <path d="M20 20c6-2 11 0 13 3-5 1-9 0-13-3z"/><path d="M20 20c-6-2-11 0-13 3 5 1 9 0 13-3z"/>
+          <path d="M20 20c3 5 3 10 0 13-3-3-3-8 0-13z"/>
+        </g>
+      </svg>
+      <div class="logo-co">Cipta Harmoni Lestari</div>
+      <div class="logo-app">CHL Sales<br>Admin System</div>
+    </div>
+    <nav class="menu" id="menu">
+      <div class="grp" data-grp="dok">
+        <button class="grp-h" type="button" aria-expanded="true">Pengajuan, Dokumen &amp; Payment<span class="chev" aria-hidden="true"></span></button>
+        <div class="grp-b">
+          <a href="#data-marketing" data-v="data-marketing">Data Marketing<span class="more" aria-hidden="true">›</span></a>
+          <a href="#pengajuan-fee" data-v="pengajuan-fee">Pengajuan Fee<span class="more" aria-hidden="true">›</span></a>
+          <a href="#memo-approval" data-v="memo-approval">Memo Approval</a>
+          <a href="#alur-kerja" data-v="alur-kerja">Manajemen Alur Kerja Dokumen</a>
+          <a href="#laporan" data-v="laporan" data-also="bast">Monitoring Laporan</a>
+          <div class="sub" id="reportMenu"></div>
+        </div>
+      </div>
+      <div class="grp" data-grp="sim">
+        <button class="grp-h" type="button" aria-expanded="true">Simulasi &amp; Pricelist<span class="chev" aria-hidden="true"></span></button>
+        <div class="grp-b">
+          <a href="#simulasi" data-v="simulasi">Simulasi / NPV</a>
+          <a href="#pricelist" data-v="pricelist">Pricelist</a>
+        </div>
+      </div>
     </nav>
-    <label class="role" for="roleSel">Masuk sebagai
-      <select id="roleSel"><option value="ADMIN">Admin</option><option value="VIEWER">Viewer</option></select>
-    </label>
+    <div class="side-foot">
+      <label class="role" for="roleSel">Masuk sebagai
+        <select id="roleSel"><option value="ADMIN">Admin</option><option value="VIEWER">Viewer</option></select>
+      </label>
+      <p>Mockup. Data tersimpan di browser ini saja.</p>
+      <button class="linkbtn" id="resetBtn" type="button">Kembalikan data contoh</button>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+  <div class="main">
+    <div class="mtop"><button class="burger" id="burger" type="button" aria-label="Buka menu" aria-controls="side" aria-expanded="false"><span></span><span></span><span></span></button><span class="mtop-t">CHL Sales Admin System</span></div>
+    <main id="view"></main>
   </div>
-</header>
-<div class="mockbar gut"><span>Mockup. Data tersimpan di browser ini saja dan tidak dibagikan ke pengguna lain.</span><button class="linkbtn" id="resetBtn" type="button">Kembalikan data contoh</button></div>
-
-<main id="view"></main>
+</div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -247,7 +340,7 @@ function teksWA(tgl) {
 let selDate = dates()[0];
 function viewDashboard() {
   const ds = dates();
-  if (!ds.length) return `<div class="page gut"><div class="empty">Belum ada laporan. ${S.role === "ADMIN" ? 'Buka <a href="#input">Input Data</a> untuk mengisi laporan pertama.' : "Minta admin mengisi laporan pertama."}</div></div>`;
+  if (!ds.length) return `<div class="page gut"><div class="empty">Belum ada laporan. ${S.role === "ADMIN" ? 'Buka <a href="#bast-input">Input Data</a> untuk mengisi laporan pertama.' : "Minta admin mengisi laporan pertama."}</div></div>`;
   if (!ds.includes(selDate)) selDate = ds[0];
   const H = hitung(selDate), G = H.grand;
   const gB = G[0] + G[2], gT = G[1] + G[3];
@@ -449,13 +542,55 @@ function bindMaster() {
   });
 }
 
+/* ===================== Daftar report (tambah report baru di sini) ===================== */
+const REPORTS = [
+  { id: "bast", nama: "Report BAST PPN DTP", desc: "Progres BAST unit PPN DTP dan Non PPN DTP per periode dan proyek.",
+    tabs: [
+      { id: "bast", label: "Dashboard", view: viewDashboard, bind: bindDashboard },
+      { id: "bast-input", label: "Input Data", view: viewInput, bind: bindInput, admin: true },
+      { id: "bast-master", label: "Master", view: viewMaster, bind: bindMaster, admin: true },
+    ],
+    meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
+];
+const PLACEHOLDER = {
+  "data-marketing": "Data Marketing", "pengajuan-fee": "Pengajuan Fee", "memo-approval": "Memo Approval",
+  "alur-kerja": "Manajemen Alur Kerja Dokumen", "simulasi": "Simulasi / NPV", "pricelist": "Pricelist",
+};
+
+function viewLaporan() {
+  return `<div class="page gut"><div class="rhead"><div><div class="crumb">Pengajuan, Dokumen &amp; Payment</div><h2>Monitoring Laporan</h2>
+    <div class="desc">Pilih report untuk melihat dashboard atau mengisi data.</div></div></div>
+    <div class="cards">${REPORTS.map(r => `<a class="rcard" href="#${r.id}"><h3>${esc(r.nama)}</h3><p>${esc(r.desc)}</p><span class="meta">${esc(r.meta())}</span></a>`).join("")}
+      <div class="rcard soon"><h3>Report lainnya</h3><p>Report berikutnya akan muncul di sini dengan format yang sama: dashboard, input data, dan master.</p></div></div></div>`;
+}
+function viewPlaceholder(v) {
+  return `<div class="page gut"><div class="placeholder"><h2>${esc(PLACEHOLDER[v])}</h2><p>Halaman ini sudah ada di sistem CHL Sales Admin dan tidak termasuk dalam mockup.</p>
+    <p><a href="#laporan">Buka Monitoring Laporan</a></p></div></div>`;
+}
+function reportFrame(r, tab, inner) {
+  const tabs = r.tabs.filter(t => !t.admin || S.role === "ADMIN");
+  return `<div class="page gut"><div class="rhead"><div><div class="crumb"><a href="#laporan">Monitoring Laporan</a> / ${esc(r.nama)}</div><h2>${esc(r.nama)}</h2></div></div>
+    <nav class="rtabs" aria-label="Bagian report">${tabs.map(t => `<a href="#${t.id}" class="${t.id === tab.id ? "on" : ""}" ${t.id === tab.id ? 'aria-current="page"' : ""}>${t.label}</a>`).join("")}</nav></div>${inner}`;
+}
+function findTab(v) { for (const r of REPORTS) for (const t of r.tabs) if (t.id === v) return { r, t }; return null; }
+
 /* ===================== Router ===================== */
-const VIEWS = { dashboard: [viewDashboard, bindDashboard], input: [viewInput, bindInput], master: [viewMaster, bindMaster] };
 function current() {
   let v = location.hash.slice(1);
-  if (!VIEWS[v]) v = "dashboard";
-  if (S.role !== "ADMIN" && v !== "dashboard") { history.replaceState(null, "", "#dashboard"); v = "dashboard"; }
+  if (v === "dashboard") v = "bast"; else if (v === "input") v = "bast-input"; else if (v === "master") v = "bast-master";
+  if (!(v === "laporan" || PLACEHOLDER[v] || findTab(v))) v = "laporan";
+  const ft = findTab(v);
+  if (ft && ft.t.admin && S.role !== "ADMIN") { v = ft.r.tabs[0].id; history.replaceState(null, "", "#" + v); }
   return v;
+}
+function renderMenu(v) {
+  const ft = findTab(v);
+  document.getElementById("reportMenu").innerHTML = REPORTS.map(r =>
+    `<a href="#${r.tabs[0].id}" class="${ft && ft.r === r ? "cur" : ""}">${esc(r.nama.replace(/^Report /, ""))}</a>`).join("");
+  document.querySelectorAll("#menu .grp-b > a").forEach(a => {
+    const on = a.dataset.v === v || (a.dataset.v === "laporan" && (v === "laporan" || ft));
+    a.classList.toggle("on", !!on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+  });
 }
 let rendering = false;
 function render(focusId) {
@@ -463,22 +598,31 @@ function render(focusId) {
   rendering = true;
   const v = current();
   try {
-    document.getElementById("view").innerHTML = VIEWS[v][0]();
-    VIEWS[v][1]();
+    const view = document.getElementById("view"), ft = findTab(v);
+    if (ft) { view.innerHTML = reportFrame(ft.r, ft.t, ft.t.view()); ft.t.bind(); }
+    else if (v === "laporan") view.innerHTML = viewLaporan();
+    else view.innerHTML = viewPlaceholder(v);
+    renderMenu(v);
   } finally { rendering = false; }
-  document.querySelectorAll("#nav a").forEach(a => {
-    a.toggleAttribute("aria-current", a.dataset.v === v); if (a.dataset.v === v) a.setAttribute("aria-current", "page");
-    a.hidden = a.hasAttribute("data-admin") && S.role !== "ADMIN";
-  });
   if (focusId) { const el = document.getElementById(focusId); if (el) el.focus(); }
 }
+
+/* Sidebar: grup lipat dan menu ponsel */
+document.querySelectorAll(".grp-h").forEach(h => h.onclick = () => h.setAttribute("aria-expanded", h.getAttribute("aria-expanded") === "true" ? "false" : "true"));
+const side = document.getElementById("side"), scrim = document.getElementById("scrim"), burger = document.getElementById("burger");
+function setMenu(open) { side.classList.toggle("open", open); scrim.hidden = !open; burger.setAttribute("aria-expanded", String(open)); }
+burger.onclick = () => setMenu(!side.classList.contains("open"));
+scrim.onclick = () => setMenu(false);
+side.addEventListener("click", e => { if (e.target.closest("a")) setMenu(false); });
+
 const roleSel = document.getElementById("roleSel");
 roleSel.value = S.role;
 roleSel.onchange = () => { S.role = roleSel.value; save(); render(); toast(`Masuk sebagai ${S.role === "ADMIN" ? "Admin" : "Viewer"}`); };
 document.getElementById("resetBtn").onclick = () => {
   const role = S.role; S = clone(SEED); S.role = role; save(); draft = null; selDate = dates()[0]; render(); toast("Data contoh dikembalikan");
 };
-window.addEventListener("hashchange", () => { if (current() === "input" && draft === null) loadDraft(dates()[0] || todayISO()); render(); });
+window.addEventListener("hashchange", () => { if (current() === "bast-input" && draft === null) loadDraft(dates()[0] || todayISO()); render(); window.scrollTo(0, 0); });
+if (!location.hash) history.replaceState(null, "", "#bast");
 render();
 </script>
 </body>
