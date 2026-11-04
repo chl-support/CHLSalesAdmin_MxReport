@@ -65,6 +65,10 @@ button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible
 .strip-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .btn-ghost { font-weight: 600; font-size: 13px; color: #fff; background: transparent; border: 1px solid rgba(255,255,255,.45); border-radius: 4px; padding: 5px 12px; cursor: pointer; }
 .btn-ghost:hover { background: rgba(255,255,255,.12); }
+.strip input[type="date"] { background: var(--navy); color: #fff; border: 1px solid rgba(255,255,255,.45); border-radius: 4px; padding: 4px 8px; font: inherit; font-size: 13px; color-scheme: dark; }
+.tgl-info { font-size: 12px; opacity: .8; }
+.tglbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 20px; padding: 10px 12px; background: var(--navy-2); color: #fff; border-radius: 6px; }
+.tglbar input[type="date"] { background: var(--navy); color: #fff; border: 1px solid rgba(255,255,255,.45); border-radius: 4px; padding: 4px 8px; font: inherit; font-size: 13px; color-scheme: dark; }
 .strip select { background: var(--navy); color: #fff; border: 1px solid rgba(255,255,255,.45); border-radius: 4px; padding: 4px 8px; font-size: 13px; }
 
 /* KPI */
@@ -512,10 +516,25 @@ function teksWA(tgl) {
 
 /* ===================== Dashboard ===================== */
 let selDate = dates()[0];
+/* Tanggal yang dipilih di kalender (null = laporan terbaru). Laporan yang ditampilkan = laporan terakhir pada/sebelum tanggal itu. */
+let pilihTgl = null;
+const laporanPada = t => dates().find(d => d <= t) || null;
+/* Kalender pilih tanggal + jumlah laporan tersimpan */
+function kalender(nilai, ds) {
+  return `<label for="dateSel" style="font-size:13px">Tanggal</label>
+    <input type="date" id="dateSel" value="${nilai}" max="${todayISO() > ds[0] ? todayISO() : ds[0]}" title="Pilih tanggal; jika tidak ada laporan di tanggal itu, tampil laporan terakhir sebelumnya">
+    ${pilihTgl && pilihTgl !== todayISO() ? '<button class="btn-ghost" id="dateLatest" type="button">Hari ini</button>' : ""}
+    <span class="tgl-info">${ds.length} laporan tersimpan</span>`;
+}
 function viewDashboard() {
   const ds = dates();
   if (!ds.length) return `<div class="page gut"><div class="empty">Belum ada laporan. ${S.role === "ADMIN" ? 'Buka <a href="#bast-input">Input Data</a> untuk mengisi laporan pertama.' : "Minta admin mengisi laporan pertama."}</div></div>`;
-  if (!ds.includes(selDate)) selDate = ds[0];
+  /* Default selalu tanggal berjalan (hari ini), ada atau tidak ada laporan pada tanggal itu */
+  const tglTampil = pilihTgl || todayISO();
+  const d = laporanPada(tglTampil);
+  if (!d) return `<div class="page gut"><div class="tglbar">${kalender(tglTampil, ds)}</div><div class="empty">Belum ada laporan pada atau sebelum ${ddmmyyyy(tglTampil)}. Laporan pertama tersimpan tanggal ${ddmmyyyy(ds.at(-1))}.</div></div>`;
+  selDate = d;
+  const beda = tglTampil !== selDate;
   const H = hitung(selDate), G = H.grand;
   const gB = G[0] + G[2], gT = G[1] + G[3];
   const kpi = (c, lbl, val, unit, p, note) => `<div class="kpi" style="--c:${c}"><div class="lbl">${lbl}</div>
@@ -548,12 +567,11 @@ function viewDashboard() {
   const nProj = new Set(H.rows.map(r => r.proyekId)).size;
   return `<div class="page cap" id="capBast">
   <div class="hero">
-    <div class="tabs"><span class="tab">Laporan BAST</span><span class="tab">${panjang(selDate)}</span></div>
-    <div class="hero-body gut"><h1>Monitoring BAST All DTP Category</h1><div class="sub">Perubahan hari ini (${ddmmyyyy(selDate)})</div></div>
+    <div class="tabs"><span class="tab">Laporan BAST</span><span class="tab">${panjang(tglTampil)}</span></div>
+    <div class="hero-body gut"><h1>Monitoring BAST All DTP Category</h1><div class="sub">Perubahan hari ini (${ddmmyyyy(tglTampil)})${beda ? ` • belum ada laporan baru, data dari laporan ${ddmmyyyy(selDate)}` : ""}</div></div>
     <div class="strip gut"><span>Data BAST ${nProj} proyek • ${H.periodes.length} periode PPN DTP</span>
       <div class="strip-actions no-cap">
-        <label for="dateSel" style="font-size:13px">Tanggal</label>
-        <select id="dateSel">${ds.map(d => `<option value="${d}" ${d === selDate ? "selected" : ""}>${ddmmyyyy(d)}</option>`).join("")}</select>
+        ${kalender(tglTampil, ds)}
         <button class="btn-ghost" id="copyBtn" type="button">Salin teks laporan</button>
         <button class="btn-ghost" id="xlsBtn" type="button">Ekspor Excel</button>
         <button class="btn-ghost" id="shotBtn" type="button">Unduh gambar</button>
@@ -576,8 +594,10 @@ function viewDashboard() {
 }
 function bindDashboard() {
   const ds = document.getElementById("dateSel");
-  if (!ds) return;
-  ds.onchange = () => { selDate = ds.value; render(); };
+  if (ds) ds.onchange = () => { pilihTgl = ds.value || null; render("dateSel"); };
+  const dl = document.getElementById("dateLatest");
+  if (dl) dl.onclick = () => { pilihTgl = null; render(); };
+  if (!document.getElementById("copyBtn")) return;
   document.getElementById("copyBtn").onclick = () => {
     const txt = teksWA(selDate);
     navigator.clipboard.writeText(txt).then(() => toast("Teks laporan disalin")).catch(() => {
@@ -734,7 +754,7 @@ function bindInput() {
     });
     lama.forEach(o => { if (!draft.some(r => key(r) === key(o))) items.push(`Hapus ${nm(o)}`); });
     catat("bast", "Input Data", items.map(x => `Laporan ${ddmmyyyy(draftDate)} · ${x}`));
-    S.laporan[draftDate] = clone(draft); save(); selDate = draftDate;
+    S.laporan[draftDate] = clone(draft); save(); selDate = draftDate; pilihTgl = null;
     toast(`Laporan ${ddmmyyyy(draftDate)} tersimpan`); render();
   };
   v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { if (lkRow(+b.dataset.del)) return; draft.splice(+b.dataset.del, 1); render(); });
@@ -881,7 +901,7 @@ function hitungProyek(p, m = bulanKe()) {
 }
 const KUNCI = ["hari", "bln", "ytd", "akum", "stok"];
 /* Bulan yang ditampilkan di dashboard (null = bulan berjalan) */
-let salesBulan = null;
+let salesBulan = null, pilihSalesTgl = null;
 const bulanAktif = () => salesBulan || bulanKe();
 const bulanIni = m => m === bulanKe();
 function tanggalTampil(m = bulanAktif()) {
@@ -935,10 +955,11 @@ function viewSales() {
   <div class="hero">
     <div class="tabs"><span class="tab">Sales Performance</span><span class="tab">${panjang(tgl)}</span></div>
     <div class="hero-body gut"><h1>Dashboard Penjualan Properti</h1><div class="sub">${esc(bln)} • YTD ${esc(bln)} • Total Terjual</div></div>
-    <div class="strip gut"><span>Data penjualan ${rows.length} proyek • ${!cur ? `Posisi akhir ${esc(bln)}` : T.hari[0] ? `${T.hari[0]} unit terjual pada ${panjang(tgl)}` : `Tidak ada perubahan pada ${panjang(tgl)}`}</span>
+    <div class="strip gut"><span>Data penjualan ${rows.length} proyek • ${!cur ? `Posisi akhir ${esc(bln)}${pilihSalesTgl && pilihSalesTgl !== tgl ? ` (data dicatat per bulan; dipilih ${ddmmyyyy(pilihSalesTgl)})` : ""}` : T.hari[0] ? `${T.hari[0]} unit terjual pada ${panjang(tgl)}` : `Tidak ada perubahan pada ${panjang(tgl)}`}</span>
       <div class="strip-actions no-cap">
-        <label for="salesBulan" style="font-size:13px">Bulan</label>
-        <select id="salesBulan">${BULAN.slice(0, bulanKe()).map((b, i) => `<option value="${i + 1}" ${i + 1 === m ? "selected" : ""}>${b} ${tahunKe()}${i + 1 === bulanKe() ? " (berjalan)" : ""}</option>`).reverse().join("")}</select>
+        <label for="salesTgl" style="font-size:13px">Tanggal</label>
+        <input type="date" id="salesTgl" value="${pilihSalesTgl || tgl}" min="${tahunKe()}-01-01" max="${S.sales2.tanggal}" title="Data penjualan dicatat per bulan: tanggal yang dipilih menampilkan data bulannya">
+        ${salesBulan ? '<button class="btn-ghost" id="salesLatest" type="button">Bulan berjalan</button>' : ""}
         <button class="btn-ghost" id="salesCopy" type="button">Salin teks laporan</button>
         <button class="btn-ghost" id="salesXls" type="button">Ekspor Excel</button>
         <button class="btn-ghost" id="salesShot" type="button">Unduh gambar</button>
@@ -1038,7 +1059,12 @@ function bindSales() {
   c.onclick = () => navigator.clipboard.writeText(salesText()).then(() => toast("Teks laporan disalin")).catch(() => toast("Gagal menyalin. Coba lagi."));
   document.getElementById("salesXls").onclick = exportSalesExcel;
   document.getElementById("salesShot").onclick = () => unduhGambar("capSales", `Dashboard_Penjualan_${BULAN[bulanAktif() - 1]}_${tahunKe()}.png`);
-  document.getElementById("salesBulan").onchange = e => { const v = +e.target.value; salesBulan = v === bulanKe() ? null : v; render(); };
+  document.getElementById("salesTgl").onchange = e => {
+    const v = e.target.value; if (!v) return;
+    if (+v.slice(0, 4) !== tahunKe() || v > S.sales2.tanggal) { toast(`Pilih tanggal antara 01-01-${tahunKe()} dan ${ddmmyyyy(S.sales2.tanggal)}`); render("salesTgl"); return; }
+    const m = +v.slice(5, 7); salesBulan = m === bulanKe() ? null : m; pilihSalesTgl = salesBulan ? v : null; render("salesTgl");
+  };
+  const sl = document.getElementById("salesLatest"); if (sl) sl.onclick = () => { salesBulan = null; pilihSalesTgl = null; render(); };
 }
 
 /* Input data penjualan: tabel seperti sheet "input data" */
@@ -1446,7 +1472,7 @@ document.getElementById("resetBtn").onclick = () => {
   const btn = document.getElementById("resetBtn");
   if (Date.now() - konfirmReset > 4000) { konfirmReset = Date.now(); btn.textContent = "Klik lagi untuk mengganti SEMUA data dengan data contoh"; setTimeout(() => btn.textContent = "Kembalikan data contoh", 4000); return; }
   konfirmReset = 0; btn.textContent = "Kembalikan data contoh";
-  const role = S.role, hist = S.history || [], rpMode = S.rpMode; S = clone(SEED); S.role = role; S.history = hist; S.rpMode = rpMode; salesBulan = null; S.sales2 = clone(SALES2_SEED); S.sales2.hariTanggal = null; ikutiHariIni(); catat("semua", "Data contoh", ["Semua data dikembalikan ke data contoh"]); save(); draft = null; sDraft = null; selDate = dates()[0]; render(); toast("Data contoh dikembalikan");
+  const role = S.role, hist = S.history || [], rpMode = S.rpMode; S = clone(SEED); S.role = role; S.history = hist; S.rpMode = rpMode; salesBulan = null; pilihSalesTgl = null; S.sales2 = clone(SALES2_SEED); S.sales2.hariTanggal = null; ikutiHariIni(); catat("semua", "Data contoh", ["Semua data dikembalikan ke data contoh"]); save(); draft = null; sDraft = null; selDate = dates()[0]; render(); toast("Data contoh dikembalikan");
 };
 window.addEventListener("hashchange", () => { if (current() === "bast-input" && draft === null) loadDraft(dates()[0] || todayISO()); if (current() === "penjualan-input" && sDraft === null) sLoad(); render(); window.scrollTo(0, 0); });
 if (!location.hash) history.replaceState(null, "", "#bast");
