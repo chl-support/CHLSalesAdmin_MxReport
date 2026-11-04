@@ -233,6 +233,13 @@ table { width: 100%; border-collapse: collapse; }
 .bh-box h3 { margin: 0; font-size: 16px; color: var(--ink); }
 .bh-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
 .bh-t { min-width: 760px; }
+.bh-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 12px; padding: 10px 12px; background: var(--blue-soft); border-radius: 6px; font-size: 13px; color: var(--ink); }
+.bh-filter .bh-fl { font-weight: 700; }
+.bh-filter label { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--muted); }
+.bh-filter input[type="date"] { padding: 5px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); font: inherit; }
+.bh-filter .btn { padding: 6px 12px; font-size: 13px; }
+.bh-filter .btn:disabled { opacity: .5; cursor: default; }
+.bh-count { margin-left: auto; color: var(--muted); font-weight: 600; }
 .bh-t input[type="date"] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); }
 .bh-box textarea { width: 100%; margin-top: 8px; padding: 10px 12px; font: inherit; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); resize: vertical; }
 .master { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
@@ -1097,6 +1104,8 @@ function viewSalesInput() {
   ${daftarBatalHold(d)}
   <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan. " : ""}Proyek dan grup diatur di tab Master.${userTerbatas() ? ` Akun Anda hanya bisa mengubah proyek: ${esc(S.sales2.proyek.filter(p => bolehEdit(p.nama)).map(p => p.nama).join(", ") || "–")}. Proyek lain dan kolom total stok dikunci.` : ""}</p></div>`;
 }
+/* Filter tanggal untuk tabel Batal & Hold (hanya tampilan, tidak tersimpan) */
+const fBH = { batal: { dari: "", sampai: "" }, hold: { dari: "", sampai: "" } };
 /* Tabel Batal, Hold Reserved, dan Catatan tambahan di Input Data */
 function daftarBatalHold(d) {
   const optP = sel => d.proyek.slice().sort(byUrut).filter(p => (p.aktif && bolehEdit(p.nama)) || p.id === sel)
@@ -1107,8 +1116,15 @@ function daftarBatalHold(d) {
     return `<tr class="${lk ? "row-locked" : ""}"><td><input type="date" id="bh-${jenis}-${x.id}-tanggal" data-bh="${jenis}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal}"></td>
       <td><select id="bh-${jenis}-${x.id}-proyekId" data-bh="${jenis}" data-id="${x.id}" data-f="proyekId">${optP(x.proyekId)}</select></td>${cells}
       <td>${lk ? ikonKunci : `<button class="del" data-bhdel="${jenis}:${x.id}" type="button" aria-label="Hapus">×</button>`}</td></tr>`; };
-  const batal = (d.batal || []).map(x => row("batal", x, `<td>${txt("batal", x, "kode", "OR-OD3-012")}</td><td>${rpIn("batal", x, "rp")}</td><td>${txt("batal", x, "ket")}</td>`)).join("");
-  const hold = (d.hold || []).map(x => row("hold", x, `<td>${txt("hold", x, "kode", "NS-NR1-06")}</td><td>${rpIn("hold", x, "harga")}</td><td>${rpIn("hold", x, "tandaJadi")}</td><td>${txt("hold", x, "ket")}</td>`)).join("");
+  const lolos = (j, x) => (!fBH[j].dari || x.tanggal >= fBH[j].dari) && (!fBH[j].sampai || x.tanggal <= fBH[j].sampai);
+  const bar = (j, list, satuan) => { const n = list.filter(x => lolos(j, x)).length, aktif = fBH[j].dari || fBH[j].sampai;
+    return `<div class="bh-filter"><span class="bh-fl">Filter tanggal</span>
+      <label for="f-${j}-dari">Dari <input type="date" id="f-${j}-dari" data-fbh="${j}" data-fk="dari" value="${fBH[j].dari}"></label>
+      <label for="f-${j}-sampai">Sampai <input type="date" id="f-${j}-sampai" data-fbh="${j}" data-fk="sampai" value="${fBH[j].sampai}"></label>
+      <button type="button" class="btn sec" data-fbhreset="${j}" ${aktif ? "" : "disabled"}>Semua tanggal</button>
+      <span class="bh-count">${aktif ? `Menampilkan ${n} dari ${list.length} ${satuan}` : `${list.length} ${satuan}`}</span></div>`; };
+  const batal = (d.batal || []).filter(x => lolos("batal", x)).map(x => row("batal", x, `<td>${txt("batal", x, "kode", "OR-OD3-012")}</td><td>${rpIn("batal", x, "rp")}</td><td>${txt("batal", x, "ket")}</td>`)).join("");
+  const hold = (d.hold || []).filter(x => lolos("hold", x)).map(x => row("hold", x, `<td>${txt("hold", x, "kode", "NS-NR1-06")}</td><td>${rpIn("hold", x, "harga")}</td><td>${rpIn("hold", x, "tandaJadi")}</td><td>${txt("hold", x, "ket")}</td>`)).join("");
   const kosong = (n, t) => `<tr><td colspan="${n}" style="color:var(--muted);text-align:center;padding:12px">${t}</td></tr>`;
   const catRows = d.proyek.slice().sort(byUrut).filter(p => p.aktif).map(p => { const lk = !bolehEdit(p.nama);
     const tampil = p.catatanTampil !== false;
@@ -1119,12 +1135,14 @@ function daftarBatalHold(d) {
       <div class="tbl-wrap"><table class="edit cat-t"><thead><tr><th style="width:220px">Proyek</th><th>Catatan</th><th style="width:150px">Di dashboard</th></tr></thead><tbody>${catRows}</tbody></table></div></div>
     <div class="bh-box"><div class="bh-head"><div><h3>Unit Batal</h3><div class="desc">Satu baris per unit yang batal. Tampil di kartu “Batal bulan …” sesuai bulan tanggalnya. Angka penjualan di tabel atas tidak berubah otomatis.</div></div>
       <button class="btn sec" id="addBatal" type="button">Tambah unit batal</button></div>
+      ${bar("batal", d.batal || [], "unit")}
       <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Nilai (Rp)</th><th>Keterangan</th><th></th></tr></thead>
-      <tbody>${batal || kosong(6, "Belum ada unit batal.")}</tbody></table></div></div>
+      <tbody>${batal || kosong(6, (d.batal || []).length ? "Tidak ada unit batal pada rentang tanggal ini." : "Belum ada unit batal.")}</tbody></table></div></div>
     <div class="bh-box"><div class="bh-head"><div><h3>Hold Reserved</h3><div class="desc">Unit yang ditahan dan belum di-create ke sistem. Tetap tercantum sampai dihapus manual (klik ×) setelah di-create. Tidak dihitung sebagai penjualan.</div></div>
       <button class="btn sec" id="addHold" type="button">Tambah unit hold</button></div>
+      ${bar("hold", d.hold || [], "unit")}
       <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Harga unit (Rp)</th><th>Tanda jadi (Rp)</th><th>Keterangan</th><th></th></tr></thead>
-      <tbody>${hold || kosong(7, "Belum ada unit hold.")}</tbody></table></div></div>
+      <tbody>${hold || kosong(7, (d.hold || []).length ? "Tidak ada unit hold pada rentang tanggal ini." : "Belum ada unit hold.")}</tbody></table></div></div>
   </div>`;
 }
 function bindSalesInput() {
@@ -1133,9 +1151,12 @@ function bindSalesInput() {
   const bhList = j => sDraft[j] = sDraft[j] || [];
   const nextId = j => Math.max(0, ...bhList(j).map(x => x.id)) + 1;
   const firstOk = () => (sDraft.proyek.slice().sort(byUrut).find(p => p.aktif && bolehEdit(p.nama)) || {}).id;
-  document.getElementById("addBatal").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; }
+  const bukaFilter = j => { const t = todayISO(); if ((fBH[j].dari && t < fBH[j].dari) || (fBH[j].sampai && t > fBH[j].sampai)) { fBH[j] = { dari: "", sampai: "" }; toast("Filter tanggal dihapus supaya baris baru terlihat"); } };
+  document.getElementById("view").querySelectorAll("[data-fbh]").forEach(inp => inp.onchange = () => { fBH[inp.dataset.fbh][inp.dataset.fk] = inp.value; render(inp.id); });
+  document.getElementById("view").querySelectorAll("[data-fbhreset]").forEach(b => b.onclick = () => { fBH[b.dataset.fbhreset] = { dari: "", sampai: "" }; render(); });
+  document.getElementById("addBatal").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; } bukaFilter("batal");
     bhList("batal").push({ id: nextId("batal"), tanggal: todayISO(), proyekId: pid, kode: "", rp: 0, ket: "" }); render(); };
-  document.getElementById("addHold").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; }
+  document.getElementById("addHold").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; } bukaFilter("hold");
     bhList("hold").push({ id: nextId("hold"), tanggal: todayISO(), proyekId: pid, kode: "", harga: 0, tandaJadi: 0, ket: "Belum di-create ke sistem" }); render(); };
   const v0 = document.getElementById("view");
   /* Tombol Tampil/Disembunyikan langsung tersimpan, tanpa perlu klik Simpan data */
