@@ -16,6 +16,7 @@
   --input-bg: #fffbea; --on-navy: #ffffff;
   --side-bg: #f3f2ee; --side-ink: #1b1d22; --side-line: #dcdad3; --side-hover: #e8e6df; --side-active: #1c1d21;
   --gold: #c9971c; --gold-ink: #a87a0e;
+  --purple: #7d3c98;
   --green-soft: #e3f2ea; --gold-soft: #faf0dc; --red-soft: #f8e4e1; --grey-soft: #eef0f2;
   --font: "Archivo", "Helvetica Neue", Arial, sans-serif;
 }
@@ -27,6 +28,7 @@
     --input-bg: #1d2433; color-scheme: dark;
     --side-bg: #141a24; --side-ink: #e4e7ee; --side-line: #2a3343; --side-hover: #1d2533; --side-active: #2a3446;
     --gold: #e0b44a; --gold-ink: #e8c46a;
+    --purple: #c08ad6;
     --green-soft: #163628; --gold-soft: #3a2e15; --red-soft: #3b1f1d; --grey-soft: #1c2533;
   }
 }
@@ -209,6 +211,20 @@ table { width: 100%; border-collapse: collapse; }
 .who { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); }
 .who b { font-size: 14px; color: var(--side-ink); }
 .who span { font-size: 12px; font-weight: 700; color: var(--gold-ink); }
+.kpis-2 { margin-top: 20px; }
+.hold-t { width: 100%; border-collapse: collapse; margin-top: 12px; min-width: 640px; }
+.hold-t th { background: var(--navy); color: #fff; font-size: 13px; padding: 8px 10px; text-align: left; }
+.hold-t td { padding: 7px 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.hold-t td.proj { font-weight: 700; color: var(--ink); }
+.hold-t td.ket { color: var(--muted); font-size: 13px; }
+.hold-t tr.t td { background: var(--blue-soft); font-weight: 800; color: var(--ink); }
+.bh { display: flex; flex-direction: column; gap: 22px; margin-top: 28px; }
+.bh-box { border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+.bh-box h3 { margin: 0; font-size: 16px; color: var(--ink); }
+.bh-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.bh-t { min-width: 760px; }
+.bh-t input[type="date"] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); }
+.bh-box textarea { width: 100%; margin-top: 8px; padding: 10px 12px; font: inherit; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); resize: vertical; }
 .master { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
 .master > div { min-width: 0; }
 .master table th { background: var(--navy); color: #fff; font-size: 13px; padding: 8px; text-align: left; }
@@ -788,7 +804,18 @@ const SALES2_SEED = { tanggal: "2026-10-31", proyek: [
   proyekBaru(10, "Orchard Riviera", G_BHAKTI, 10, [26, 172387258200], [110, 809712910000],
     { 1: [1, 5702080500], 2: [1, 4542296050], 4: [3, 21961386200], 8: [3, 24690380800], 9: [1, 5600000000] }),
 ] };
+/* Batal dan Hold Reserved dicatat per unit; Catatan tambahan diisi manual */
+SALES2_SEED.batal = [
+  { id: 1, tanggal: "2026-11-04", proyekId: 10, kode: "OR-OD3-012", rp: 0, ket: "" },
+  { id: 2, tanggal: "2026-11-04", proyekId: 10, kode: "OR-OD2-007", rp: 0, ket: "" },
+];
+SALES2_SEED.hold = [
+  { id: 1, tanggal: "2026-11-04", proyekId: 2, kode: "NS-NR1-06", harga: 0, tandaJadi: 10000000, ket: "Belum di-create ke sistem" },
+  { id: 2, tanggal: "2026-11-04", proyekId: 3, kode: "BIA3-19", harga: 0, tandaJadi: 1000000, ket: "Belum di-create ke sistem" },
+  { id: 3, tanggal: "2026-11-04", proyekId: 4, kode: "B4-10", harga: 190000000, tandaJadi: 500000, ket: "Belum di-create ke sistem" },
+];
 if (!S.sales2) { S.sales2 = clone(SALES2_SEED); delete S.sales; delete S.salesMaster; save(); }
+if (!S.sales2.batal) { S.sales2.batal = clone(SALES2_SEED.batal); S.sales2.hold = clone(SALES2_SEED.hold); save(); }
 /* Tanggal laporan selalu mengikuti hari ini, sehingga bulan aktif ikut bulan berjalan.
    Angka "hari ini" dikosongkan otomatis saat hari berganti. */
 function ikutiHariIni() {
@@ -800,6 +827,18 @@ function ikutiHariIni() {
 ikutiHariIni();
 
 const M = v => v / 1e9;
+/* Rupiah ringkas untuk kartu: Rp1,23 M / Rp11,5 juta / Rp500.000 */
+function rpRingkas(v) {
+  if (!v) return "Rp0";
+  if (Math.abs(v) >= 1e9) return "Rp" + (v / 1e9).toLocaleString("id-ID", { maximumFractionDigits: 2 }) + " M";
+  if (Math.abs(v) >= 1e6) return "Rp" + (v / 1e6).toLocaleString("id-ID", { maximumFractionDigits: 1 }) + " juta";
+  return "Rp" + Math.round(v).toLocaleString("id-ID");
+}
+const namaProyekSales = id => (S.sales2.proyek.find(p => p.id === id) || {}).nama || "?";
+function ringkasProyek(list) {
+  const g = {}; list.forEach(x => { const n = namaProyekSales(x.proyekId); (g[n] = g[n] || []).push(x.kode); });
+  return Object.entries(g).map(([n, k]) => `${n} (${k.join(", ")})`).join("; ");
+}
 const idn = (v, d = 2) => v.toLocaleString("id-ID", { minimumFractionDigits: d, maximumFractionDigits: d });
 const rp = vRupiah => "Rp" + idn(M(vRupiah)) + " M";
 const rpN = vRupiah => vRupiah === 0 ? "–" : idn(M(vRupiah));
@@ -856,6 +895,8 @@ function viewSales() {
   tbl += `<tr class="grand"><td class="proj">Total CHL</td><td>${T.bln[0]}</td><td>${rpN(T.bln[1])}</td><td>${T.ytd[0]}</td><td>${rpN(T.ytd[1])}</td>
     <td>${T.akum[0].toLocaleString("id-ID")}<small>dari ${T.stok[0].toLocaleString("id-ID")}</small></td><td>${rpN(T.akum[1])}<small>dari ${idn(M(T.stok[1]))}</small></td></tr></tbody>`;
   const pctU = T.stok[0] ? T.akum[0] / T.stok[0] * 100 : 0, pctR = T.stok[1] ? T.akum[1] / T.stok[1] * 100 : 0;
+  const y = tahunKe(), batalBln = (S.sales2.batal || []).filter(x => +x.tanggal.slice(0, 4) === y && +x.tanggal.slice(5, 7) === m);
+  const batalRp = batalBln.reduce((a, x) => a + (x.rp || 0), 0), hold = S.sales2.hold || [], holdTj = hold.reduce((a, x) => a + (x.tandaJadi || 0), 0);
   const notes = [
     `CHL = total konsolidasi ${rows.length} proyek, bukan proyek tambahan. Jangan dijumlahkan dua kali.`,
     `Total nilai proyek CHL: ${rp(T.stok[1])} &nbsp;|&nbsp; Total terjual: ${rp(T.akum[1])} (${idn(pctR, 1)}%).`,
@@ -879,10 +920,28 @@ function viewSales() {
     ${kpi("var(--green)", `YTD s.d. ${esc(BULAN[m - 1])}`, T.ytd, `Penjualan Januari–${esc(BULAN[m - 1])} ${tahunKe()}`)}
     ${kpi("var(--gold)", "Akumulasi total terjual", T.akum, `Dari ${T.stok[0].toLocaleString("id-ID")} unit • ${idn(pctU, 1)}% terjual`)}
   </div>
+  <div class="kpis gut kpis-2">
+    <div class="kpi" style="--c:var(--red)"><div class="lbl">Batal bulan ${esc(BULAN[m - 1])}</div>
+      <div class="val num">${batalBln.length ? "−" + batalBln.length : 0} <small>unit</small></div>
+      <div class="pct num">${batalRp ? "−" + rpRingkas(batalRp) : batalBln.length ? "Rp belum diisi" : "Rp0"}</div>
+      <div class="note">${batalBln.length ? esc(ringkasProyek(batalBln)) : "Tidak ada unit batal"}</div></div>
+    <div class="kpi" style="--c:var(--purple)"><div class="lbl">Hold Reserved</div>
+      <div class="val num">${hold.length} <small>unit</small></div>
+      <div class="pct num">${rpRingkas(holdTj)} <small style="font-size:13px;font-weight:600;color:var(--muted)">tanda jadi</small></div>
+      <div class="note">${hold.length ? esc([...new Set(hold.map(x => namaProyekSales(x.proyekId)))].join(" • ")) + " • belum dihitung sebagai penjualan" : "Tidak ada unit hold"}</div></div>
+  </div>
   ${cur ? kontributor("hari", "Kontributor Penjualan Hari Ini") : ""}
   ${kontributor("bln", `Kontributor Penjualan ${esc(bln)}`)}
   <section><div class="gut"><h2>Penjualan per Proyek</h2><div class="desc">Unit dan nilai penjualan (Rp miliar). Akumulasi terjual = akumulasi s.d. ${tahunKe() - 1} + YTD ${esc(BULAN[m - 1])}.</div></div>
     <div class="tbl-wrap"><table class="rincian num">${tbl}</table></div></section>
+  <section class="gut"><h2>Hold Reserved</h2>
+    <div class="desc">Unit yang ditahan dan belum di-create ke sistem penjualan. Tetap tercantum sampai dihapus manual oleh admin. Tidak dihitung ke penjualan bulan ini, YTD, maupun akumulasi.</div>
+    ${hold.length ? `<div class="tbl-wrap"><table class="hold-t num"><thead><tr><th>Proyek</th><th>Kode unit</th><th>Harga unit</th><th>Tanda jadi</th><th>Keterangan</th></tr></thead><tbody>
+      ${hold.slice().sort((a, b) => ((S.sales2.proyek.find(p => p.id === a.proyekId) || {}).urutan || 99) - ((S.sales2.proyek.find(p => p.id === b.proyekId) || {}).urutan || 99))
+        .map(x => `<tr><td class="proj">${esc(namaProyekSales(x.proyekId))}</td><td>${esc(x.kode || "–")}</td><td>${x.harga ? rp(x.harga) : "–"}</td><td>${x.tandaJadi ? "Rp" + rpDot(x.tandaJadi) : "–"}</td><td class="ket">${esc(x.ket || "")}</td></tr>`).join("")}
+      <tr class="t"><td class="proj">Total</td><td>${hold.length} unit</td><td>${hold.some(x => x.harga) ? rp(hold.reduce((a, x) => a + (x.harga || 0), 0)) : "–"}</td><td>Rp${rpDot(holdTj)}</td><td></td></tr></tbody></table></div>`
+      : `<div class="empty" style="margin-top:12px">Tidak ada unit hold saat ini.</div>`}
+  </section>
   <div class="notes gut"><h2>Catatan Penting</h2><ul>${notes.map(n => `<li>${n}</li>`).join("")}</ul>
     <p class="desc" style="margin:10px 0 0">Sumber: Daily Report per ${panjang(tgl)} • M = Rp miliar • “–” = nihil</p></div>
   </div>`;
@@ -893,6 +952,9 @@ function salesText() {
   t += `Hari ini: ${T.hari[0]} unit (${rp(T.hari[1])})\nBulan ${bln}: ${T.bln[0]} unit (${rp(T.bln[1])})\nYTD s.d. ${BULAN[m - 1]}: ${T.ytd[0]} unit (${rp(T.ytd[1])})\nAkumulasi terjual: ${T.akum[0]} dari ${T.stok[0]} unit (${rp(T.akum[1])})\n`;
   const k = rows.filter(x => x.bln[0] > 0).sort((a, b) => b.bln[1] - a.bln[1]);
   if (k.length) { t += `\n*Kontributor ${bln}*\n`; k.forEach(x => t += `${x.p.nama}: ${x.bln[0]} unit, ${rp(x.bln[1])}\n`); }
+  const bt = (S.sales2.batal || []).filter(x => +x.tanggal.slice(0, 4) === tahunKe() && +x.tanggal.slice(5, 7) === m), hd = S.sales2.hold || [];
+  if (bt.length) t += `\nBatal ${bln}: ${bt.length} unit — ${ringkasProyek(bt)}\n`;
+  if (hd.length) t += `Hold Reserved: ${hd.length} unit — ${ringkasProyek(hd)}\n`;
   return t;
 }
 
@@ -1009,11 +1071,58 @@ function viewSalesInput() {
       <button class="btn" id="sSave" type="button" ${hasErr ? "disabled" : ""}>Simpan data</button></div>
   </div>
   <div class="tbl-wrap"><table class="edit sales-in num ${rpM ? "rp-m" : ""}"><thead><tr>${h1}</tr><tr>${h2}</tr></thead><tbody>${body}</tbody></table></div>
+  ${daftarBatalHold(d)}
   <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan. " : ""}Proyek dan grup diatur di tab Master.${userTerbatas() ? ` Akun Anda hanya bisa mengubah proyek: ${esc(S.sales2.proyek.filter(p => bolehEdit(p.nama)).map(p => p.nama).join(", ") || "–")}. Proyek lain dan kolom total stok dikunci.` : ""}</p></div>`;
+}
+/* Tabel Batal, Hold Reserved, dan Catatan tambahan di Input Data */
+function daftarBatalHold(d) {
+  const optP = sel => d.proyek.slice().sort(byUrut).filter(p => (p.aktif && bolehEdit(p.nama)) || p.id === sel)
+    .map(p => `<option value="${p.id}" ${p.id === sel ? "selected" : ""}>${esc(p.nama)}</option>`).join("");
+  const rpIn = (jenis, x, f) => `<input type="text" inputmode="numeric" id="bh-${jenis}-${x.id}-${f}" data-bh="${jenis}" data-id="${x.id}" data-f="${f}" value="${x[f] ? rpDot(x[f]) : ""}" placeholder="0">`;
+  const txt = (jenis, x, f, ph = "") => `<input type="text" id="bh-${jenis}-${x.id}-${f}" data-bh="${jenis}" data-id="${x.id}" data-f="${f}" value="${esc(x[f] || "")}" placeholder="${ph}">`;
+  const row = (jenis, x, cells) => { const lk = !bolehEdit(namaProyekSales(x.proyekId));
+    return `<tr class="${lk ? "row-locked" : ""}"><td><input type="date" id="bh-${jenis}-${x.id}-tanggal" data-bh="${jenis}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal}"></td>
+      <td><select id="bh-${jenis}-${x.id}-proyekId" data-bh="${jenis}" data-id="${x.id}" data-f="proyekId">${optP(x.proyekId)}</select></td>${cells}
+      <td>${lk ? ikonKunci : `<button class="del" data-bhdel="${jenis}:${x.id}" type="button" aria-label="Hapus">×</button>`}</td></tr>`; };
+  const batal = (d.batal || []).map(x => row("batal", x, `<td>${txt("batal", x, "kode", "OR-OD3-012")}</td><td>${rpIn("batal", x, "rp")}</td><td>${txt("batal", x, "ket")}</td>`)).join("");
+  const hold = (d.hold || []).map(x => row("hold", x, `<td>${txt("hold", x, "kode", "NS-NR1-06")}</td><td>${rpIn("hold", x, "harga")}</td><td>${rpIn("hold", x, "tandaJadi")}</td><td>${txt("hold", x, "ket")}</td>`)).join("");
+  const kosong = (n, t) => `<tr><td colspan="${n}" style="color:var(--muted);text-align:center;padding:12px">${t}</td></tr>`;
+  return `<div class="bh">
+    <div class="bh-box"><div class="bh-head"><div><h3>Unit Batal</h3><div class="desc">Satu baris per unit yang batal. Tampil di kartu “Batal bulan …” sesuai bulan tanggalnya. Angka penjualan di tabel atas tidak berubah otomatis.</div></div>
+      <button class="btn sec" id="addBatal" type="button">Tambah unit batal</button></div>
+      <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Nilai (Rp)</th><th>Keterangan</th><th></th></tr></thead>
+      <tbody>${batal || kosong(6, "Belum ada unit batal.")}</tbody></table></div></div>
+    <div class="bh-box"><div class="bh-head"><div><h3>Hold Reserved</h3><div class="desc">Unit yang ditahan dan belum di-create ke sistem. Tetap tercantum sampai dihapus manual (klik ×) setelah di-create. Tidak dihitung sebagai penjualan.</div></div>
+      <button class="btn sec" id="addHold" type="button">Tambah unit hold</button></div>
+      <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Harga unit (Rp)</th><th>Tanda jadi (Rp)</th><th>Keterangan</th><th></th></tr></thead>
+      <tbody>${hold || kosong(7, "Belum ada unit hold.")}</tbody></table></div></div>
+  </div>`;
 }
 function bindSalesInput() {
   const v = document.getElementById("view");
   document.getElementById("sReset").onclick = () => { sLoad(); render(); toast("Perubahan dibatalkan"); };
+  const bhList = j => sDraft[j] = sDraft[j] || [];
+  const nextId = j => Math.max(0, ...bhList(j).map(x => x.id)) + 1;
+  const firstOk = () => (sDraft.proyek.slice().sort(byUrut).find(p => p.aktif && bolehEdit(p.nama)) || {}).id;
+  document.getElementById("addBatal").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; }
+    bhList("batal").push({ id: nextId("batal"), tanggal: todayISO(), proyekId: pid, kode: "", rp: 0, ket: "" }); render(); };
+  document.getElementById("addHold").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; }
+    bhList("hold").push({ id: nextId("hold"), tanggal: todayISO(), proyekId: pid, kode: "", harga: 0, tandaJadi: 0, ket: "Belum di-create ke sistem" }); render(); };
+  const v0 = document.getElementById("view");
+  v0.querySelectorAll("[data-bh]").forEach(el => {
+    const x = () => bhList(el.dataset.bh).find(r => r.id === +el.dataset.id), f = el.dataset.f;
+    const locked = () => !bolehEdit(namaProyekSales(x().proyekId));
+    if (locked()) { el.disabled = true; return; }
+    el.onchange = () => {
+      const r = x(); if (!r) return;
+      if (f === "proyekId") r.proyekId = +el.value;
+      else if (f === "rp" || f === "harga" || f === "tandaJadi") r[f] = Number(el.value.replace(/[^0-9]/g, "")) || 0;
+      else r[f] = el.value.trim();
+      render(el.id);
+    };
+  });
+  v0.querySelectorAll("[data-bhdel]").forEach(b => b.onclick = () => { const [j, id] = b.dataset.bhdel.split(":"); sDraft[j] = bhList(j).filter(r => r.id !== +id); render(); });
+
   document.getElementById("sSave").onclick = () => {
     sDraft.proyek.forEach(p => { const o = S.sales2.proyek.find(x => x.id === p.id); if (!o) return;
       if (!bolehEdit(o.nama)) { p.base = clone(o.base); p.bulan = clone(o.bulan); p.stok = clone(o.stok); p.hari = clone(o.hari); }
@@ -1027,6 +1136,15 @@ function bindSalesInput() {
       f(`Akumulasi s.d. ${th - 1}`, o.base, p.base); p.bulan.forEach((v, i) => f(`${BULAN[i]} ${th}`, o.bulan[i], v));
       f("Total stok", o.stok, p.stok); f("Hari ini", o.hari, p.hari);
       for (let i = pre; i < items.length; i++) items[i] = `${p.nama} · ${items[i]}`;
+    });
+    const lbl = x => `${namaProyekSales(x.proyekId)} ${x.kode || "(tanpa kode)"}`;
+    ["batal", "hold"].forEach(j => { const nmJ = j === "batal" ? "Batal" : "Hold";
+      const lama = S.sales2[j] || [], baru = sDraft[j] || [];
+      /* Data proyek yang bukan wewenang user dipertahankan dari data tersimpan */
+      if (userTerbatas()) sDraft[j] = [...baru.filter(x => bolehEdit(namaProyekSales(x.proyekId))), ...lama.filter(x => !bolehEdit(namaProyekSales(x.proyekId)))];
+      const now = sDraft[j];
+      now.forEach(x => { const o = lama.find(y => y.id === x.id); if (!o) items.push(`${nmJ} ditambah: ${lbl(x)}`); else if (JSON.stringify(o) !== JSON.stringify(x)) items.push(`${nmJ} diubah: ${lbl(x)}`); });
+      lama.forEach(o => { if (!now.some(x => x.id === o.id)) items.push(`${nmJ} dihapus: ${lbl(o)}`); });
     });
     catat("penjualan", "Input Data", items);
     S.sales2 = clone(sDraft); save(); toast(`Data penjualan ${ddmmyyyy(S.sales2.tanggal)} tersimpan`); render();
