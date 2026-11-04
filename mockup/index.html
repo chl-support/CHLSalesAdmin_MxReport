@@ -165,7 +165,10 @@ table { width: 100%; border-collapse: collapse; }
 .sales-in td.dari { line-height: 1.2; white-space: nowrap; }
 .sales-in td.akst { padding: 4px 6px; }
 .sales-in td.akst .ak { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
-.sales-in td.akst .dari-in { display: flex; align-items: center; gap: 4px; justify-content: center; font-size: 11px; color: var(--muted); font-weight: 400; }
+.sales-in td.akst .dari-in { display: flex; align-items: center; gap: 4px; justify-content: center; font-size: 11px; font-weight: 700; color: var(--red); background: var(--red-soft); border-radius: 4px; padding: 3px 4px; }
+.sales-in td.akst .dari-in input { background: var(--bg); border-color: var(--red-soft); }
+.sales-in td.akst .dari-in input[readonly] { background: var(--bg); color: var(--ink); }
+.sales-in tr.sum td.dari small { color: var(--red); font-weight: 700; }
 .sales-in td.dari small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 2px; }
 .sales-in .after input { opacity: .55; }
 .sales-in th.after { opacity: .7; }
