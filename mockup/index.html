@@ -245,6 +245,10 @@ const SEED = {
     { id: 2, nama: "Bio District", urutan: 2, aktif: true },
     { id: 3, nama: "Mazenta Residence", urutan: 3, aktif: true },
     { id: 4, nama: "Banara Serpong", urutan: 4, aktif: true },
+    { id: 5, nama: "Tanglin Parc", urutan: 5, aktif: true },
+    { id: 6, nama: "Newton Springs", urutan: 6, aktif: true },
+    { id: 7, nama: "Orchard Riviera", urutan: 7, aktif: true },
+    { id: 8, nama: "Scotts Vale", urutan: 8, aktif: true },
   ],
   laporan: {
     "2026-11-03": [
@@ -264,6 +268,13 @@ const clone = o => JSON.parse(JSON.stringify(o));
 let S;
 try { S = JSON.parse(localStorage.getItem(KEY)) || clone(SEED); } catch (e) { S = clone(SEED); }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+/* Tambahkan proyek baru dari data contoh ke data yang sudah tersimpan di browser */
+SEED.proyek.forEach(sp => {
+  if (!S.proyek.some(p => p.nama.toLowerCase() === sp.nama.toLowerCase())) {
+    S.proyek.push({ id: Math.max(0, ...S.proyek.map(p => p.id)) + 1, nama: sp.nama, urutan: Math.max(0, ...S.proyek.map(p => p.urutan)) + 1, aktif: true });
+  }
+});
+save();
 
 /* ===================== Helpers ===================== */
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
