@@ -239,6 +239,11 @@ table { width: 100%; border-collapse: collapse; }
 .dr-x { font-size: 24px; line-height: 1; background: none; border: none; cursor: pointer; color: var(--muted); padding: 4px 8px; }
 .dr-box textarea { flex: 1; min-height: 320px; width: 100%; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--ink); resize: vertical; white-space: pre-wrap; }
 @media (max-width: 640px) { .dr-sp { display: none; } .dr-act .btn { flex: 1 1 auto; } .dr-box { padding: 14px; } }
+.dr-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.dr-tabs button { font: inherit; font-size: 13px; font-weight: 600; background: none; border: none; border-bottom: 2.5px solid transparent; padding: 6px 12px; cursor: pointer; color: var(--muted); margin-bottom: -1px; }
+.dr-tabs button.on { color: var(--ink); border-bottom-color: var(--gold); }
+.dr-prev { flex: 1; min-height: 320px; overflow: auto; white-space: pre-wrap; font: 13.5px/1.55 Arial, Helvetica, sans-serif; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--ink); }
+.dr-prev b { font-weight: 700; }
 .dr-act { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .dr-sp { flex: 1; }
 .shot-menu { position: fixed; z-index: 50; width: 260px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(15, 33, 64, .2); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
@@ -436,7 +441,9 @@ a.rcard:hover { border-color: var(--gold); }
   <div class="dr-box" role="dialog" aria-modal="true" aria-labelledby="drTitle">
     <div class="dr-head"><h2 id="drTitle">Daily Report</h2><button type="button" class="dr-x" id="drClose" aria-label="Tutup">×</button></div>
     <p class="desc" id="drDesc"></p>
-    <textarea id="drText" spellcheck="false" aria-label="Teks Daily Report"></textarea>
+    <div class="dr-tabs" role="tablist"><button type="button" class="on" id="drTabPrev">Pratinjau</button><button type="button" id="drTabEdit">Edit teks</button></div>
+    <div class="dr-prev" id="drPrev" aria-label="Pratinjau Daily Report"></div>
+    <textarea id="drText" spellcheck="false" aria-label="Teks Daily Report" hidden></textarea>
     <div class="dr-act">
       <button type="button" class="btn sec" id="drReset">Buat ulang dari data</button>
       <span class="dr-sp"></span>
@@ -1516,21 +1523,37 @@ function teksDailyReport() {
     return t;
   });
 }
+/* Pratinjau: *teks* (format WhatsApp) ditampilkan tebal */
+const drHTML = t => esc(t).replace(/\*([^*\n]+)\*/g, "<b>$1</b>");
+function drTab(edit) {
+  const ta = document.getElementById("drText"), pv = document.getElementById("drPrev");
+  if (!edit) pv.innerHTML = drHTML(ta.value);
+  ta.hidden = !edit; pv.hidden = edit;
+  document.getElementById("drTabEdit").classList.toggle("on", edit); document.getElementById("drTabPrev").classList.toggle("on", !edit);
+  if (edit) ta.focus(); else pv.scrollTop = 0;
+}
+document.getElementById("drTabPrev").onclick = () => drTab(false);
+document.getElementById("drTabEdit").onclick = () => drTab(true);
 function bukaDailyReport() {
   const w = document.getElementById("drWrap"), ta = document.getElementById("drText");
-  ta.value = teksDailyReport();
-  document.getElementById("drDesc").textContent = isEN() ? `Generated from the data as of ${ddmmyyyy(S.sales2.tanggal)}. The report text stays in Indonesian and can be edited before sending.` : `Dibuat otomatis dari data per ${ddmmyyyy(S.sales2.tanggal)}. Teks bisa diedit sebelum dikirim.`;
+  ta.value = teksDailyReport(); drTab(false);
+  document.getElementById("drDesc").textContent = isEN() ? `Generated from the data as of ${ddmmyyyy(S.sales2.tanggal)}. The report text stays in Indonesian. Bold text is marked with *asterisks* in WhatsApp format; edit it in the Edit text tab.` : `Dibuat otomatis dari data per ${ddmmyyyy(S.sales2.tanggal)}. Tulisan tebal di WhatsApp ditandai *bintang* saat diedit. Teks bisa diedit dulu lewat tab Edit teks.`;
   document.getElementById("drShare").hidden = !navigator.share;
-  w.hidden = false; try { terapkanBahasa(w); } catch (e) {} ta.focus(); ta.setSelectionRange(0, 0); ta.scrollTop = 0;
+  w.hidden = false; try { terapkanBahasa(w); } catch (e) {}
 }
 function tutupDailyReport() { document.getElementById("drWrap").hidden = true; }
 document.addEventListener("click", e => { if (e.target.closest("[data-dr]")) { e.preventDefault(); setMenu(false); bukaDailyReport(); } });
 document.getElementById("drClose").onclick = tutupDailyReport;
 document.getElementById("drWrap").addEventListener("click", e => { if (e.target.id === "drWrap") tutupDailyReport(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !document.getElementById("drWrap").hidden) tutupDailyReport(); });
-document.getElementById("drReset").onclick = () => { document.getElementById("drText").value = teksDailyReport(); toast("Teks dibuat ulang dari data terbaru"); };
+document.getElementById("drReset").onclick = () => { document.getElementById("drText").value = teksDailyReport(); drTab(false); toast("Teks dibuat ulang dari data terbaru"); };
 document.getElementById("drCopy").onclick = () => { const ta = document.getElementById("drText");
-  navigator.clipboard.writeText(ta.value).then(() => toast("Daily Report disalin")).catch(() => { ta.select(); try { document.execCommand("copy"); toast("Daily Report disalin"); } catch (e) { toast("Gagal menyalin. Pilih teks lalu salin manual."); } }); };
+  /* Teks biasa (dengan *bintang*, untuk WhatsApp) + HTML tebal (untuk email/Word) */
+  const html = `<div style="white-space:pre-wrap;font-family:Arial,sans-serif">${drHTML(ta.value)}</div>`;
+  const tulis = window.ClipboardItem && navigator.clipboard.write
+    ? navigator.clipboard.write([new ClipboardItem({ "text/plain": new Blob([ta.value], { type: "text/plain" }), "text/html": new Blob([html], { type: "text/html" }) })]).catch(() => navigator.clipboard.writeText(ta.value))
+    : navigator.clipboard.writeText(ta.value);
+  tulis.then(() => toast("Daily Report disalin")).catch(() => { ta.select(); try { document.execCommand("copy"); toast("Daily Report disalin"); } catch (e) { toast("Gagal menyalin. Pilih teks lalu salin manual."); } }); };
 document.getElementById("drWA").onclick = () => { const t = document.getElementById("drText").value;
   window.open("https://wa.me/?text=" + encodeURIComponent(t), "_blank", "noopener"); };
 document.getElementById("drShare").onclick = async () => { try { await navigator.share({ title: "Daily Report", text: document.getElementById("drText").value }); } catch (e) { if (e && e.name !== "AbortError") toast("Gagal membagikan. Coba Salin teks atau Kirim ke WhatsApp."); } };
@@ -1749,7 +1772,7 @@ const EN = {
   "Di browser ini gambar akan diunduh dulu": "This browser will download the image first",
   "Gambar siap. Ketuk Bagikan sekali lagi.": "Image ready. Tap Share once more.",
   "Browser ini belum bisa membagikan gambar langsung. Gambar diunduh; bagikan dari galeri atau folder Download.": "This browser can't share images directly. The image was downloaded; share it from your gallery or Downloads folder.",
-  "Kirim Daily Report": "Send Daily Report", "Buat ulang dari data": "Rebuild from data", "Salin teks": "Copy text", "Kirim ke WhatsApp": "Send to WhatsApp",
+  "Kirim Daily Report": "Send Daily Report", "Buat ulang dari data": "Rebuild from data", "Salin teks": "Copy text", "Pratinjau": "Preview", "Edit teks": "Edit text", "Kirim ke WhatsApp": "Send to WhatsApp",
   "Daily Report disalin": "Daily Report copied", "Teks dibuat ulang dari data terbaru": "Text rebuilt from the latest data",
   "Master Periode & Proyek": "Periods & projects master", "Master Proyek Penjualan": "Sales projects master", "Tambah": "Add", "Urutan": "Order", "Aktif": "Active",
 };
