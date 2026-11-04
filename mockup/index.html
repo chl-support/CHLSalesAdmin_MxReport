@@ -16,6 +16,7 @@
   --input-bg: #fffbea; --on-navy: #ffffff;
   --side-bg: #f3f2ee; --side-ink: #1b1d22; --side-line: #dcdad3; --side-hover: #e8e6df; --side-active: #1c1d21;
   --gold: #c9971c; --gold-ink: #a87a0e;
+  --green-soft: #e3f2ea; --gold-soft: #faf0dc; --red-soft: #f8e4e1; --grey-soft: #eef0f2;
   --font: "Archivo", "Helvetica Neue", Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
@@ -26,6 +27,7 @@
     --input-bg: #1d2433; color-scheme: dark;
     --side-bg: #141a24; --side-ink: #e4e7ee; --side-line: #2a3343; --side-hover: #1d2533; --side-active: #2a3446;
     --gold: #e0b44a; --gold-ink: #e8c46a;
+    --green-soft: #163628; --gold-soft: #3a2e15; --red-soft: #3b1f1d; --grey-soft: #1c2533;
   }
 }
 * { box-sizing: border-box; }
@@ -78,7 +80,8 @@ h2 { margin: 0; color: var(--ink); font-size: 22px; font-weight: 800; text-trans
 .bar-row { display: grid; grid-template-columns: minmax(120px, 28%) 1fr auto auto; align-items: center; gap: 14px; padding-block: 6px; border-bottom: 1px solid var(--line); }
 .bar-row .nm { font-weight: 700; color: var(--ink); }
 .bar-row .track { height: 30px; background: var(--track); overflow: hidden; }
-.bar-row .fill { height: 100%; background: linear-gradient(90deg, var(--c), color-mix(in srgb, var(--c) 18%, var(--bg))); }
+.bar-row .fill { height: 100%; background: var(--c); position: relative; }
+.bar-row .fill::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255, 255, 255, 0), var(--bg)); opacity: .82; }
 .bar-row .u { font-weight: 700; color: var(--ink); text-align: right; min-width: 92px; }
 .bar-row .p { font-weight: 700; color: var(--blue); text-align: right; min-width: 52px; }
 
@@ -98,7 +101,7 @@ table { width: 100%; border-collapse: collapse; }
 .rincian tr.group td { background: var(--blue-soft); text-align: left; font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--ink); padding: 5px 10px; border-left: 4px solid var(--gc); }
 .rincian tr.grand td { padding-block: 8px; border-top: 3px solid var(--navy); border-bottom: none; font-size: 19px; font-weight: 800; color: var(--ink); background: var(--blue-soft); }
 .rincian tr.grand td small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
-.st { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: .03em; color: var(--sc); background: color-mix(in srgb, var(--sc) 14%, var(--bg)); }
+.st { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: .03em; color: var(--sc); background: var(--sb, var(--grey-soft)); }
 
 .notes { margin-top: 30px; background: var(--blue-soft); border-left: 4px solid var(--navy); padding-block: 12px 14px; }
 .notes h2 { font-size: 16px; }
@@ -129,7 +132,7 @@ table { width: 100%; border-collapse: collapse; }
 .edit td { border-bottom: 1px solid var(--line); padding: 6px; text-align: center; vertical-align: middle; }
 .edit select, .edit input[type="number"], .edit input[type="text"] { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); }
 .edit input[type="number"] { text-align: center; max-width: 90px; }
-.edit tr.err td { background: color-mix(in srgb, var(--red) 8%, var(--bg)); }
+.edit tr.err td { background: var(--red-soft); }
 .edit .msg { font-size: 12px; font-weight: 700; color: var(--red); text-align: left; padding-top: 2px; }
 .edit .ok { font-size: 12px; font-weight: 700; color: var(--green); }
 .del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 18px; line-height: 1; padding: 6px; }
@@ -151,7 +154,7 @@ table { width: 100%; border-collapse: collapse; }
 .sales-in th.after { opacity: .7; }
 .sales-in tr.sum td { background: var(--blue-soft); font-weight: 800; color: var(--ink); }
 .sales-in tr.sum td.stick { background: var(--blue-soft); }
-.sales-in tr.err td.stick { background: color-mix(in srgb, var(--red) 8%, var(--bg)); }
+.sales-in tr.err td.stick { background: var(--red-soft); }
 .master { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
 .master > div { min-width: 0; }
 .master table th { background: var(--navy); color: #fff; font-size: 13px; padding: 8px; text-align: left; }
@@ -330,10 +333,10 @@ const prjById = id => S.proyek.find(p => p.id === id);
 const dates = () => Object.keys(S.laporan).sort().reverse();
 const todayISO = () => { const t = new Date(); return new Date(t - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
 function status(b, t) {
-  if (t === 0) return { t: "Tidak ada unit", c: "var(--grey)" };
-  if (b >= t) return { t: "Selesai", c: "var(--green)" };
-  if (b === 0) return { t: `Sisa ${t} unit`, c: "var(--red)" };
-  return { t: `Sisa ${t - b} unit`, c: "var(--gold)" };
+  if (t === 0) return { t: "Tidak ada unit", c: "var(--grey)", b: "var(--grey-soft)" };
+  if (b >= t) return { t: "Selesai", c: "var(--green)", b: "var(--green-soft)" };
+  if (b === 0) return { t: `Sisa ${t} unit`, c: "var(--red)", b: "var(--red-soft)" };
+  return { t: `Sisa ${t - b} unit`, c: "var(--gold)", b: "var(--gold-soft)" };
 }
 const toastEl = document.getElementById("toast");
 let toastT;
@@ -401,21 +404,22 @@ function viewDashboard() {
       }
       const nm = j.nama, b = r.d[0] + r.d[2], t = r.d[1] + r.d[3], st = status(b, t);
       tbl += `<tr><td class="proj">${esc(nm)}</td><td>${f(r.d[0])}</td><td>${f(r.d[1])}</td><td>${f(r.d[2])}</td><td>${f(r.d[3])}</td>
-        <td class="tot">${f(b)}<small>dari ${t}</small></td><td class="tot"><span class="st" style="--sc:${st.c}">${st.t}</span></td></tr>`;
+        <td class="tot">${f(b)}<small>dari ${t}</small></td><td class="tot"><span class="st" style="--sc:${st.c};--sb:${st.b}">${st.t}</span></td></tr>`;
     });
   });
   tbl += `<tr class="grand"><td class="proj">Total</td><td>${G[0]}</td><td>${G[1]}</td><td>${G[2]}</td><td>${G[3]}</td><td>${gB}<small>dari ${gT}</small></td><td>${pct(gB, gT)}%</td></tr></tbody>`;
   const nProj = new Set(H.rows.map(r => r.proyekId)).size;
-  return `<div class="page">
+  return `<div class="page cap" id="capBast">
   <div class="hero">
     <div class="tabs"><span class="tab">Laporan BAST</span><span class="tab">${panjang(selDate)}</span></div>
     <div class="hero-body gut"><h1>Monitoring BAST All DTP Category</h1><div class="sub">Perubahan hari ini (${ddmmyyyy(selDate)})</div></div>
     <div class="strip gut"><span>Data BAST ${nProj} proyek • ${H.periodes.length} periode PPN DTP</span>
-      <div class="strip-actions">
+      <div class="strip-actions no-cap">
         <label for="dateSel" style="font-size:13px">Tanggal</label>
         <select id="dateSel">${ds.map(d => `<option value="${d}" ${d === selDate ? "selected" : ""}>${ddmmyyyy(d)}</option>`).join("")}</select>
         <button class="btn-ghost" id="copyBtn" type="button">Salin teks laporan</button>
         <button class="btn-ghost" id="xlsBtn" type="button">Ekspor Excel</button>
+        <button class="btn-ghost" id="shotBtn" type="button">Unduh gambar</button>
       </div></div>
   </div>
   <div class="kpis gut">
@@ -446,6 +450,37 @@ function bindDashboard() {
     });
   };
   document.getElementById("xlsBtn").onclick = () => exportExcel(selDate);
+  document.getElementById("shotBtn").onclick = () => unduhGambar("capBast", `Monitoring_BAST_${ddmmyyyy(selDate)}.png`);
+}
+
+/* ===================== Unduh gambar (screenshot dashboard) ===================== */
+const H2C_URL = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+function muatH2C() {
+  if (window.html2canvas) return Promise.resolve();
+  return new Promise((ok, gagal) => {
+    const sc = document.createElement("script"); sc.src = H2C_URL; sc.onload = ok; sc.onerror = () => gagal(new Error("load"));
+    document.head.appendChild(sc);
+  });
+}
+let sedangGambar = false;
+async function unduhGambar(id, nama) {
+  const el = document.getElementById(id);
+  if (!el || sedangGambar) return;
+  sedangGambar = true; toast("Menyiapkan gambar…");
+  try {
+    await muatH2C();
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const bg = getComputedStyle(document.body).backgroundColor;
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: bg, useCORS: true, logging: false,
+      ignoreElements: n => n.classList && n.classList.contains("no-cap") });
+    const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
+    const url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = nama; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast("Gambar diunduh");
+  } catch (e) {
+    toast(e && e.message === "load" ? "Gagal memuat alat gambar. Periksa koneksi internet lalu coba lagi." : "Gagal membuat gambar. Coba lagi.");
+  } finally { sedangGambar = false; }
 }
 
 /* ===================== Ekspor Excel ===================== */
@@ -675,14 +710,15 @@ function viewSales() {
     `CHL = total konsolidasi ${rows.length} proyek, bukan proyek tambahan. Jangan dijumlahkan dua kali.`,
     `Total nilai proyek CHL: ${rp(T.stok[1])} &nbsp;|&nbsp; Total terjual: ${rp(T.akum[1])} (${idn(pctR, 1)}%).`,
   ];
-  return `<div class="page">
+  return `<div class="page cap" id="capSales">
   <div class="hero">
     <div class="tabs"><span class="tab">Sales Performance</span><span class="tab">${panjang(tgl)}</span></div>
     <div class="hero-body gut"><h1>Dashboard Penjualan Properti</h1><div class="sub">${esc(bln)} • YTD ${esc(bln)} • Total Terjual</div></div>
     <div class="strip gut"><span>Data penjualan ${rows.length} proyek • ${T.hari[0] ? `${T.hari[0]} unit terjual pada ${panjang(tgl)}` : `Tidak ada perubahan pada ${panjang(tgl)}`}</span>
-      <div class="strip-actions">
+      <div class="strip-actions no-cap">
         <button class="btn-ghost" id="salesCopy" type="button">Salin teks laporan</button>
         <button class="btn-ghost" id="salesXls" type="button">Ekspor Excel</button>
+        <button class="btn-ghost" id="salesShot" type="button">Unduh gambar</button>
       </div></div>
   </div>
   <div class="kpis gut">
@@ -757,6 +793,7 @@ function bindSales() {
   if (!c) return;
   c.onclick = () => navigator.clipboard.writeText(salesText()).then(() => toast("Teks laporan disalin")).catch(() => toast("Gagal menyalin. Coba lagi."));
   document.getElementById("salesXls").onclick = exportSalesExcel;
+  document.getElementById("salesShot").onclick = () => unduhGambar("capSales", `Dashboard_Penjualan_${ddmmyyyy(S.sales2.tanggal)}.png`);
 }
 
 /* Input data penjualan: tabel seperti sheet "input data" */
