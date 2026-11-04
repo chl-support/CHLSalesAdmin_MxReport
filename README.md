@@ -10,6 +10,7 @@ Laporan BAST Program PPN DTP: template Excel, dashboard HTML, dan PRD untuk peng
 | `dashboard/index.html` | Dashboard web statis (buka langsung di browser), dengan tombol salin teks laporan untuk WhatsApp. Data ada di objek `REPORT` di dalam file |
 | `docs/PRD_Dashboard_BAST_PPN_DTP.md` | PRD untuk tim IT / bisnis |
 | `docs/PRD_untuk_Claude_Dashboard_BAST_PPN_DTP.md` | PRD dalam bentuk prompt, siap ditempel ke Claude untuk membangun aplikasi |
+| `mockup/index.html` | Mockup aplikasi (Dashboard, Input Data, Master) untuk dideploy ke Vercel. Data tersimpan di browser |
 | `scripts/build_template.py` | Script Python (openpyxl) untuk membuat ulang template Excel |
 
 ## Cara pakai template Excel
@@ -27,3 +28,7 @@ Data awal di template adalah laporan per 03-11-2026.
 pip install openpyxl
 python scripts/build_template.py
 ```
+
+## Mockup di Vercel
+
+Folder `mockup/` adalah situs statis tanpa build. Di Vercel, set **Root Directory** ke `mockup` dan **Framework** ke `Other`. Setiap push ke `main` akan otomatis dideploy.

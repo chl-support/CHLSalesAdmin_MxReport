@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard BAST PPN DTP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #ffffff; --ink: #0f2140; --text: #1c2533; --muted: #5d6878; --line: #dfe4ec;
+  --navy: #0d2a57; --navy-2: #163a70; --blue: #2a6fc0; --blue-soft: #e8eef7;
+  --green: #1f8a55; --gold: #c98a12; --red: #c0392b; --grey: #8a9893; --track: #f1f4f8;
+  --input-bg: #fffbea; --on-navy: #ffffff;
+  --font: "Archivo", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1522; --ink: #e4ebf7; --text: #d5dce7; --muted: #95a1b3; --line: #253247;
+    --navy: #0b2148; --navy-2: #15346a; --blue: #6aa6ec; --blue-soft: #18263d;
+    --green: #4fc788; --gold: #e8b04a; --red: #ef7a6c; --grey: #7d8d87; --track: #172234;
+    --input-bg: #1d2433; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.45; }
+.page { max-width: 1080px; margin: 0 auto; padding-bottom: 48px; }
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.num { font-variant-numeric: tabular-nums; }
+button, select, input { font: inherit; color: inherit; }
+button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* App bar */
+.appbar { background: var(--navy); color: var(--on-navy); }
+.appbar-in { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-block: 10px; }
+.brand { font-weight: 800; letter-spacing: .02em; margin-right: auto; }
+.nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav a { color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-weight: 600; font-size: 14px; opacity: .8; }
+.nav a:hover { opacity: 1; background: rgba(255,255,255,.08); }
+.nav a[aria-current="page"] { opacity: 1; background: var(--blue); }
+.role { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.role select { background: var(--navy-2); color: #fff; border: 1px solid rgba(255,255,255,.3); border-radius: 4px; padding: 4px 6px; }
+.mockbar { background: var(--blue-soft); color: var(--ink); font-size: 12.5px; padding-block: 6px; display: flex; gap: 12px; justify-content: space-between; flex-wrap: wrap; align-items: center; }
+.linkbtn { background: none; border: none; color: var(--blue); font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; }
+
+/* Hero */
+.hero { background: var(--navy); color: var(--on-navy); border-top: 1px solid rgba(255,255,255,.12); }
+.tabs { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.tab { background: var(--blue); color: #fff; font-weight: 700; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; padding: 8px 22px; }
+.hero-body { padding-block: 16px 18px; }
+.hero h1 { margin: 0; font-size: clamp(24px, 4.6vw, 40px); font-weight: 800; text-transform: uppercase; line-height: 1.1; text-wrap: balance; }
+.hero .sub { margin-top: 10px; font-size: 16px; opacity: .9; }
+.strip { background: var(--navy-2); color: #fff; padding-block: 10px; font-size: 15px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+.strip-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn-ghost { font-weight: 600; font-size: 13px; color: #fff; background: transparent; border: 1px solid rgba(255,255,255,.45); border-radius: 4px; padding: 5px 12px; cursor: pointer; }
+.btn-ghost:hover { background: rgba(255,255,255,.12); }
+.strip select { background: var(--navy); color: #fff; border: 1px solid rgba(255,255,255,.45); border-radius: 4px; padding: 4px 8px; font-size: 13px; }
+
+/* KPI */
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 18px; }
+.kpi { border-left: 4px solid var(--c); padding: 6px 14px 10px; min-width: 0; }
+.kpi .lbl { font-size: 12.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.kpi .val { font-size: 34px; font-weight: 800; color: var(--ink); line-height: 1.1; margin-top: 8px; }
+.kpi .val small { font-size: 17px; font-weight: 600; color: var(--muted); }
+.kpi .pct { font-size: 22px; font-weight: 700; color: var(--c); margin-top: 4px; }
+.kpi .note { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+section { margin-top: 30px; }
+h2 { margin: 0; color: var(--ink); font-size: 22px; font-weight: 800; text-transform: uppercase; }
+.desc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.bars { margin-top: 12px; }
+.bar-row { display: grid; grid-template-columns: minmax(120px, 28%) 1fr auto auto; align-items: center; gap: 14px; padding-block: 6px; border-bottom: 1px solid var(--line); }
+.bar-row .nm { font-weight: 700; color: var(--ink); }
+.bar-row .track { height: 30px; background: var(--track); overflow: hidden; }
+.bar-row .fill { height: 100%; background: linear-gradient(90deg, var(--c), color-mix(in srgb, var(--c) 18%, var(--bg))); }
+.bar-row .u { font-weight: 700; color: var(--ink); text-align: right; min-width: 92px; }
+.bar-row .p { font-weight: 700; color: var(--blue); text-align: right; min-width: 52px; }
+
+.tbl-wrap { overflow-x: auto; margin-top: 12px; }
+table { width: 100%; border-collapse: collapse; }
+.rincian { min-width: 640px; }
+.rincian thead th { background: var(--navy); color: #fff; font-weight: 700; padding: 8px 10px; }
+.rincian thead tr:first-child th { font-size: 15px; text-transform: uppercase; }
+.rincian thead tr:last-child th { font-weight: 500; font-size: 13.5px; padding-top: 0; }
+.rincian td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: center; }
+.rincian td.proj { text-align: left; font-weight: 700; color: var(--ink); }
+.rincian td.tot { background: var(--blue-soft); font-weight: 700; color: var(--ink); }
+.rincian td.tot small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+.rincian tr.group td { background: var(--blue-soft); text-align: left; font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--ink); padding: 8px 10px; border-left: 4px solid var(--gc); }
+.rincian tr.grand td { border-top: 3px solid var(--navy); border-bottom: none; font-size: 19px; font-weight: 800; color: var(--ink); background: var(--blue-soft); }
+.rincian tr.grand td small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+.st { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: .03em; color: var(--sc); background: color-mix(in srgb, var(--sc) 14%, var(--bg)); }
+
+.notes { margin-top: 30px; background: var(--blue-soft); border-left: 4px solid var(--navy); padding-block: 12px 14px; }
+.notes h2 { font-size: 16px; }
+.notes ul { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.notes b { color: var(--ink); }
+
+/* Forms */
+.form-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; margin-top: 24px; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.field input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); font-weight: 600; }
+.btn { font-weight: 700; font-size: 14px; border-radius: 4px; padding: 9px 16px; cursor: pointer; border: 1px solid var(--navy); background: var(--navy); color: #fff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.sec { background: transparent; color: var(--blue); border-color: var(--line); }
+.btn.sec:hover { border-color: var(--blue); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.edit { min-width: 860px; margin-top: 12px; }
+.edit th { background: var(--navy); color: #fff; font-size: 13px; font-weight: 700; padding: 8px; text-align: center; }
+.edit td { border-bottom: 1px solid var(--line); padding: 6px; text-align: center; vertical-align: top; }
+.edit select, .edit input[type="number"], .edit input[type="text"] { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); }
+.edit input[type="number"] { text-align: center; max-width: 90px; }
+.edit tr.err td { background: color-mix(in srgb, var(--red) 8%, var(--bg)); }
+.edit .msg { font-size: 12px; font-weight: 700; color: var(--red); text-align: left; padding-top: 2px; }
+.edit .ok { font-size: 12px; font-weight: 700; color: var(--green); }
+.del { background: none; border: none; color: var(--red); cursor: pointer; font-size: 18px; line-height: 1; padding: 6px; }
+.hint { font-size: 13px; color: var(--muted); margin-top: 8px; }
+.empty { border: 1px dashed var(--line); padding: 24px; text-align: center; color: var(--muted); margin-top: 16px; }
+
+.master { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+.master > div { min-width: 0; }
+.master table th { background: var(--navy); color: #fff; font-size: 13px; padding: 8px; text-align: left; }
+.master table td { border-bottom: 1px solid var(--line); padding: 6px; }
+.master input[type="text"] { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); }
+.ord { background: none; border: 1px solid var(--line); border-radius: 3px; cursor: pointer; padding: 2px 6px; color: var(--muted); }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; z-index: 20; }
+
+@media (max-width: 760px) {
+  .kpis { grid-template-columns: 1fr 1fr; row-gap: 16px; }
+  .bar-row { grid-template-columns: 1fr auto auto; }
+  .bar-row .track { grid-column: 1 / -1; grid-row: 2; height: 18px; }
+  .master { grid-template-columns: 1fr; }
+}
+@media (max-width: 400px) { .kpis { grid-template-columns: 1fr; } .tab { padding: 8px 14px; } }
+@media (prefers-reduced-motion: no-preference) { .fill { transition: width .4s ease; } }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="page gut appbar-in" style="padding-bottom:10px">
+    <span class="brand">BAST PPN DTP</span>
+    <nav class="nav" id="nav">
+      <a href="#dashboard" data-v="dashboard">Dashboard</a>
+      <a href="#input" data-v="input" data-admin>Input Data</a>
+      <a href="#master" data-v="master" data-admin>Master</a>
+    </nav>
+    <label class="role" for="roleSel">Masuk sebagai
+      <select id="roleSel"><option value="ADMIN">Admin</option><option value="VIEWER">Viewer</option></select>
+    </label>
+  </div>
+</header>
+<div class="mockbar gut"><span>Mockup. Data tersimpan di browser ini saja dan tidak dibagikan ke pengguna lain.</span><button class="linkbtn" id="resetBtn" type="button">Kembalikan data contoh</button></div>
+
+<main id="view"></main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ===================== Data & storage ===================== */
+const KEY = "bast-ppn-dtp-mockup-v1";
+const SEED = {
+  role: "ADMIN",
+  periode: [
+    { id: 1, nama: "Nov-2023 s.d Des-2024", urutan: 1, aktif: true },
+    { id: 2, nama: "Jan-2025 s.d Des-2025", urutan: 2, aktif: true },
+    { id: 3, nama: "Jan-2026 s.d Des-2026", urutan: 3, aktif: true },
+  ],
+  proyek: [
+    { id: 1, nama: "Naraya Serpong", urutan: 1, aktif: true },
+    { id: 2, nama: "Bio District", urutan: 2, aktif: true },
+    { id: 3, nama: "Mazenta Residence", urutan: 3, aktif: true },
+    { id: 4, nama: "Banara Serpong", urutan: 4, aktif: true },
+  ],
+  laporan: {
+    "2026-11-03": [
+      { periodeId: 1, proyekId: 1, d: [13, 13, 8, 8], ket: "" },
+      { periodeId: 1, proyekId: 2, d: [17, 17, 0, 0], ket: "" },
+      { periodeId: 2, proyekId: 3, d: [1, 1, 0, 0], ket: "" },
+      { periodeId: 2, proyekId: 1, d: [0, 0, 2, 2], ket: "" },
+      { periodeId: 2, proyekId: 2, d: [6, 6, 1, 2], ket: "" },
+      { periodeId: 3, proyekId: 1, d: [1, 2, 0, 0], ket: "" },
+      { periodeId: 3, proyekId: 4, d: [0, 1, 0, 0], ket: "" },
+      { periodeId: 3, proyekId: 2, d: [2, 7, 0, 3], ket: "" },
+      { periodeId: 3, proyekId: 3, d: [2, 2, 0, 0], ket: "" },
+    ]
+  }
+};
+const clone = o => JSON.parse(JSON.stringify(o));
+let S;
+try { S = JSON.parse(localStorage.getItem(KEY)) || clone(SEED); } catch (e) { S = clone(SEED); }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+/* ===================== Helpers ===================== */
+const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const ddmmyyyy = iso => iso.split("-").reverse().join("-");
+const panjang = iso => { const [y, m, d] = iso.split("-"); return `${+d} ${BULAN[m - 1]} ${y}`; };
+const f = n => n === 0 ? "–" : String(n);
+const pct = (x, y) => y ? Math.round(x / y * 100) : 0;
+const add = (a, b) => a.map((v, i) => v + b[i]);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const COLORS = ["var(--blue)", "var(--green)", "var(--gold)", "var(--navy-2)"];
+const byUrut = (a, b) => a.urutan - b.urutan;
+const perById = id => S.periode.find(p => p.id === id);
+const prjById = id => S.proyek.find(p => p.id === id);
+const dates = () => Object.keys(S.laporan).sort().reverse();
+const todayISO = () => { const t = new Date(); return new Date(t - t.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+function status(b, t) {
+  if (t === 0) return { t: "Tidak ada unit", c: "var(--grey)" };
+  if (b >= t) return { t: "Selesai", c: "var(--green)" };
+  if (b === 0) return { t: `Belum · sisa ${t}`, c: "var(--red)" };
+  return { t: `Sisa ${t - b} unit`, c: "var(--gold)" };
+}
+const toastEl = document.getElementById("toast");
+let toastT;
+function toast(m) { toastEl.textContent = m; toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => toastEl.hidden = true, 2400); }
+
+/* ===================== Hitung (sesuai PRD bagian 5) ===================== */
+function hitung(tgl) {
+  const rows = S.laporan[tgl] || [];
+  const grand = rows.reduce((a, r) => add(a, r.d), [0, 0, 0, 0]);
+  const periodes = S.periode.slice().sort(byUrut).map(p => {
+    const pr = rows.filter(r => r.periodeId === p.id)
+      .sort((a, b) => (prjById(a.proyekId)?.urutan ?? 99) - (prjById(b.proyekId)?.urutan ?? 99));
+    return { p, rows: pr, sum: pr.reduce((a, r) => add(a, r.d), [0, 0, 0, 0]) };
+  }).filter(x => x.rows.length);
+  const proyeks = S.proyek.map(p => ({ p, sum: rows.filter(r => r.proyekId === p.id).reduce((a, r) => add(a, r.d), [0, 0, 0, 0]) }))
+    .filter(x => x.sum[1] + x.sum[3] > 0)
+    .sort((a, b) => (b.sum[1] + b.sum[3]) - (a.sum[1] + a.sum[3]));
+  return { rows, grand, periodes, proyeks };
+}
+function teksWA(tgl) {
+  const H = hitung(tgl);
+  let t = `*Report BAST Program PPN DTP*\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n`;
+  const g = n => n === 0 ? "-" : n;
+  H.periodes.forEach(({ p, rows }) => {
+    t += `\n*Periode PPN DTP (${p.nama})*\n`;
+    rows.forEach(r => {
+      t += `*${prjById(r.proyekId).nama.toUpperCase()}*\nBAST PPN DTP\n    Total ${g(r.d[0])} unit dari ${g(r.d[1])} unit\nBAST Non PPN DTP\n    Total ${g(r.d[2])} unit dari ${g(r.d[3])} unit\n`;
+    });
+  });
+  return t;
+}
+
+/* ===================== Dashboard ===================== */
+let selDate = dates()[0];
+function viewDashboard() {
+  const ds = dates();
+  if (!ds.length) return `<div class="page gut"><div class="empty">Belum ada laporan. ${S.role === "ADMIN" ? 'Buka <a href="#input">Input Data</a> untuk mengisi laporan pertama.' : "Minta admin mengisi laporan pertama."}</div></div>`;
+  if (!ds.includes(selDate)) selDate = ds[0];
+  const H = hitung(selDate), G = H.grand;
+  const gB = G[0] + G[2], gT = G[1] + G[3];
+  const kpi = (c, lbl, val, unit, p, note) => `<div class="kpi" style="--c:${c}"><div class="lbl">${lbl}</div>
+    <div class="val num">${val} <small>${unit}</small></div><div class="pct num">${p}%</div><div class="note">${note}</div></div>`;
+  const bar = (nm, b, t, c) => `<div class="bar-row"><span class="nm">${esc(nm)}</span>
+    <div class="track"><div class="fill" style="--c:${c};width:${pct(b, t)}%"></div></div>
+    <span class="u num">${b} / ${t} unit</span><span class="p num">${pct(b, t)}%</span></div>`;
+  let tbl = `<thead><tr><th rowspan="2" style="text-align:center;width:30%">Proyek</th><th colspan="2">BAST PPN DTP</th><th colspan="2">BAST Non PPN DTP</th><th colspan="2">Total</th></tr>
+    <tr><th>BAST</th><th>Unit</th><th>BAST</th><th>Unit</th><th>BAST</th><th>Status</th></tr></thead><tbody>`;
+  const notes = [];
+  H.periodes.forEach(({ p, rows }, i) => {
+    tbl += `<tr class="group" style="--gc:${COLORS[i % 4]}"><td colspan="7">Periode PPN DTP (${esc(p.nama)})</td></tr>`;
+    rows.forEach(r => {
+      const nm = prjById(r.proyekId).nama, b = r.d[0] + r.d[2], t = r.d[1] + r.d[3], st = status(b, t);
+      tbl += `<tr><td class="proj">${esc(nm)}</td><td>${f(r.d[0])}</td><td>${f(r.d[1])}</td><td>${f(r.d[2])}</td><td>${f(r.d[3])}</td>
+        <td class="tot">${f(b)}<small>dari ${t}</small></td><td class="tot"><span class="st" style="--sc:${st.c}">${st.t}</span></td></tr>`;
+      if (r.d[1] > r.d[0]) notes.push(`<b>${esc(nm)}</b> (${esc(p.nama)}): BAST PPN DTP sisa <b>${r.d[1] - r.d[0]} unit</b> dari ${r.d[1]} unit.`);
+      if (r.d[3] > r.d[2]) notes.push(`<b>${esc(nm)}</b> (${esc(p.nama)}): BAST Non PPN DTP sisa <b>${r.d[3] - r.d[2]} unit</b> dari ${r.d[3]} unit.`);
+    });
+  });
+  tbl += `<tr class="grand"><td class="proj">Total</td><td>${G[0]}</td><td>${G[1]}</td><td>${G[2]}</td><td>${G[3]}</td><td>${gB}<small>dari ${gT}</small></td><td>${pct(gB, gT)}%</td></tr></tbody>`;
+  const nProj = new Set(H.rows.map(r => r.proyekId)).size;
+  return `<div class="page">
+  <div class="hero">
+    <div class="tabs"><span class="tab">Laporan BAST</span><span class="tab">${panjang(selDate)}</span></div>
+    <div class="hero-body gut"><h1>Report BAST Program PPN DTP</h1><div class="sub">Perubahan hari ini (${ddmmyyyy(selDate)})</div></div>
+    <div class="strip gut"><span>Data BAST ${nProj} proyek • ${H.periodes.length} periode PPN DTP</span>
+      <div class="strip-actions">
+        <label for="dateSel" style="font-size:13px">Tanggal</label>
+        <select id="dateSel">${ds.map(d => `<option value="${d}" ${d === selDate ? "selected" : ""}>${ddmmyyyy(d)}</option>`).join("")}</select>
+        <button class="btn-ghost" id="copyBtn" type="button">Salin teks laporan</button>
+        <button class="btn-ghost" id="xlsBtn" type="button">Ekspor Excel</button>
+      </div></div>
+  </div>
+  <div class="kpis gut">
+    ${kpi("var(--gold)", "Total BAST", gB, `/ ${gT} unit`, pct(gB, gT), "Seluruh periode & jenis")}
+    ${kpi("var(--blue)", "BAST PPN DTP", G[0], `/ ${G[1]} unit`, pct(G[0], G[1]), `Sisa ${G[1] - G[0]} unit`)}
+    ${kpi("var(--green)", "BAST Non PPN DTP", G[2], `/ ${G[3]} unit`, pct(G[2], G[3]), `Sisa ${G[3] - G[2]} unit`)}
+    ${kpi("var(--red)", "Belum BAST", gT - gB, "unit", gT ? 100 - pct(gB, gT) : 0, `Dari ${gT} unit total`)}
+  </div>
+  <section class="gut"><h2>Progres BAST per Periode</h2><div class="desc">Unit sudah BAST dibanding total unit pada periode PPN DTP.</div>
+    <div class="bars">${H.periodes.map((x, i) => bar(x.p.nama, x.sum[0] + x.sum[2], x.sum[1] + x.sum[3], COLORS[i % 4])).join("")}</div></section>
+  <section class="gut"><h2>Progres BAST per Proyek</h2><div class="desc">Gabungan seluruh periode, PPN DTP dan Non PPN DTP.</div>
+    <div class="bars">${H.proyeks.map((x, i) => bar(x.p.nama, x.sum[0] + x.sum[2], x.sum[1] + x.sum[3], COLORS[i % 4])).join("")}</div></section>
+  <section><div class="gut"><h2>Rincian per Periode &amp; Proyek</h2><div class="desc">Angka dibaca “BAST dari total unit”. Tanda “–” berarti 0 unit.</div></div>
+    <div class="tbl-wrap"><table class="rincian num">${tbl}</table></div></section>
+  <div class="notes gut"><h2>Catatan Penting</h2><ul>${notes.length ? notes.map(n => `<li>${n}</li>`).join("") : "<li>Semua unit sudah BAST.</li>"}</ul></div>
+  </div>`;
+}
+function bindDashboard() {
+  const ds = document.getElementById("dateSel");
+  if (!ds) return;
+  ds.onchange = () => { selDate = ds.value; render(); };
+  document.getElementById("copyBtn").onclick = () => {
+    const txt = teksWA(selDate);
+    navigator.clipboard.writeText(txt).then(() => toast("Teks laporan disalin")).catch(() => {
+      const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); toast("Teks laporan disalin"); } catch (e) { toast("Gagal menyalin. Coba lagi."); }
+      ta.remove();
+    });
+  };
+  document.getElementById("xlsBtn").onclick = () => exportExcel(selDate);
+}
+
+/* ===================== Ekspor Excel ===================== */
+function exportExcel(tgl) {
+  if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
+  const H = hitung(tgl), G = H.grand;
+  const rep = [["REPORT BAST PROGRAM PPN DTP"], [`Perubahan hari ini (${ddmmyyyy(tgl)})`], [],
+    ["Proyek", "BAST PPN DTP", "Unit PPN DTP", "BAST Non PPN DTP", "Unit Non PPN DTP", "Total BAST", "Total Unit", "Status"]];
+  H.periodes.forEach(({ p, rows }) => {
+    rep.push([`PERIODE PPN DTP (${p.nama})`]);
+    rows.forEach(r => { const b = r.d[0] + r.d[2], t = r.d[1] + r.d[3]; rep.push([prjById(r.proyekId).nama, ...r.d, b, t, status(b, t).t]); });
+  });
+  rep.push(["TOTAL", ...G, G[0] + G[2], G[1] + G[3], `${pct(G[0] + G[2], G[1] + G[3])}%`]);
+  const data = [["Tanggal", "Periode PPN DTP", "Proyek", "BAST PPN DTP", "Total Unit PPN DTP", "BAST Non PPN DTP", "Total Unit Non PPN DTP", "Keterangan"]];
+  H.rows.forEach(r => data.push([ddmmyyyy(tgl), perById(r.periodeId).nama, prjById(r.proyekId).nama, ...r.d, r.ket || ""]));
+  const wb = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.aoa_to_sheet(rep); ws1["!cols"] = [{ wch: 40 }, ...Array(7).fill({ wch: 16 })];
+  const ws2 = XLSX.utils.aoa_to_sheet(data); ws2["!cols"] = [{ wch: 12 }, { wch: 24 }, { wch: 22 }, ...Array(5).fill({ wch: 18 })];
+  XLSX.utils.book_append_sheet(wb, ws1, "Report");
+  XLSX.utils.book_append_sheet(wb, ws2, "Data");
+  XLSX.writeFile(wb, `Report_BAST_PPN_DTP_${tgl}.xlsx`);
+  toast("File Excel diunduh");
+}
+
+/* ===================== Input Data ===================== */
+let draft = null, draftDate = null;
+function loadDraft(tgl) {
+  draftDate = tgl;
+  draft = clone(S.laporan[tgl] || []);
+}
+function validate(rows) {
+  const seen = {};
+  return rows.map(r => {
+    if (!r.periodeId || !r.proyekId) return "Pilih periode dan proyek";
+    if (r.d.some(v => !Number.isInteger(v) || v < 0)) return "Isi angka bulat 0 atau lebih";
+    if (r.d[0] > r.d[1] || r.d[2] > r.d[3]) return "BAST melebihi total";
+    const k = r.periodeId + "-" + r.proyekId;
+    if (seen[k]) return "Periode dan proyek ini sudah ada di baris lain";
+    seen[k] = 1; return "";
+  });
+}
+function viewInput() {
+  if (draft === null) loadDraft(dates()[0] || todayISO());
+  const errs = validate(draft);
+  const prev = dates().filter(d => d < draftDate)[0];
+  const optP = sel => `<option value="">Pilih periode</option>` + S.periode.slice().sort(byUrut).filter(p => p.aktif || p.id === sel)
+    .map(p => `<option value="${p.id}" ${p.id === sel ? "selected" : ""}>${esc(p.nama)}</option>`).join("");
+  const optJ = sel => `<option value="">Pilih proyek</option>` + S.proyek.slice().sort(byUrut).filter(p => p.aktif || p.id === sel)
+    .map(p => `<option value="${p.id}" ${p.id === sel ? "selected" : ""}>${esc(p.nama)}</option>`).join("");
+  const body = draft.map((r, i) => `<tr class="${errs[i] ? "err" : ""}">
+    <td class="num">${i + 1}</td>
+    <td><select id="p-${i}" data-i="${i}" data-k="periodeId" aria-label="Periode baris ${i + 1}">${optP(r.periodeId)}</select>${errs[i] ? `<div class="msg">${errs[i]}</div>` : ""}</td>
+    <td><select id="j-${i}" data-i="${i}" data-k="proyekId" aria-label="Proyek baris ${i + 1}">${optJ(r.proyekId)}</select></td>
+    ${r.d.map((v, k) => `<td><input id="d-${i}-${k}" type="number" min="0" step="1" inputmode="numeric" data-i="${i}" data-d="${k}" value="${v}" aria-label="Angka ${k + 1} baris ${i + 1}"></td>`).join("")}
+    <td><input id="k-${i}" type="text" data-i="${i}" data-k="ket" value="${esc(r.ket || "")}" aria-label="Keterangan baris ${i + 1}"></td>
+    <td>${errs[i] ? "" : '<span class="ok">OK</span>'}</td>
+    <td><button class="del" data-del="${i}" type="button" aria-label="Hapus baris ${i + 1}">×</button></td></tr>`).join("");
+  const hasErr = errs.some(Boolean);
+  return `<div class="page gut">
+  <div class="form-head">
+    <div><h2>Input Data BAST</h2><div class="desc">Isi satu baris per periode dan proyek. Kosongkan atau isi 0 untuk tanda “–”.</div></div>
+  </div>
+  <div class="form-head">
+    <label class="field" for="tglIn">Tanggal laporan<input id="tglIn" type="date" value="${draftDate}"></label>
+    <div class="btn-row">
+      ${prev && !draft.length ? `<button class="btn sec" id="copyPrev" type="button">Salin dari laporan ${ddmmyyyy(prev)}</button>` : ""}
+      <button class="btn sec" id="addRow" type="button">Tambah baris</button>
+      <button class="btn" id="saveBtn" type="button" ${hasErr || !draft.length ? "disabled" : ""}>Simpan laporan</button>
+    </div>
+  </div>
+  ${draft.length ? `<div class="tbl-wrap"><table class="edit num"><thead><tr><th>No</th><th>Periode PPN DTP</th><th>Proyek</th>
+    <th>BAST PPN DTP</th><th>Total Unit PPN DTP</th><th>BAST Non PPN DTP</th><th>Total Unit Non PPN DTP</th><th>Keterangan</th><th>Cek</th><th></th></tr></thead>
+    <tbody>${body}</tbody></table></div>`
+    : `<div class="empty">Belum ada data untuk ${ddmmyyyy(draftDate)}. ${prev ? `Salin dari laporan ${ddmmyyyy(prev)} atau tambah baris baru.` : "Tambah baris untuk mulai mengisi."}</div>`}
+  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : S.laporan[draftDate] ? "Menyimpan akan mengganti laporan tanggal ini." : "Laporan baru untuk tanggal ini."}</p>
+  </div>`;
+}
+function bindInput() {
+  const v = document.getElementById("view");
+  document.getElementById("tglIn").onchange = e => { if (e.target.value) { loadDraft(e.target.value); render(); } };
+  const cp = document.getElementById("copyPrev");
+  if (cp) cp.onclick = () => { const prev = dates().filter(d => d < draftDate)[0]; draft = clone(S.laporan[prev]); render(); toast(`Data ${ddmmyyyy(prev)} disalin. Periksa lalu simpan.`); };
+  document.getElementById("addRow").onclick = () => { draft.push({ periodeId: null, proyekId: null, d: [0, 0, 0, 0], ket: "" }); render(); };
+  document.getElementById("saveBtn").onclick = () => {
+    S.laporan[draftDate] = clone(draft); save(); selDate = draftDate;
+    toast(`Laporan ${ddmmyyyy(draftDate)} tersimpan`); render();
+  };
+  v.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { draft.splice(+b.dataset.del, 1); render(); });
+  v.querySelectorAll("select[data-k]").forEach(s => s.onchange = () => { draft[+s.dataset.i][s.dataset.k] = s.value ? +s.value : null; render(s.id); });
+  v.querySelectorAll("input[data-d]").forEach(inp => inp.onchange = () => {
+    const raw = inp.value.trim(); draft[+inp.dataset.i].d[+inp.dataset.d] = raw === "" ? 0 : Number(raw); render(inp.id);
+  });
+  v.querySelectorAll("input[data-k='ket']").forEach(inp => inp.oninput = () => { draft[+inp.dataset.i].ket = inp.value; });
+}
+
+/* ===================== Master ===================== */
+function viewMaster() {
+  const used = (k, id) => Object.values(S.laporan).some(rows => rows.some(r => r[k] === id));
+  const list = (key, title, label, fk) => {
+    const items = S[key].slice().sort(byUrut);
+    return `<div><h2 style="font-size:18px">${title}</h2>
+    <div class="tbl-wrap"><table><thead><tr><th style="width:56px">Urutan</th><th>Nama</th><th style="width:70px">Aktif</th></tr></thead><tbody>
+    ${items.map((p, i) => `<tr>
+      <td><button class="ord" data-up="${key}:${p.id}" type="button" aria-label="Naikkan ${esc(p.nama)}" ${i === 0 ? "disabled" : ""}>↑</button></td>
+      <td><input type="text" id="${key}-${p.id}" data-name="${key}:${p.id}" value="${esc(p.nama)}" aria-label="Nama ${label}"></td>
+      <td><input type="checkbox" id="${key}-a-${p.id}" data-aktif="${key}:${p.id}" ${p.aktif ? "checked" : ""} aria-label="${label} aktif"></td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="btn-row" style="margin-top:10px"><input type="text" id="new-${key}" placeholder="Nama ${label} baru" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--input-bg);color:var(--ink)">
+      <button class="btn" data-add="${key}" type="button">Tambah</button></div>
+    <p class="hint">${label[0].toUpperCase() + label.slice(1)} yang sudah dipakai di laporan tidak bisa dihapus, hanya dinonaktifkan.</p></div>`;
+  };
+  return `<div class="page gut"><div class="form-head"><div><h2>Master Periode &amp; Proyek</h2>
+    <div class="desc">Nama di sini muncul di dropdown Input Data dan di dashboard. Yang nonaktif tidak muncul di dropdown.</div></div></div>
+    <div class="master">${list("periode", "Periode PPN DTP", "periode")}${list("proyek", "Proyek", "proyek")}</div></div>`;
+}
+function bindMaster() {
+  const v = document.getElementById("view");
+  const find = s => { const [k, id] = s.split(":"); return S[k].find(p => p.id === +id); };
+  v.querySelectorAll("[data-name]").forEach(inp => inp.onchange = () => {
+    const nm = inp.value.trim(), [k] = inp.dataset.name.split(":"), it = find(inp.dataset.name);
+    if (!nm) { inp.value = it.nama; toast("Nama tidak boleh kosong"); return; }
+    if (S[k].some(p => p !== it && p.nama.toLowerCase() === nm.toLowerCase())) { inp.value = it.nama; toast("Nama sudah dipakai"); return; }
+    it.nama = nm; save(); toast("Nama disimpan");
+  });
+  v.querySelectorAll("[data-aktif]").forEach(c => c.onchange = () => { find(c.dataset.aktif).aktif = c.checked; save(); toast(c.checked ? "Diaktifkan" : "Dinonaktifkan"); });
+  v.querySelectorAll("[data-up]").forEach(b => b.onclick = () => {
+    const [k] = b.dataset.up.split(":"), it = find(b.dataset.up), items = S[k].slice().sort(byUrut), i = items.indexOf(it);
+    const o = items[i - 1]; [it.urutan, o.urutan] = [o.urutan, it.urutan]; save(); render();
+  });
+  v.querySelectorAll("[data-add]").forEach(b => b.onclick = () => {
+    const k = b.dataset.add, inp = document.getElementById("new-" + k), nm = inp.value.trim();
+    if (!nm) { toast("Isi nama terlebih dahulu"); return; }
+    if (S[k].some(p => p.nama.toLowerCase() === nm.toLowerCase())) { toast("Nama sudah dipakai"); return; }
+    const id = Math.max(0, ...S[k].map(p => p.id)) + 1, ur = Math.max(0, ...S[k].map(p => p.urutan)) + 1;
+    S[k].push({ id, nama: nm, urutan: ur, aktif: true }); save(); render(); toast(`${nm} ditambahkan`);
+  });
+}
+
+/* ===================== Router ===================== */
+const VIEWS = { dashboard: [viewDashboard, bindDashboard], input: [viewInput, bindInput], master: [viewMaster, bindMaster] };
+function current() {
+  let v = location.hash.slice(1);
+  if (!VIEWS[v]) v = "dashboard";
+  if (S.role !== "ADMIN" && v !== "dashboard") { history.replaceState(null, "", "#dashboard"); v = "dashboard"; }
+  return v;
+}
+let rendering = false;
+function render(focusId) {
+  if (rendering) return;
+  rendering = true;
+  const v = current();
+  try {
+    document.getElementById("view").innerHTML = VIEWS[v][0]();
+    VIEWS[v][1]();
+  } finally { rendering = false; }
+  document.querySelectorAll("#nav a").forEach(a => {
+    a.toggleAttribute("aria-current", a.dataset.v === v); if (a.dataset.v === v) a.setAttribute("aria-current", "page");
+    a.hidden = a.hasAttribute("data-admin") && S.role !== "ADMIN";
+  });
+  if (focusId) { const el = document.getElementById(focusId); if (el) el.focus(); }
+}
+const roleSel = document.getElementById("roleSel");
+roleSel.value = S.role;
+roleSel.onchange = () => { S.role = roleSel.value; save(); render(); toast(`Masuk sebagai ${S.role === "ADMIN" ? "Admin" : "Viewer"}`); };
+document.getElementById("resetBtn").onclick = () => {
+  const role = S.role; S = clone(SEED); S.role = role; save(); draft = null; selDate = dates()[0]; render(); toast("Data contoh dikembalikan");
+};
+window.addEventListener("hashchange", () => { if (current() === "input" && draft === null) loadDraft(dates()[0] || todayISO()); render(); });
+render();
+</script>
+</body>
+</html>
