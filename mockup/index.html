@@ -509,7 +509,8 @@ function hitung(tgl) {
 }
 function teksWA(tgl) {
   const H = hitung(tgl);
-  let t = `*Monitoring BAST All DTP Category*\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n`;
+  const tt = pilihTgl || todayISO();
+  let t = `*Monitoring BAST All DTP Category*\nPerubahan Hari ini (${ddmmyyyy(tt)})\n${tt !== tgl ? `(belum ada laporan baru, data dari laporan ${ddmmyyyy(tgl)})\n` : ""}`;
   const g = n => n === 0 ? "-" : n;
   H.periodes.forEach(({ p, rows }) => {
     t += `\n*Periode PPN DTP (${p.nama})*\n`;
@@ -613,7 +614,7 @@ function bindDashboard() {
     });
   };
   document.getElementById("xlsBtn").onclick = () => exportExcel(selDate);
-  document.getElementById("shotBtn").onclick = () => unduhGambar("capBast", `Monitoring_BAST_${ddmmyyyy(selDate)}.png`);
+  document.getElementById("shotBtn").onclick = () => unduhGambar("capBast", `Monitoring_BAST_${ddmmyyyy(pilihTgl || todayISO())}.png`);
 }
 
 /* ===================== Unduh gambar (screenshot dashboard) ===================== */
@@ -661,7 +662,8 @@ async function unduhGambar(id, nama) {
 function exportExcel(tgl) {
   if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
   const H = hitung(tgl), G = H.grand;
-  const rep = [["MONITORING BAST ALL DTP CATEGORY"], [`Perubahan hari ini (${ddmmyyyy(tgl)})`], [],
+  const tt = pilihTgl || todayISO();
+  const rep = [["MONITORING BAST ALL DTP CATEGORY"], [`Perubahan hari ini (${ddmmyyyy(tt)})${tt !== tgl ? ` • data dari laporan ${ddmmyyyy(tgl)}` : ""}`], [],
     ["Proyek", "BAST PPN DTP", "Unit PPN DTP", "BAST Non PPN DTP", "Unit Non PPN DTP", "Total BAST", "Total Unit", "Status"]];
   H.periodes.forEach(({ p, rows }) => {
     rep.push([`PERIODE PPN DTP (${p.nama})`]);
@@ -675,7 +677,7 @@ function exportExcel(tgl) {
   const ws2 = XLSX.utils.aoa_to_sheet(data); ws2["!cols"] = [{ wch: 12 }, { wch: 24 }, { wch: 22 }, ...Array(5).fill({ wch: 18 })];
   XLSX.utils.book_append_sheet(wb, ws1, "Report");
   XLSX.utils.book_append_sheet(wb, ws2, "Data");
-  XLSX.writeFile(wb, `Report_BAST_PPN_DTP_${tgl}.xlsx`);
+  XLSX.writeFile(wb, `Monitoring_BAST_${tt}.xlsx`);
   toast("File Excel diunduh");
 }
 
