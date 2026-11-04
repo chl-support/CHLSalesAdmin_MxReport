@@ -354,11 +354,11 @@ try { S = JSON.parse(localStorage.getItem(KEY)) || clone(SEED); } catch (e) { S 
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 /* Akun login mockup. Ini bukan pengamanan sungguhan: semua kode dan data ada di browser. */
 const USERS = [
-  { u: "admin.chl", pw: "kw5JulQahD", nama: "Admin CHL", role: "ADMIN" },
+  { u: "admin.chl", pw: "adminsales", nama: "Admin CHL", role: "ADMIN" },
   { u: "admin.tsc", pw: "adminsales", nama: "Admin TSC", role: "ADMIN" },
   { u: "admin.biodistrict", pw: "adminsales", nama: "Admin Bio District", role: "ADMIN" },
   { u: "admin.narayabanaraserpong", pw: "adminsales", nama: "Admin Naraya Banara Serpong", role: "ADMIN" },
-  { u: "viewer.chl", pw: "0eNSMHYqtJ", nama: "Viewer CHL", role: "VIEWER" },
+  { u: "viewer.chl", pw: "adminsales", nama: "Viewer CHL", role: "VIEWER" },
 ];
 let SESI = null;
 try { SESI = JSON.parse(sessionStorage.getItem(KEY + "-sesi")); } catch (e) { SESI = null; }
