@@ -32,3 +32,17 @@ python scripts/build_template.py
 ## Mockup di Vercel
 
 Folder `mockup/` adalah situs statis tanpa build. Di Vercel, set **Root Directory** ke `mockup` dan **Framework** ke `Other`. Setiap push ke `main` akan otomatis dideploy.
+
+## Data bersama (server)
+
+Mockup menyimpan data di database Vercel lewat `api/`:
+
+- `api/login.js`: login dengan username dan password (password disimpan sebagai hash di `api/_lib.js`, bisa diganti lewat env `USERS_JSON`).
+- `api/data.js`: ambil dan simpan data bersama. Admin proyek hanya bisa mengubah proyeknya sendiri; ini dicek di server.
+
+Database yang didukung (env otomatis dari Vercel Storage):
+
+- Upstash Redis: `KV_REST_API_URL` + `KV_REST_API_TOKEN`, atau `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`
+- Neon Postgres: `DATABASE_URL` atau `POSTGRES_URL`
+
+Opsional: `AUTH_SECRET` untuk menandatangani token login.

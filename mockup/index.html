@@ -331,7 +331,7 @@ a.rcard:hover { border-color: var(--gold); }
     <div class="side-foot">
       <div class="who">Masuk sebagai<b id="whoName"></b><span id="whoRole"></span></div>
       <button class="btn sec" id="logoutBtn" type="button" style="padding:6px 12px">Keluar</button>
-      <p>Mockup. Data tersimpan di browser ini saja.</p>
+      <p id="syncInfo" aria-live="polite">Menghubungkan ke server…</p>
       <button class="linkbtn" id="resetBtn" type="button">Kembalikan data contoh</button>
     </div>
   </aside>
@@ -382,19 +382,10 @@ const SEED = {
 const clone = o => JSON.parse(JSON.stringify(o));
 let S;
 try { S = JSON.parse(localStorage.getItem(KEY)) || clone(SEED); } catch (e) { S = clone(SEED); }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
-/* Akun login mockup. Ini bukan pengamanan sungguhan: semua kode dan data ada di browser. */
-const USERS = [
-  { u: "admin.chl", pw: "adminsales", nama: "Admin CHL", role: "ADMIN" },
-  { u: "admin.tsc", pw: "adminsales", nama: "Admin TSC", role: "ADMIN", kunciStok: true, proyek: ["tanglin parc", "newton springs", "scotts vale", "orchard riviera"] },
-  { u: "admin.biodistrict", pw: "adminsales", nama: "Admin Bio District", role: "ADMIN", kunciStok: true, proyek: ["bio district"] },
-  { u: "admin.narayabanaraserpong", pw: "adminsales", nama: "Admin Naraya Banara Serpong", role: "ADMIN", kunciStok: true, proyek: ["banara serpong", "naraya serpong", "mazenta residence", "mozenta residence"] },
-  { u: "admin.permaiindah", pw: "adminsales", nama: "Admin Permai Indah", role: "ADMIN", kunciStok: true, proyek: ["permai indah"] },
-  { u: "viewer.chl", pw: "adminsales", nama: "Viewer CHL", role: "VIEWER" },
-];
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} try { jadwalKirim(); } catch (e) { /* belum siap saat halaman dimuat */ } }
 let SESI = null;
 /* Batasan per user: proyek yang boleh diedit (tanpa daftar = semua proyek) */
-const akunIni = () => SESI ? USERS.find(x => x.u === SESI.u) || null : null;
+const akunIni = () => SESI || null;
 const userTerbatas = () => !!(akunIni() && akunIni().proyek);
 function bolehEdit(namaProyek) {
   const a = akunIni();
@@ -404,8 +395,9 @@ function bolehEdit(namaProyek) {
 }
 const ikonKunci = '<svg class="lock" viewBox="0 0 12 14" width="10" height="12" aria-hidden="true"><rect x="1" y="6" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M3.5 6V4.2a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
 /* Total stok penjualan dikunci untuk user dengan kunciStok */
-const stokTerkunci = () => !!(SESI && (USERS.find(x => x.u === SESI.u) || {}).kunciStok);
+const stokTerkunci = () => !!(SESI && SESI.kunciStok);
 try { SESI = JSON.parse(sessionStorage.getItem(KEY + "-sesi")); } catch (e) { SESI = null; }
+if (SESI && !SESI.token) SESI = null;
 if (SESI) S.role = SESI.role;
 /* Nama proyek yang diganti */
 S.proyek.forEach(p => { if (p.nama === "Marchand Hype Station") p.nama = "Marchand"; });
@@ -1269,6 +1261,8 @@ function render(focusId) {
   document.title = "Monitoring Laporan CHL";
   document.getElementById("whoName").textContent = SESI.nama;
   document.getElementById("whoRole").textContent = SESI.role === "ADMIN" ? "Admin" : "Viewer";
+  document.getElementById("resetBtn").hidden = !(SESI.role === "ADMIN" && !SESI.proyek);
+  document.getElementById("syncInfo").textContent = SERVER.info;
   rendering = true;
   const v = current();
   try {
@@ -1287,33 +1281,108 @@ burger.onclick = () => setMenu(!side.classList.contains("open"));
 scrim.onclick = () => setMenu(false);
 side.addEventListener("click", e => { if (e.target.closest("a")) setMenu(false); });
 
+/* ===================== Sinkron dengan database server ===================== */
+const SERVER = { on: false, versi: null, terakhir: "", kirimT: null, sibuk: false, info: "Menghubungkan ke server…" };
+const LOKAL = ["role", "rpMode"];
+const dataBersama = () => { const o = {}; Object.keys(S).forEach(k => { if (!LOKAL.includes(k)) o[k] = S[k]; }); return o; };
+async function api(metode, url, body) {
+  const r = await fetch(url, { method: metode, headers: Object.assign({ "Content-Type": "application/json" }, SESI && SESI.token ? { Authorization: "Bearer " + SESI.token } : {}),
+    body: body ? JSON.stringify(body) : undefined, cache: "no-store" });
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (r.status === 401 && url !== "/api/login") { keluar("Sesi berakhir. Silakan masuk lagi."); throw new Error("401"); }
+  return { status: r.status, ok: r.ok, data: j };
+}
+function terapkan(st, versi) {
+  const simpan = { role: S.role, rpMode: S.rpMode };
+  S = Object.assign({}, st, simpan); SERVER.versi = versi; SERVER.terakhir = JSON.stringify(dataBersama());
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+}
+function statusServer(t) { SERVER.info = t; const el = document.getElementById("syncInfo"); if (el) el.textContent = t; }
+const jam = () => new Date().toTimeString().slice(0, 5);
+async function tarik(tampilkan) {
+  try {
+    const r = await api("GET", "/api/data");
+    if (!r.ok) { statusServer(r.data.error || "Server tidak bisa diakses. Data hanya tersimpan di browser ini."); SERVER.on = false; return; }
+    if (r.data.state) {
+      if (r.data.version !== SERVER.versi) {
+        /* Form yang belum diubah ikut memuat data terbaru; form yang sedang diubah dibiarkan */
+        if (draft !== null && JSON.stringify(draft) === JSON.stringify((S.laporan || {})[draftDate] || [])) draft = null;
+        if (sDraft !== null && JSON.stringify(sDraft) === JSON.stringify(S.sales2)) sDraft = null;
+        terapkan(r.data.state, r.data.version); if (tampilkan !== false) render();
+      }
+    } else if (SESI && SESI.role === "ADMIN" && !SESI.proyek) {
+      SERVER.versi = 0; SERVER.on = true; await kirim(true);   /* database kosong: isi dengan data saat ini */
+    }
+    SERVER.on = true;
+    statusServer(`Tersambung ke server • diperbarui ${jam()}`);
+  } catch (e) { if (e.message !== "401") { SERVER.on = false; statusServer("Server tidak bisa diakses. Data hanya tersimpan di browser ini."); } }
+}
+function jadwalKirim() {
+  if (!SERVER.on || !SESI || SESI.role !== "ADMIN") return;
+  if (JSON.stringify(dataBersama()) === SERVER.terakhir) return;
+  clearTimeout(SERVER.kirimT); SERVER.kirimT = setTimeout(() => kirim(), 400);
+}
+async function kirim(awal) {
+  if (SERVER.sibuk) { SERVER.kirimT = setTimeout(() => kirim(awal), 300); return; }
+  SERVER.sibuk = true; statusServer("Menyimpan ke server…");
+  try {
+    const r = await api("POST", "/api/data", { version: SERVER.versi, state: dataBersama() });
+    if (r.status === 409) {
+      terapkan(r.data.state, r.data.version); draft = null; sDraft = null; render();
+      toast(`Data baru saja diubah oleh ${r.data.by || "pengguna lain"}. Data terbaru sudah dimuat, silakan ulangi perubahan Anda.`);
+    } else if (!r.ok) { toast(r.data.error || "Gagal menyimpan ke server. Coba lagi."); statusServer(r.data.error || "Gagal menyimpan ke server."); }
+    else {
+      const sama = JSON.stringify(r.data.state) === JSON.stringify(dataBersama());
+      terapkan(r.data.state, r.data.version);
+      if (!sama) { draft = null; sDraft = null; render(); }
+      statusServer(`Tersimpan di server • ${jam()}`);
+      if (awal) toast("Data awal disimpan ke server");
+    }
+  } catch (e) { if (e.message !== "401") { toast("Gagal menyimpan ke server. Periksa koneksi lalu coba lagi."); statusServer("Gagal menyimpan ke server."); } }
+  finally { SERVER.sibuk = false; }
+}
+setInterval(() => { if (SESI && SERVER.on && document.visibilityState === "visible" && !SERVER.sibuk) tarik(); }, 20000);
+window.addEventListener("focus", () => { if (SESI && SERVER.on) tarik(); });
+
 /* Login dan logout */
-document.getElementById("loginForm").addEventListener("submit", e => {
+document.getElementById("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
   const u = document.getElementById("lgUser").value.trim().toLowerCase(), pw = document.getElementById("lgPass").value;
-  const err = document.getElementById("lgErr"), akun = USERS.find(x => x.u === u && x.pw === pw);
+  const err = document.getElementById("lgErr"), btn = e.target.querySelector("button[type=submit]");
   if (!u || !pw) { err.textContent = "Isi username dan password."; err.hidden = false; return; }
-  if (!akun) { err.textContent = "Username atau password salah. Periksa lalu coba lagi."; err.hidden = false; document.getElementById("lgPass").select(); return; }
-  err.hidden = true; SESI = { u: akun.u, nama: akun.nama, role: akun.role };
+  btn.disabled = true; btn.textContent = "Memeriksa…";
+  let r;
+  try { r = await api("POST", "/api/login", { username: u, password: pw }); }
+  catch (x) { r = { ok: false, data: { error: "Server login tidak bisa dihubungi. Periksa koneksi lalu coba lagi." } }; }
+  btn.disabled = false; btn.textContent = "Masuk";
+  if (!r.ok) { err.textContent = r.data.error || "Gagal masuk."; err.hidden = false; document.getElementById("lgPass").select(); return; }
+  err.hidden = true; SESI = Object.assign({}, r.data.user, { token: r.data.token });
   try { sessionStorage.setItem(KEY + "-sesi", JSON.stringify(SESI)); } catch (x) {}
-  S.role = akun.role; save(); document.getElementById("lgPass").value = "";
+  S.role = SESI.role; document.getElementById("lgPass").value = "";
   if (!location.hash) history.replaceState(null, "", "#laporan");
-  render(); toast(`Selamat datang, ${akun.nama}`);
+  draft = null; sDraft = null; render(); toast(`Selamat datang, ${SESI.nama}`);
+  await tarik();
 });
+function keluar(pesan) {
+  SESI = null; SERVER.on = false; SERVER.versi = null; try { sessionStorage.removeItem(KEY + "-sesi"); } catch (x) {}
+  draft = null; sDraft = null; setMenu(false); render(); document.getElementById("lgUser").focus(); if (pesan) toast(pesan);
+}
 document.getElementById("lgShow").onclick = () => {
   const i = document.getElementById("lgPass"), b = document.getElementById("lgShow"), show = i.type === "password";
   i.type = show ? "text" : "password"; b.textContent = show ? "Sembunyikan" : "Lihat"; b.setAttribute("aria-label", show ? "Sembunyikan password" : "Tampilkan password");
 };
-document.getElementById("logoutBtn").onclick = () => {
-  SESI = null; try { sessionStorage.removeItem(KEY + "-sesi"); } catch (x) {}
-  draft = null; sDraft = null; setMenu(false); render(); document.getElementById("lgUser").focus(); toast("Anda sudah keluar");
-};
+document.getElementById("logoutBtn").onclick = () => keluar("Anda sudah keluar");
+let konfirmReset = 0;
 document.getElementById("resetBtn").onclick = () => {
+  const btn = document.getElementById("resetBtn");
+  if (Date.now() - konfirmReset > 4000) { konfirmReset = Date.now(); btn.textContent = "Klik lagi untuk mengganti SEMUA data dengan data contoh"; setTimeout(() => btn.textContent = "Kembalikan data contoh", 4000); return; }
+  konfirmReset = 0; btn.textContent = "Kembalikan data contoh";
   const role = S.role, hist = S.history || [], rpMode = S.rpMode; S = clone(SEED); S.role = role; S.history = hist; S.rpMode = rpMode; salesBulan = null; S.sales2 = clone(SALES2_SEED); S.sales2.hariTanggal = null; ikutiHariIni(); catat("semua", "Data contoh", ["Semua data dikembalikan ke data contoh"]); save(); draft = null; sDraft = null; selDate = dates()[0]; render(); toast("Data contoh dikembalikan");
 };
 window.addEventListener("hashchange", () => { if (current() === "bast-input" && draft === null) loadDraft(dates()[0] || todayISO()); if (current() === "penjualan-input" && sDraft === null) sLoad(); render(); window.scrollTo(0, 0); });
 if (!location.hash) history.replaceState(null, "", "#bast");
 render();
+if (SESI) tarik();
 </script>
 </body>
 </html>
