@@ -563,6 +563,203 @@ function bindMaster() {
   });
 }
 
+/* ===================== Report Penjualan Properti ===================== */
+/* Satu baris per proyek. Angka Rp dalam miliar (M).
+   h = hari ini, b = bulan berjalan, y = YTD, a = akumulasi terjual, t = total stok. Masing-masing [unit, Rp M]. */
+const SALES_SEED = { laporan: { "2026-10-31": [
+  { grup: "Serpong", proyek: "Banara Serpong",       h: [0, 0], b: [1, 0.95],  y: [1, 0.95],   a: [174, 184.59], t: [205, 365.85] },
+  { grup: "Serpong", proyek: "Naraya Serpong",       h: [0, 0], b: [0, 0],     y: [2, 2.80],   a: [25, 35.74],   t: [48, 63.00] },
+  { grup: "Serpong", proyek: "Bio District",         h: [0, 0], b: [2, 6.33],  y: [10, 26.21], a: [35, 100.47],  t: [63, 172.94] },
+  { grup: "Serpong", proyek: "Permai Indah",         h: [0, 0], b: [5, 0.93],  y: [59, 10.92], a: [72, 13.32],   t: [156, 28.88] },
+  { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Tanglin Parc",    h: [0, 0], b: [0, 0], y: [1, 2.51],  a: [156, 525.47], t: [160, 544.37] },
+  { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Newton Springs",  h: [0, 0], b: [0, 0], y: [7, 21.14], a: [103, 403.82], t: [113, 437.74] },
+  { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Orchard Riviera", h: [0, 0], b: [0, 0], y: [10, 74.36], a: [37, 246.75], t: [110, 806.71] },
+  { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Scotts Vale",     h: [0, 0], b: [6, 12.45], y: [6, 12.45], a: [6, 12.45], t: [95, 199.85] },
+  { grup: "PT. Bhakti Bangun Harmoni – The Sanctuary Collection", proyek: "Mozenta Residence", h: [0, 0], b: [0, 0], y: [3, 7.24], a: [88, 244.61], t: [91, 259.00] },
+  { grup: "Proyek Lainnya", proyek: "Marchand", h: [0, 0], b: [0, 0], y: [0, 0], a: [189, 103.70], t: [266, 178.00] },
+] } };
+/* Urutan proyek penjualan (nama lain di luar daftar ditaruh di akhir) */
+const SALES_ORDER = ["banara serpong", "naraya serpong", "bio district", "permai indah", "tanglin parc", "newton springs",
+  "scotts vale", "mazenta residence", "mozenta residence", "marchand", "orchard riviera"];
+const salesRank = r => { const i = SALES_ORDER.indexOf(r.proyek.trim().toLowerCase()); return i < 0 ? 999 : i; };
+/* Grup tampil sesuai proyek teratasnya; di dalam grup, proyek mengikuti SALES_ORDER */
+function sortSales(rows) {
+  const gRank = {};
+  rows.forEach(r => { gRank[r.grup] = Math.min(gRank[r.grup] ?? 999, salesRank(r)); });
+  return rows.slice().sort((a, b) => (gRank[a.grup] - gRank[b.grup]) || (salesRank(a) - salesRank(b)));
+}
+if (!S.sales) S.sales = clone(SALES_SEED);
+Object.values(S.sales.laporan).forEach(rows => rows.forEach(r => { if (r.proyek === "Marchand Hype Station") r.proyek = "Marchand"; }));
+const KOLOM = ["h", "b", "y", "a", "t"];
+const rp = v => "Rp" + v.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " M";
+const rpN = v => v === 0 ? "–" : v.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const uN = v => v === 0 ? "–" : v.toLocaleString("id-ID");
+const salesDates = () => Object.keys(S.sales.laporan).sort().reverse();
+const bulanTahun = iso => { const [y, m] = iso.split("-"); return `${BULAN[m - 1]} ${y}`; };
+function sumSales(rows) {
+  const z = {}; KOLOM.forEach(k => z[k] = [0, 0]);
+  rows.forEach(r => KOLOM.forEach(k => { z[k][0] += r[k][0]; z[k][1] += r[k][1]; }));
+  KOLOM.forEach(k => z[k][1] = Math.round(z[k][1] * 100) / 100);
+  return z;
+}
+function groupsOf(rows) {
+  const g = [];
+  rows.forEach(r => { let x = g.find(x => x.nama === r.grup); if (!x) g.push(x = { nama: r.grup, rows: [] }); x.rows.push(r); });
+  return g;
+}
+let salesSel = salesDates()[0];
+function viewSales() {
+  const ds = salesDates();
+  if (!ds.length) return `<div class="page gut"><div class="empty">Belum ada laporan penjualan.</div></div>`;
+  if (!ds.includes(salesSel)) salesSel = ds[0];
+  const rows = sortSales(S.sales.laporan[salesSel]), T = sumSales(rows), bln = bulanTahun(salesSel), thn = salesSel.slice(0, 4);
+  const kpi = (c, lbl, u, v, note) => `<div class="kpi" style="--c:${c}"><div class="lbl">${lbl}</div>
+    <div class="val num">${u.toLocaleString("id-ID")} <small>unit</small></div><div class="pct num">${rp(v)}</div><div class="note">${note}</div></div>`;
+  const contrib = (k, judul) => {
+    const list = rows.filter(r => r[k][0] > 0 || r[k][1] > 0).sort((a, b) => b[k][1] - a[k][1]);
+    const max = Math.max(0, ...list.map(r => r[k][1]));
+    const nihil = rows.length - list.length;
+    return `<section class="gut"><h2>${judul}</h2>
+      <div class="desc">${list.length ? `${list.length} proyek melakukan penjualan; ${nihil} proyek lainnya nihil. Panjang batang = nilai penjualan.` : "Tidak ada penjualan pada periode ini."}</div>
+      <div class="bars">${list.map((r, i) => `<div class="bar-row"><span class="nm">${esc(r.proyek)}</span>
+        <div class="track"><div class="fill" style="--c:${COLORS[i % 4]};width:${max ? r[k][1] / max * 100 : 0}%"></div></div>
+        <span class="u num">${r[k][0]} unit</span><span class="p num">${rp(r[k][1])}</span></div>`).join("")}</div></section>`;
+  };
+  let tbl = `<thead><tr><th rowspan="2" style="text-align:center;width:26%">Proyek</th><th colspan="2">${esc(bln)}</th><th colspan="2">YTD ${esc(BULAN[+salesSel.slice(5, 7) - 1])}</th><th colspan="2">Akumulasi terjual</th></tr>
+    <tr><th>Unit</th><th>Rp M</th><th>Unit</th><th>Rp M</th><th>Unit</th><th>Rp M</th></tr></thead><tbody>`;
+  groupsOf(rows).forEach((g, i) => {
+    tbl += `<tr class="group" style="--gc:${COLORS[i % 4]}"><td colspan="7">${esc(g.nama)}</td></tr>`;
+    g.rows.forEach(r => tbl += `<tr><td class="proj">${esc(r.proyek)}</td><td>${uN(r.b[0])}</td><td>${rpN(r.b[1])}</td><td>${uN(r.y[0])}</td><td>${rpN(r.y[1])}</td>
+      <td class="tot">${uN(r.a[0])}<small>dari ${r.t[0].toLocaleString("id-ID")}</small></td><td class="tot">${rpN(r.a[1])}<small>dari ${rpN(r.t[1])}</small></td></tr>`);
+  });
+  tbl += `<tr class="grand"><td class="proj">Total CHL</td><td>${T.b[0]}</td><td>${rpN(T.b[1])}</td><td>${T.y[0]}</td><td>${rpN(T.y[1])}</td>
+    <td>${T.a[0].toLocaleString("id-ID")}<small>dari ${T.t[0].toLocaleString("id-ID")}</small></td><td>${rpN(T.a[1])}<small>dari ${rpN(T.t[1])}</small></td></tr></tbody>`;
+  const notes = [];
+  if (T.h[0] === 0) notes.push(`Tidak ada penjualan pada ${panjang(salesSel)}.`);
+  const sisa = rows.filter(r => r.t[0] - r.a[0] > 0).sort((a, b) => (b.t[0] - b.a[0]) - (a.t[0] - a.a[0]))[0];
+  if (sisa) notes.push(`Stok belum terjual terbanyak: <b>${esc(sisa.proyek)}</b>, ${sisa.t[0] - sisa.a[0]} unit dari ${sisa.t[0]} unit.`);
+  const nihilYtd = rows.filter(r => r.y[0] === 0).map(r => esc(r.proyek));
+  if (nihilYtd.length) notes.push(`Belum ada penjualan sepanjang ${thn}: <b>${nihilYtd.join(", ")}</b>.`);
+  return `<div class="page">
+  <div class="hero">
+    <div class="tabs"><span class="tab">Sales Performance</span><span class="tab">${panjang(salesSel)}</span></div>
+    <div class="hero-body gut"><h1>Dashboard Penjualan Properti</h1><div class="sub">${esc(bln)} • YTD ${esc(bln)} • Total terjual</div></div>
+    <div class="strip gut"><span>Data penjualan ${rows.length} proyek${T.h[0] === 0 ? ` • Tidak ada perubahan pada ${panjang(salesSel)}` : ""}</span>
+      <div class="strip-actions">
+        <label for="salesDate" style="font-size:13px">Tanggal</label>
+        <select id="salesDate">${ds.map(d => `<option value="${d}" ${d === salesSel ? "selected" : ""}>${ddmmyyyy(d)}</option>`).join("")}</select>
+        <button class="btn-ghost" id="salesCopy" type="button">Salin teks laporan</button>
+        <button class="btn-ghost" id="salesXls" type="button">Ekspor Excel</button>
+      </div></div>
+  </div>
+  <div class="kpis gut">
+    ${kpi("var(--gold)", "Laporan hari ini", T.h[0], T.h[1], `Penjualan ${panjang(salesSel)}`)}
+    ${kpi("var(--blue)", `Bulan ${esc(bln)}`, T.b[0], T.b[1], `Penjualan selama ${esc(BULAN[+salesSel.slice(5, 7) - 1])}`)}
+    ${kpi("var(--green)", `YTD s.d. ${esc(BULAN[+salesSel.slice(5, 7) - 1])}`, T.y[0], T.y[1], `Penjualan Januari–${esc(BULAN[+salesSel.slice(5, 7) - 1])} ${thn}`)}
+    ${kpi("var(--gold)", "Akumulasi total terjual", T.a[0], T.a[1], `Dari ${T.t[0].toLocaleString("id-ID")} unit • ${pct(T.a[0], T.t[0])}% terjual`)}
+  </div>
+  ${contrib("h", "Kontributor Penjualan Hari Ini")}
+  ${contrib("b", `Kontributor Penjualan ${esc(bln)}`)}
+  <section><div class="gut"><h2>Penjualan per Proyek</h2><div class="desc">Unit dan nilai penjualan (Rp miliar). Akumulasi dihitung sejak awal pemasaran.</div></div>
+    <div class="tbl-wrap"><table class="rincian num">${tbl}</table></div></section>
+  <div class="notes gut"><h2>Catatan Penting</h2><ul>${notes.map(n => `<li>${n}</li>`).join("")}</ul></div>
+  </div>`;
+}
+function salesText(tgl) {
+  const rows = sortSales(S.sales.laporan[tgl]), T = sumSales(rows), bln = bulanTahun(tgl);
+  let t = `*Dashboard Penjualan Properti*\n${panjang(tgl)}\n\n`;
+  t += `Hari ini: ${T.h[0]} unit (${rp(T.h[1])})\nBulan ${bln}: ${T.b[0]} unit (${rp(T.b[1])})\nYTD: ${T.y[0]} unit (${rp(T.y[1])})\nAkumulasi terjual: ${T.a[0]} dari ${T.t[0]} unit (${rp(T.a[1])})\n`;
+  const kontr = rows.filter(r => r.b[0] > 0).sort((a, b) => b.b[1] - a.b[1]);
+  if (kontr.length) { t += `\n*Kontributor ${bln}*\n`; kontr.forEach(r => t += `${r.proyek}: ${r.b[0]} unit, ${rp(r.b[1])}\n`); }
+  return t;
+}
+function bindSales() {
+  const sel = document.getElementById("salesDate");
+  if (!sel) return;
+  sel.onchange = () => { salesSel = sel.value; render(); };
+  document.getElementById("salesCopy").onclick = () => {
+    const txt = salesText(salesSel);
+    navigator.clipboard.writeText(txt).then(() => toast("Teks laporan disalin")).catch(() => toast("Gagal menyalin. Coba lagi."));
+  };
+  document.getElementById("salesXls").onclick = () => {
+    if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
+    const rows = sortSales(S.sales.laporan[salesSel]), T = sumSales(rows);
+    const aoa = [["DASHBOARD PENJUALAN PROPERTI"], [panjang(salesSel)], [],
+      ["Grup", "Proyek", "Hari ini unit", "Hari ini Rp M", "Bulan unit", "Bulan Rp M", "YTD unit", "YTD Rp M", "Terjual unit", "Terjual Rp M", "Total unit", "Total Rp M"]];
+    rows.forEach(r => aoa.push([r.grup, r.proyek, ...KOLOM.flatMap(k => r[k])]));
+    aoa.push(["", "TOTAL CHL", ...KOLOM.flatMap(k => T[k])]);
+    const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!cols"] = [{ wch: 36 }, { wch: 24 }, ...Array(10).fill({ wch: 13 })];
+    XLSX.utils.book_append_sheet(wb, ws, "Penjualan");
+    XLSX.writeFile(wb, `Dashboard_Penjualan_${salesSel}.xlsx`);
+    toast("File Excel diunduh");
+  };
+}
+
+/* Input penjualan */
+let sDraft = null, sDraftDate = null;
+function sLoad(tgl) { sDraftDate = tgl; sDraft = sortSales(clone(S.sales.laporan[tgl] || [])); }
+function sValidate(rows) {
+  const seen = {};
+  return rows.map(r => {
+    if (!r.grup.trim() || !r.proyek.trim()) return "Isi grup dan nama proyek";
+    if (KOLOM.some(k => r[k].some(v => !Number.isFinite(v) || v < 0)) || KOLOM.some(k => !Number.isInteger(r[k][0]))) return "Unit harus bilangan bulat, Rp harus angka 0 atau lebih";
+    if (r.h[0] > r.b[0] || r.b[0] > r.y[0]) return "Unit hari ini ≤ bulan ini ≤ YTD";
+    if (r.a[0] > r.t[0]) return "Unit terjual melebihi total stok";
+    const k = r.proyek.trim().toLowerCase();
+    if (seen[k]) return "Proyek ini sudah ada di baris lain";
+    seen[k] = 1; return "";
+  });
+}
+const SKOL = [["h", "Hari ini"], ["b", "Bulan ini"], ["y", "YTD"], ["a", "Akumulasi terjual"], ["t", "Total stok"]];
+function viewSalesInput() {
+  if (sDraft === null) sLoad(salesDates()[0] || todayISO());
+  const errs = sValidate(sDraft), hasErr = errs.some(Boolean);
+  const prev = salesDates().filter(d => d < sDraftDate)[0];
+  const body = sDraft.map((r, i) => `<tr class="${errs[i] ? "err" : ""}">
+    <td><input type="text" id="sg-${i}" data-i="${i}" data-f="grup" value="${esc(r.grup)}" aria-label="Grup baris ${i + 1}">${errs[i] ? `<div class="msg">${errs[i]}</div>` : ""}</td>
+    <td><input type="text" id="sp-${i}" data-i="${i}" data-f="proyek" value="${esc(r.proyek)}" aria-label="Proyek baris ${i + 1}"></td>
+    ${SKOL.map(([k]) => `<td><input type="number" min="0" step="1" id="s${k}0-${i}" data-i="${i}" data-k="${k}" data-j="0" value="${r[k][0]}" aria-label="${k} unit baris ${i + 1}"></td>
+      <td><input type="number" min="0" step="0.01" id="s${k}1-${i}" data-i="${i}" data-k="${k}" data-j="1" value="${r[k][1]}" aria-label="${k} Rp baris ${i + 1}"></td>`).join("")}
+    <td><button class="del" data-sdel="${i}" type="button" aria-label="Hapus baris ${i + 1}">×</button></td></tr>`).join("");
+  return `<div class="page gut">
+  <div class="form-head"><div><h2>Input Data Penjualan</h2><div class="desc">Satu baris per proyek. Nilai Rp dalam miliar, contoh 12,45 ditulis 12.45.</div></div></div>
+  <div class="form-head">
+    <label class="field" for="sTgl">Tanggal laporan<input id="sTgl" type="date" value="${sDraftDate}"></label>
+    <div class="btn-row">
+      ${prev && !sDraft.length ? `<button class="btn sec" id="sCopyPrev" type="button">Salin dari laporan ${ddmmyyyy(prev)}</button>` : ""}
+      <button class="btn sec" id="sAdd" type="button">Tambah proyek</button>
+      <button class="btn" id="sSave" type="button" ${hasErr || !sDraft.length ? "disabled" : ""}>Simpan laporan</button>
+    </div>
+  </div>
+  ${sDraft.length ? `<div class="tbl-wrap"><table class="edit num" style="min-width:1280px"><thead>
+    <tr><th rowspan="2">Grup</th><th rowspan="2">Proyek</th>${SKOL.map(([, l]) => `<th colspan="2">${l}</th>`).join("")}<th rowspan="2"></th></tr>
+    <tr>${SKOL.map(() => "<th>Unit</th><th>Rp M</th>").join("")}</tr></thead><tbody>${body}</tbody></table></div>`
+    : `<div class="empty">Belum ada data untuk ${ddmmyyyy(sDraftDate)}. ${prev ? `Salin dari laporan ${ddmmyyyy(prev)} atau tambah proyek.` : "Tambah proyek untuk mulai mengisi."}</div>`}
+  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : S.sales.laporan[sDraftDate] ? "Menyimpan akan mengganti laporan tanggal ini." : "Laporan baru untuk tanggal ini."}</p></div>`;
+}
+function bindSalesInput() {
+  const v = document.getElementById("view");
+  document.getElementById("sTgl").onchange = e => { if (e.target.value) { sLoad(e.target.value); render(); } };
+  const cp = document.getElementById("sCopyPrev");
+  if (cp) cp.onclick = () => {
+    const prev = salesDates().filter(d => d < sDraftDate)[0];
+    sDraft = sortSales(clone(S.sales.laporan[prev])).map(r => ({ ...r, h: [0, 0] }));
+    render(); toast(`Data ${ddmmyyyy(prev)} disalin, kolom hari ini dikosongkan.`);
+  };
+  document.getElementById("sAdd").onclick = () => { sDraft.push({ grup: sDraft.at(-1)?.grup || "", proyek: "", h: [0, 0], b: [0, 0], y: [0, 0], a: [0, 0], t: [0, 0] }); render(); };
+  document.getElementById("sSave").onclick = () => {
+    S.sales.laporan[sDraftDate] = clone(sDraft).map(r => ({ ...r, grup: r.grup.trim(), proyek: r.proyek.trim() }));
+    save(); salesSel = sDraftDate; toast(`Laporan ${ddmmyyyy(sDraftDate)} tersimpan`); render();
+  };
+  v.querySelectorAll("[data-sdel]").forEach(b => b.onclick = () => { sDraft.splice(+b.dataset.sdel, 1); render(); });
+  v.querySelectorAll("input[data-f]").forEach(inp => inp.onchange = () => { sDraft[+inp.dataset.i][inp.dataset.f] = inp.value; render(inp.id); });
+  v.querySelectorAll("input[data-k]").forEach(inp => inp.onchange = () => {
+    const raw = inp.value.trim().replace(",", ".");
+    sDraft[+inp.dataset.i][inp.dataset.k][+inp.dataset.j] = raw === "" ? 0 : Number(raw); render(inp.id);
+  });
+}
+
 /* ===================== Daftar report (tambah report baru di sini) ===================== */
 const REPORTS = [
   { id: "bast", nama: "Dashboard Monitoring BAST All DTP Category", menu: "DASHBOARD MONITORING BAST ALL DTP CATEGORY", desc: "Progres BAST unit PPN DTP dan Non PPN DTP per periode dan proyek.",
@@ -572,6 +769,12 @@ const REPORTS = [
       { id: "bast-master", label: "Master", view: viewMaster, bind: bindMaster, admin: true },
     ],
     meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
+  { id: "penjualan", nama: "Dashboard Penjualan Properti", menu: "DASHBOARD PENJUALAN PROPERTI", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan berjalan, YTD, dan akumulasi terjual.",
+    tabs: [
+      { id: "penjualan", label: "Dashboard", view: viewSales, bind: bindSales },
+      { id: "penjualan-input", label: "Input Data", view: viewSalesInput, bind: bindSalesInput, admin: true },
+    ],
+    meta: () => { const d = salesDates()[0]; if (!d) return "Belum ada laporan"; const T = sumSales(S.sales.laporan[d]); return `Laporan ${ddmmyyyy(d)} · ${T.b[0]} unit bulan ini · ${rp(T.b[1])}`; } },
 ];
 function viewLaporan() {
   return `<div class="page gut"><div class="rhead"><div><h2>Monitoring Laporan</h2>
@@ -629,9 +832,9 @@ const roleSel = document.getElementById("roleSel");
 roleSel.value = S.role;
 roleSel.onchange = () => { S.role = roleSel.value; save(); render(); toast(`Masuk sebagai ${S.role === "ADMIN" ? "Admin" : "Viewer"}`); };
 document.getElementById("resetBtn").onclick = () => {
-  const role = S.role; S = clone(SEED); S.role = role; save(); draft = null; selDate = dates()[0]; render(); toast("Data contoh dikembalikan");
+  const role = S.role; S = clone(SEED); S.role = role; S.sales = clone(SALES_SEED); save(); draft = null; sDraft = null; selDate = dates()[0]; salesSel = salesDates()[0]; render(); toast("Data contoh dikembalikan");
 };
-window.addEventListener("hashchange", () => { if (current() === "bast-input" && draft === null) loadDraft(dates()[0] || todayISO()); render(); window.scrollTo(0, 0); });
+window.addEventListener("hashchange", () => { if (current() === "bast-input" && draft === null) loadDraft(dates()[0] || todayISO()); if (current() === "penjualan-input" && sDraft === null) sLoad(salesDates()[0] || todayISO()); render(); window.scrollTo(0, 0); });
 if (!location.hash) history.replaceState(null, "", "#bast");
 render();
 </script>
