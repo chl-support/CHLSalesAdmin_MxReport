@@ -1511,7 +1511,7 @@ function teksDailyReport() {
     const dBast = laporanPada(todayISO()) || dates()[0];
     if (dBast) {
       const H = hitung(dBast), g = n => n === 0 ? "-" : n;
-      t += `\n\nReport BAST Program PPN DTP${dBast !== todayISO() ? ` (data laporan ${ddmmyyyy(dBast)})` : ""}\n`;
+      t += `\n\nReport BAST Program PPN DTP\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n`;
       H.periodes.forEach(({ p, rincian }) => {
         t += `\nPeriode PPN DTP (${p.nama})\n`;
         rincian.forEach(({ j, r }) => {
