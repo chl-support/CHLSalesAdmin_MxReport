@@ -565,12 +565,12 @@ function viewDashboard() {
     ${kpi("var(--green)", "BAST Non PPN DTP", G[2], `/ ${G[3]} unit`, pct(G[2], G[3]), `Sisa ${G[3] - G[2]} unit`)}
     ${kpi("var(--red)", "Belum BAST", gT - gB, "unit", gT ? 100 - pct(gB, gT) : 0, `Dari ${gT} unit total`)}
   </div>
-  <section class="gut"><h2>Progres BAST per Periode</h2><div class="desc">Unit sudah BAST dibanding total unit pada periode PPN DTP.</div>
+  ${!H.periodes.length ? `<section class="gut"><div class="empty">Belum ada angka BAST untuk laporan ${ddmmyyyy(selDate)}. Isi di tab Input Data; proyek yang semua angkanya 0 tidak ditampilkan.</div></section>` : `<section class="gut"><h2>Progres BAST per Periode</h2><div class="desc">Unit sudah BAST dibanding total unit pada periode PPN DTP.</div>
     <div class="bars">${H.periodes.map((x, i) => bar(x.p.nama, x.sum[0] + x.sum[2], x.sum[1] + x.sum[3], COLORS[i % 4])).join("")}</div></section>
   <section class="gut"><h2>Progres BAST per Proyek</h2><div class="desc">Gabungan seluruh periode, PPN DTP dan Non PPN DTP. Proyek tanpa angka tidak ditampilkan.</div>
     <div class="bars">${H.proyeks.map((x, i) => bar(x.p.nama, x.sum[0] + x.sum[2], x.sum[1] + x.sum[3], COLORS[i % 4])).join("")}</div></section>
   <section><div class="gut"><h2>Rincian per Periode &amp; Proyek</h2><div class="desc">Grand Total = PPN DTP + Non PPN DTP. Tanda “–” berarti 0 unit.</div></div>
-    <div class="tbl-wrap"><table class="rincian num">${tbl}</table></div></section>
+    <div class="tbl-wrap"><table class="rincian num">${tbl}</table></div></section>`}
   <div class="notes gut"><h2>Catatan Penting</h2><ul>${notes.map(n => `<li>${n}</li>`).join("")}</ul></div>
   </div>`;
 }
