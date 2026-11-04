@@ -329,10 +329,13 @@ function hitung(tgl) {
   const periodes = S.periode.slice().sort(byUrut).map(p => {
     const pr = rows.filter(r => r.periodeId === p.id)
       .sort((a, b) => (prjById(a.proyekId)?.urutan ?? 99) - (prjById(b.proyekId)?.urutan ?? 99));
-    const rincian = tampil.map(j => ({ j, r: pr.find(r => r.proyekId === j.id) || null }));
+    /* Hanya proyek yang punya angka di periode ini; urutan mengikuti Master */
+    const rincian = tampil.map(j => ({ j, r: pr.find(r => r.proyekId === j.id) || null }))
+      .filter(x => x.r && x.r.d.some(v => v > 0));
     return { p, rows: pr, rincian, sum: pr.reduce((a, r) => add(a, r.d), [0, 0, 0, 0]) };
-  }).filter(x => x.p.aktif || x.rows.length);
-  const proyeks = tampil.map(p => ({ p, sum: rows.filter(r => r.proyekId === p.id).reduce((a, r) => add(a, r.d), [0, 0, 0, 0]) }));
+  }).filter(x => x.rincian.length);
+  const proyeks = tampil.map(p => ({ p, sum: rows.filter(r => r.proyekId === p.id).reduce((a, r) => add(a, r.d), [0, 0, 0, 0]) }))
+    .filter(x => x.sum.some(v => v > 0));
   return { rows, grand, periodes, proyeks };
 }
 function teksWA(tgl) {
@@ -401,7 +404,7 @@ function viewDashboard() {
   </div>
   <section class="gut"><h2>Progres BAST per Periode</h2><div class="desc">Unit sudah BAST dibanding total unit pada periode PPN DTP.</div>
     <div class="bars">${H.periodes.map((x, i) => bar(x.p.nama, x.sum[0] + x.sum[2], x.sum[1] + x.sum[3], COLORS[i % 4])).join("")}</div></section>
-  <section class="gut"><h2>Progres BAST per Proyek</h2><div class="desc">Gabungan seluruh periode, PPN DTP dan Non PPN DTP. Urutan mengikuti daftar proyek di Master.</div>
+  <section class="gut"><h2>Progres BAST per Proyek</h2><div class="desc">Gabungan seluruh periode, PPN DTP dan Non PPN DTP. Proyek tanpa angka tidak ditampilkan.</div>
     <div class="bars">${H.proyeks.map((x, i) => bar(x.p.nama, x.sum[0] + x.sum[2], x.sum[1] + x.sum[3], COLORS[i % 4])).join("")}</div></section>
   <section><div class="gut"><h2>Rincian per Periode &amp; Proyek</h2><div class="desc">Angka dibaca “BAST dari total unit”. Tanda “–” berarti 0 unit.</div></div>
     <div class="tbl-wrap"><table class="rincian num">${tbl}</table></div></section>
