@@ -335,7 +335,7 @@ const todayISO = () => { const t = new Date(); return new Date(t - t.getTimezone
 function status(b, t) {
   if (t === 0) return { t: "Tidak ada unit", c: "var(--grey)" };
   if (b >= t) return { t: "Selesai", c: "var(--green)" };
-  if (b === 0) return { t: `Belum · sisa ${t}`, c: "var(--red)" };
+  if (b === 0) return { t: `Sisa ${t} unit`, c: "var(--red)" };
   return { t: `Sisa ${t - b} unit`, c: "var(--gold)" };
 }
 const toastEl = document.getElementById("toast");
