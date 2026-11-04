@@ -115,7 +115,7 @@ table { width: 100%; border-collapse: collapse; }
 .edit th:first-child { width: 52px; }
 .edit td:nth-child(2) select, .edit td:nth-child(2) input[type="text"] { min-width: 230px; }
 .edit td:nth-child(3) select, .edit td:nth-child(3) input[type="text"] { min-width: 210px; }
-.edit th { background: var(--navy); color: #fff; font-size: 13px; font-weight: 700; padding: 8px; text-align: center; }
+.edit th { background: var(--navy); color: #fff; font-size: 13px; font-weight: 700; padding: 8px; text-align: center; white-space: nowrap; line-height: 1.3; }
 .edit td { border-bottom: 1px solid var(--line); padding: 6px; text-align: center; vertical-align: top; }
 .edit select, .edit input[type="number"], .edit input[type="text"] { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); }
 .edit input[type="number"] { text-align: center; max-width: 90px; }
@@ -469,7 +469,7 @@ function viewInput() {
     </div>
   </div>
   ${draft.length ? `<div class="tbl-wrap"><table class="edit num"><thead><tr><th>No</th><th>Periode PPN DTP</th><th>Proyek</th>
-    <th>BAST PPN DTP</th><th>Total Unit PPN DTP</th><th>BAST Non PPN DTP</th><th>Total Unit Non PPN DTP</th><th>Keterangan</th><th>Cek</th><th></th></tr></thead>
+    <th>BAST<br>PPN DTP</th><th>Total Unit<br>PPN DTP</th><th>BAST<br>Non PPN DTP</th><th>Total Unit<br>Non PPN DTP</th><th>Keterangan</th><th>Cek</th><th></th></tr></thead>
     <tbody>${body}</tbody></table></div>`
     : `<div class="empty">Belum ada data untuk ${ddmmyyyy(draftDate)}. ${prev ? `Salin dari laporan ${ddmmyyyy(prev)} atau tambah baris baru.` : "Tambah baris untuk mulai mengisi."}</div>`}
   <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : S.laporan[draftDate] ? "Menyimpan akan mengganti laporan tanggal ini." : "Laporan baru untuk tanggal ini."}</p>
