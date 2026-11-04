@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Dashboard BAST PPN DTP</title>
+<title>Monitoring Laporan CHL</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap">
@@ -305,7 +305,7 @@ function hitung(tgl) {
 }
 function teksWA(tgl) {
   const H = hitung(tgl);
-  let t = `*Report BAST Program PPN DTP*\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n`;
+  let t = `*Monitoring BAST All DTP Category*\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n`;
   const g = n => n === 0 ? "-" : n;
   H.periodes.forEach(({ p, rows }) => {
     t += `\n*Periode PPN DTP (${p.nama})*\n`;
@@ -347,7 +347,7 @@ function viewDashboard() {
   return `<div class="page">
   <div class="hero">
     <div class="tabs"><span class="tab">Laporan BAST</span><span class="tab">${panjang(selDate)}</span></div>
-    <div class="hero-body gut"><h1>Report BAST Program PPN DTP</h1><div class="sub">Perubahan hari ini (${ddmmyyyy(selDate)})</div></div>
+    <div class="hero-body gut"><h1>Monitoring BAST All DTP Category</h1><div class="sub">Perubahan hari ini (${ddmmyyyy(selDate)})</div></div>
     <div class="strip gut"><span>Data BAST ${nProj} proyek • ${H.periodes.length} periode PPN DTP</span>
       <div class="strip-actions">
         <label for="dateSel" style="font-size:13px">Tanggal</label>
@@ -390,7 +390,7 @@ function bindDashboard() {
 function exportExcel(tgl) {
   if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
   const H = hitung(tgl), G = H.grand;
-  const rep = [["REPORT BAST PROGRAM PPN DTP"], [`Perubahan hari ini (${ddmmyyyy(tgl)})`], [],
+  const rep = [["MONITORING BAST ALL DTP CATEGORY"], [`Perubahan hari ini (${ddmmyyyy(tgl)})`], [],
     ["Proyek", "BAST PPN DTP", "Unit PPN DTP", "BAST Non PPN DTP", "Unit Non PPN DTP", "Total BAST", "Total Unit", "Status"]];
   H.periodes.forEach(({ p, rows }) => {
     rep.push([`PERIODE PPN DTP (${p.nama})`]);
