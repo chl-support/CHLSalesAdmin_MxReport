@@ -161,6 +161,8 @@ table { width: 100%; border-collapse: collapse; }
 .sales-in tr.grp .grp-name { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); white-space: nowrap; z-index: 3; }
 .sales-in td.calc { background: var(--track); color: var(--ink); font-weight: 600; min-width: 70px; }
 .sales-in th.calc-h { background: var(--navy-2); }
+.sales-in td.dari { line-height: 1.2; white-space: nowrap; }
+.sales-in td.dari small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 2px; }
 .sales-in .after input { opacity: .55; }
 .sales-in th.after { opacity: .7; }
 .sales-in tr.sum td { background: var(--blue-soft); font-weight: 800; color: var(--ink); }
@@ -841,6 +843,8 @@ function viewSalesInput() {
     ? `<td class="${extra}"><input type="text" inputmode="numeric" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="1" value="${fRp(v)}" ${rpM ? 'readonly title="Pilih Rp detail untuk mengubah angka"' : ""} aria-label="${esc(p.nama)} ${k} Rp"></td>`
     : `<td class="${extra}"><input type="number" min="0" step="1" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="0" value="${v}" aria-label="${esc(p.nama)} ${k} unit"></td>`;
   const calc = (v, j) => `<td class="calc">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}</td>`;
+  /* Akumulasi terjual + "dari <total stok>" di bawahnya, seperti kolom AE/AF dengan AI/AK di Excel */
+  const calcDari = (v, stok, j) => `<td class="calc dari">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}<small>dari ${j ? fRp(stok) : stok.toLocaleString("id-ID")}</small></td>`;
   const tot = { base: [0, 0], ytd: [0, 0], akum: [0, 0], stok: [0, 0], hari: [0, 0], bulan: Z12() };
   let body = "";
   kelompok(list.map(p => ({ p }))).forEach((g, gi) => {
@@ -852,13 +856,13 @@ function viewSalesInput() {
       body += `<tr class="${err[p.id] ? "err" : ""}"><td class="stick proj-in">${esc(p.nama)}${err[p.id] ? `<div class="msg">${err[p.id]}</div>` : ""}</td>
         ${cell(p, "base", 0, p.base[0])}${cell(p, "base", 1, p.base[1])}
         ${p.bulan.map((v, i) => cell(p, "b" + i, 0, v[0]) + cell(p, "b" + i, 1, v[1])).join("")}
-        ${calc(h.ytd[0], 0)}${calc(h.ytd[1], 1)}${calc(h.akum[0], 0)}${calc(h.akum[1], 1)}
+        ${calc(h.ytd[0], 0)}${calc(h.ytd[1], 1)}${calcDari(h.akum[0], p.stok[0], 0)}${calcDari(h.akum[1], p.stok[1], 1)}
         ${cell(p, "stok", 0, p.stok[0])}${cell(p, "stok", 1, p.stok[1])}${cell(p, "hari", 0, p.hari[0])}${cell(p, "hari", 1, p.hari[1])}</tr>`;
     });
   });
   const tc = (v, j) => `<td>${j ? fRp(v) : v.toLocaleString("id-ID")}</td>`;
   body += `<tr class="sum"><td class="stick">TOTAL CHL</td>${tc(tot.base[0], 0)}${tc(tot.base[1], 1)}${tot.bulan.map(v => tc(v[0], 0) + tc(v[1], 1)).join("")}
-    ${tc(tot.ytd[0], 0)}${tc(tot.ytd[1], 1)}${tc(tot.akum[0], 0)}${tc(tot.akum[1], 1)}${tc(tot.stok[0], 0)}${tc(tot.stok[1], 1)}${tc(tot.hari[0], 0)}${tc(tot.hari[1], 1)}</tr>`;
+    ${tc(tot.ytd[0], 0)}${tc(tot.ytd[1], 1)}<td class="dari">${tot.akum[0].toLocaleString("id-ID")}<small>dari ${tot.stok[0].toLocaleString("id-ID")}</small></td><td class="dari">${fRp(tot.akum[1])}<small>dari ${fRp(tot.stok[1])}</small></td>${tc(tot.stok[0], 0)}${tc(tot.stok[1], 1)}${tc(tot.hari[0], 0)}${tc(tot.hari[1], 1)}</tr>`;
   const h1 = `<th rowspan="2" class="stick">Proyek</th><th colspan="2">Akumulasi s.d. ${th - 1}</th>${BULAN.map((b, i) => `<th colspan="2">${b} ${th}</th>`).join("")}
     <th colspan="2" class="calc-h">YTD ${BULAN[m - 1]}</th><th colspan="2" class="calc-h">Akumulasi terjual</th><th colspan="2">Total stok</th><th colspan="2">Hari ini</th>`;
   const h2 = Array.from({ length: 17 }, () => `<th>Unit</th><th>${rpM ? "Rp M" : "Rp"}</th>`).join("");
