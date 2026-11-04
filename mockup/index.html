@@ -251,15 +251,16 @@ const SEED = {
     { id: 3, nama: "Jan-2026 s.d Des-2026", urutan: 3, aktif: true },
   ],
   proyek: [
-    { id: 1, nama: "Naraya Serpong", urutan: 1, aktif: true },
-    { id: 2, nama: "Bio District", urutan: 2, aktif: true },
-    { id: 3, nama: "Mazenta Residence", urutan: 3, aktif: true },
-    { id: 4, nama: "Banara Serpong", urutan: 4, aktif: true },
+    { id: 4, nama: "Banara Serpong", urutan: 1, aktif: true },
+    { id: 1, nama: "Naraya Serpong", urutan: 2, aktif: true },
+    { id: 2, nama: "Bio District", urutan: 3, aktif: true },
+    { id: 10, nama: "Permai Indah", urutan: 4, aktif: true },
     { id: 5, nama: "Tanglin Parc", urutan: 5, aktif: true },
     { id: 6, nama: "Newton Springs", urutan: 6, aktif: true },
-    { id: 7, nama: "Orchard Riviera", urutan: 7, aktif: true },
-    { id: 8, nama: "Scotts Vale", urutan: 8, aktif: true },
+    { id: 8, nama: "Scotts Vale", urutan: 7, aktif: true },
+    { id: 3, nama: "Mazenta Residence", urutan: 8, aktif: true },
     { id: 9, nama: "Marchand", urutan: 9, aktif: true },
+    { id: 7, nama: "Orchard Riviera", urutan: 10, aktif: true },
   ],
   laporan: {
     "2026-11-03": [
@@ -288,6 +289,12 @@ SEED.proyek.forEach(sp => {
   }
 });
 save();
+/* Terapkan urutan proyek baru satu kali ke data yang sudah tersimpan */
+if ((S.urutanV || 0) < 1) {
+  SEED.proyek.forEach(sp => { const p = S.proyek.find(p => p.nama.toLowerCase() === sp.nama.toLowerCase()); if (p) p.urutan = sp.urutan; });
+  S.proyek.filter(p => !SEED.proyek.some(sp => sp.nama.toLowerCase() === p.nama.toLowerCase())).forEach((p, k) => p.urutan = 100 + k);
+  S.urutanV = 1; save();
+}
 
 /* ===================== Helpers ===================== */
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
@@ -325,8 +332,7 @@ function hitung(tgl) {
     const rincian = tampil.map(j => ({ j, r: pr.find(r => r.proyekId === j.id) || null }));
     return { p, rows: pr, rincian, sum: pr.reduce((a, r) => add(a, r.d), [0, 0, 0, 0]) };
   }).filter(x => x.p.aktif || x.rows.length);
-  const proyeks = tampil.map(p => ({ p, sum: rows.filter(r => r.proyekId === p.id).reduce((a, r) => add(a, r.d), [0, 0, 0, 0]) }))
-    .sort((a, b) => (b.sum[1] + b.sum[3]) - (a.sum[1] + a.sum[3]) || a.p.urutan - b.p.urutan);
+  const proyeks = tampil.map(p => ({ p, sum: rows.filter(r => r.proyekId === p.id).reduce((a, r) => add(a, r.d), [0, 0, 0, 0]) }));
   return { rows, grand, periodes, proyeks };
 }
 function teksWA(tgl) {
@@ -395,7 +401,7 @@ function viewDashboard() {
   </div>
   <section class="gut"><h2>Progres BAST per Periode</h2><div class="desc">Unit sudah BAST dibanding total unit pada periode PPN DTP.</div>
     <div class="bars">${H.periodes.map((x, i) => bar(x.p.nama, x.sum[0] + x.sum[2], x.sum[1] + x.sum[3], COLORS[i % 4])).join("")}</div></section>
-  <section class="gut"><h2>Progres BAST per Proyek</h2><div class="desc">Gabungan seluruh periode, PPN DTP dan Non PPN DTP.</div>
+  <section class="gut"><h2>Progres BAST per Proyek</h2><div class="desc">Gabungan seluruh periode, PPN DTP dan Non PPN DTP. Urutan mengikuti daftar proyek di Master.</div>
     <div class="bars">${H.proyeks.map((x, i) => bar(x.p.nama, x.sum[0] + x.sum[2], x.sum[1] + x.sum[3], COLORS[i % 4])).join("")}</div></section>
   <section><div class="gut"><h2>Rincian per Periode &amp; Proyek</h2><div class="desc">Angka dibaca “BAST dari total unit”. Tanda “–” berarti 0 unit.</div></div>
     <div class="tbl-wrap"><table class="rincian num">${tbl}</table></div></section>
