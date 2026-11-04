@@ -168,6 +168,8 @@ table { width: 100%; border-collapse: collapse; }
 .sales-in td.akst .dari-in { display: flex; align-items: center; gap: 4px; justify-content: center; font-size: 11px; font-weight: 700; color: var(--red); background: var(--red-soft); border-radius: 4px; padding: 3px 4px; }
 .sales-in td.akst .dari-in input { background: var(--bg); border-color: var(--red-soft); }
 .sales-in td.akst .dari-in input[readonly] { background: var(--bg); color: var(--ink); }
+.sales-in td.akst .dari-in input.locked { background: var(--grey-soft); color: var(--muted); cursor: not-allowed; }
+.sales-in .lock { font-size: 11px; line-height: 1; }
 .sales-in tr.sum td.dari small { color: var(--red); font-weight: 700; }
 .sales-in td.dari small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 2px; }
 .sales-in .after input { opacity: .55; }
@@ -358,13 +360,15 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e
 /* Akun login mockup. Ini bukan pengamanan sungguhan: semua kode dan data ada di browser. */
 const USERS = [
   { u: "admin.chl", pw: "adminsales", nama: "Admin CHL", role: "ADMIN" },
-  { u: "admin.tsc", pw: "adminsales", nama: "Admin TSC", role: "ADMIN" },
-  { u: "admin.biodistrict", pw: "adminsales", nama: "Admin Bio District", role: "ADMIN" },
-  { u: "admin.narayabanaraserpong", pw: "adminsales", nama: "Admin Naraya Banara Serpong", role: "ADMIN" },
-  { u: "admin.permaiindah", pw: "adminsales", nama: "Admin Permai Indah", role: "ADMIN" },
+  { u: "admin.tsc", pw: "adminsales", nama: "Admin TSC", role: "ADMIN", kunciStok: true },
+  { u: "admin.biodistrict", pw: "adminsales", nama: "Admin Bio District", role: "ADMIN", kunciStok: true },
+  { u: "admin.narayabanaraserpong", pw: "adminsales", nama: "Admin Naraya Banara Serpong", role: "ADMIN", kunciStok: true },
+  { u: "admin.permaiindah", pw: "adminsales", nama: "Admin Permai Indah", role: "ADMIN", kunciStok: true },
   { u: "viewer.chl", pw: "adminsales", nama: "Viewer CHL", role: "VIEWER" },
 ];
 let SESI = null;
+/* Total stok penjualan dikunci untuk user dengan kunciStok */
+const stokTerkunci = () => !!(SESI && (USERS.find(x => x.u === SESI.u) || {}).kunciStok);
 try { SESI = JSON.parse(sessionStorage.getItem(KEY + "-sesi")); } catch (e) { SESI = null; }
 if (SESI) S.role = SESI.role;
 /* Nama proyek yang diganti */
@@ -932,12 +936,16 @@ function viewSalesInput() {
   const d = sDraft, m = bulanKe(d.tanggal), th = tahunKe(d.tanggal), err = sErrors(d), hasErr = Object.keys(err).length > 0;
   const list = d.proyek.slice().sort(byUrut).filter(p => p.aktif);
   const rpM = S.rpMode === "m", fRp = v => rpM ? idn(M(v)) : Math.round(v).toLocaleString("id-ID");
-  const inp = (p, k, j, v) => j
-    ? `<input type="text" inputmode="numeric" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="1" value="${fRp(v)}" ${rpM ? 'readonly title="Pilih Rp detail untuk mengubah angka"' : ""} aria-label="${esc(p.nama)} ${k} Rp">`
-    : `<input type="number" min="0" step="1" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="0" value="${v}" aria-label="${esc(p.nama)} ${k} unit">`;
+  const kunci = stokTerkunci(), ttlKunci = 'readonly class="locked" title="Dikunci. Hanya Admin CHL yang bisa mengubah total stok."';
+  const inp = (p, k, j, v) => {
+    const lock = k === "stok" && kunci;
+    return j
+      ? `<input type="text" inputmode="numeric" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="1" value="${fRp(v)}" ${lock ? ttlKunci : rpM ? 'readonly title="Pilih Rp detail untuk mengubah angka"' : ""} aria-label="${esc(p.nama)} ${k} Rp">`
+      : `<input type="number" min="0" step="1" id="si-${p.id}-${k}-${j}" data-pid="${p.id}" data-k="${k}" data-j="0" value="${v}" ${lock ? ttlKunci : ""} aria-label="${esc(p.nama)} ${k} unit">`;
+  };
   const cell = (p, k, j, v, extra = "") => `<td class="${extra}">${inp(p, k, j, v)}</td>`;
   /* Akumulasi terjual (atas, dihitung) dan Total stok (bawah, diisi), seperti baris "dari" di Excel */
-  const akumStok = (p, v, j) => `<td class="calc akst"><div class="ak">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}</div><div class="dari-in"><span>dari</span>${inp(p, "stok", j, p.stok[j])}</div></td>`;
+  const akumStok = (p, v, j) => `<td class="calc akst"><div class="ak">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}</div><div class="dari-in"><span>dari</span>${inp(p, "stok", j, p.stok[j])}${kunci ? '<svg class="lock" viewBox="0 0 12 14" width="10" height="12" aria-hidden="true"><rect x="1" y="6" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M3.5 6V4.2a2.5 2.5 0 0 1 5 0V6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' : ""}</div></td>`;
   const calc = (v, j) => `<td class="calc">${v ? (j ? fRp(v) : v.toLocaleString("id-ID")) : "–"}</td>`;
   const tot = { base: [0, 0], ytd: [0, 0], akum: [0, 0], stok: [0, 0], hari: [0, 0], bulan: Z12() };
   let body = "";
@@ -971,12 +979,13 @@ function viewSalesInput() {
       <button class="btn" id="sSave" type="button" ${hasErr ? "disabled" : ""}>Simpan data</button></div>
   </div>
   <div class="tbl-wrap"><table class="edit sales-in num ${rpM ? "rp-m" : ""}"><thead><tr>${h1}</tr><tr>${h2}</tr></thead><tbody>${body}</tbody></table></div>
-  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan. " : ""}Proyek dan grup diatur di tab Master.</p></div>`;
+  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan. " : ""}Proyek dan grup diatur di tab Master.${stokTerkunci() ? " Kolom total stok (baris “dari”) dikunci untuk akun Anda; hanya Admin CHL yang bisa mengubahnya." : ""}</p></div>`;
 }
 function bindSalesInput() {
   const v = document.getElementById("view");
   document.getElementById("sReset").onclick = () => { sLoad(); render(); toast("Perubahan dibatalkan"); };
   document.getElementById("sSave").onclick = () => {
+    if (stokTerkunci()) sDraft.proyek.forEach(p => { const o = S.sales2.proyek.find(x => x.id === p.id); if (o) p.stok = clone(o.stok); });
     const items = [], th = tahunKe(sDraft.tanggal);
     const f = (k, o, n) => { if (o[0] !== n[0]) items.push(`${k} unit: ${o[0].toLocaleString("id-ID")} → ${n[0].toLocaleString("id-ID")}`);
       if (o[1] !== n[1]) items.push(`${k} Rp: ${rpDot(o[1])} → ${rpDot(n[1])}`); };
@@ -994,6 +1003,7 @@ function bindSalesInput() {
   document.getElementById("rpM").onclick = () => { S.rpMode = "m"; save(); render("rpM"); };
   v.querySelectorAll("input[data-pid]").forEach(inp => inp.onchange = () => {
     const p = sDraft.proyek.find(x => x.id === +inp.dataset.pid), k = inp.dataset.k, j = +inp.dataset.j;
+    if (k === "stok" && stokTerkunci()) { render(); return; }
     const raw = inp.value.trim(), val = raw === "" ? 0 : j ? Number(raw.replace(/[^0-9]/g, "")) : Number(raw);
     if (k[0] === "b" && k !== "base") p.bulan[+k.slice(1)][j] = val; else p[k][j] = val;
     render(inp.id);
