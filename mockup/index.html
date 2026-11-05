@@ -2082,6 +2082,13 @@ function bindSalesInput() {
     const x = () => bhList(el.dataset.bh).find(r => r.id === +el.dataset.id), f = el.dataset.f;
     const locked = () => !bolehEdit(namaProyekSales(x().proyekId));
     if (locked()) { el.disabled = true; return; }
+    /* Kolom tanggal: simpan nilainya saja saat diketik; tabel digambar ulang setelah selesai (keluar dari kolom),
+       supaya tahun seperti 2024 bisa diketik penuh tanpa terputus */
+    if (el.type === "date") {
+      el.onchange = el.oninput = () => { const r = x(); if (r) r[f] = el.value; };
+      el.onblur = () => { const r = x(); if (r && el.value !== (el.dataset.awal || "")) render(); };
+      el.dataset.awal = el.value; return;
+    }
     el.onchange = () => {
       const r = x(); if (!r) return;
       if (f === "proyekId") r.proyekId = +el.value;
@@ -2794,8 +2801,12 @@ function bindWeeklyInput(nama) {
     else if (k === "usia") r[k] = wkUsia(el.value);
     else r[k] = el.value.trim();
     if (k === "lahir" || k === "tanggal") wkUsiaIsi(r);
+    if (el.type === "date") return; /* tanggal: digambar ulang saat keluar dari kolom */
     render(el.id);
   });
+  v.querySelectorAll('[data-wk][type="date"]').forEach(el => { const awal = el.value;
+    el.addEventListener("input", () => el.onchange());
+    el.addEventListener("blur", () => { if (el.value !== awal) render(); }); });
   v.querySelectorAll("[data-rk]").forEach(el => el.onchange = () => {
     const j = el.dataset.rk, y = el.dataset.y, k = +el.dataset.k; d.rekap[j] = d.rekap[j] || {};
     const row = d.rekap[j][y] = d.rekap[j][y] || Array(nk).fill(0); while (row.length < nk) row.push(0);
