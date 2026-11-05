@@ -388,11 +388,14 @@ a.rcard:hover { border-color: var(--gold); }
 }
 @media (max-width: 400px) { .kpis { grid-template-columns: 1fr; } .tab { padding: 8px 14px; } }
 /* HP: dashboard tampil seperti layar laptop (1240px) yang diperkecil agar pas layar */
-.cap.fit, .page.fit { width: 1240px; max-width: none; margin: 0; }
-.cap.fit .kpis { grid-template-columns: repeat(4, 1fr); row-gap: 0; }
-.cap.fit .bar-row { grid-template-columns: minmax(120px, 28%) 1fr auto auto; }
-.cap.fit .bar-row .track { grid-column: auto; grid-row: auto; height: auto; }
-.cap.fit .tbl-wrap { overflow: visible; }
+/* Berlaku untuk semua tab report (Dashboard, Input Data, Master, History) */
+#view.fit { width: 1240px; max-width: none; }
+#view.fit .page { max-width: 1240px; }
+#view.fit .kpis { grid-template-columns: repeat(4, 1fr); row-gap: 0; }
+#view.fit .bar-row { grid-template-columns: minmax(120px, 28%) 1fr auto auto; }
+#view.fit .bar-row .track { grid-column: auto; grid-row: auto; height: auto; }
+#view.fit .master { grid-template-columns: 1fr 1fr; }
+#view.fit .tab { padding: 8px 22px; }
 @media (prefers-reduced-motion: no-preference) { .fill { transition: width .4s ease; } }
 </style>
 </head>
@@ -743,7 +746,7 @@ async function buatGambar(id) {
     ignoreElements: n => n.classList && n.classList.contains("no-cap"),
     onclone: doc => {
       const c = doc.getElementById(id); if (!c) return;
-      c.style.width = LEBAR + "px"; c.style.maxWidth = LEBAR + "px"; c.style.margin = "0"; c.style.zoom = "1";
+      c.style.width = LEBAR + "px"; c.style.maxWidth = LEBAR + "px"; c.style.margin = "0"; c.style.zoom = "1"; const vw = doc.getElementById("view"); if (vw) { vw.style.zoom = "1"; vw.classList.remove("fit"); vw.style.width = ""; }
       c.querySelectorAll(".tbl-wrap").forEach(w => { w.style.overflow = "visible"; });
       const sd = doc.getElementById("side"); if (sd) sd.style.display = "none";
       const mt = doc.querySelector(".topbar"); if (mt) mt.style.display = "none";
@@ -1651,18 +1654,17 @@ function render(focusId) {
   pasHP();
   if (focusId) { const el = document.getElementById(focusId); if (el) el.focus(); }
 }
-/* Di layar HP (< 900px) dashboard ditampilkan dengan tata letak laptop lalu diperkecil agar pas lebar layar */
+/* Di layar HP (< 900px) semua tab report (Dashboard, Input Data, Master, History) ditampilkan
+   dengan tata letak laptop lalu diperkecil agar pas lebar layar */
 const LEBAR_DASH = 1240;
 function pasHP() {
   const view = document.getElementById("view");
-  /* Judul report + tab di atas dashboard ikut diperkecil supaya serasi */
-  const cap = view.querySelector(".cap"), head = cap && view.querySelector(":scope > .page.gut");
-  const daftar = [...view.querySelectorAll(".cap")]; if (head) daftar.push(head);
-  daftar.forEach(c => {
-    if (window.innerWidth >= 900) { c.classList.remove("fit"); c.style.zoom = ""; return; }
-    c.classList.add("fit");
-    c.style.zoom = String(Math.min(1, view.clientWidth / LEBAR_DASH));
-  });
+  /* matchMedia memakai lebar layar asli; innerWidth bisa ikut melebar kalau isi halaman lebih lebar dari layar */
+  const pas = window.matchMedia("(max-width: 899.98px)").matches && !!findTab(current());
+  view.classList.toggle("fit", pas);
+  if (!pas) { view.style.zoom = ""; return; }
+  view.style.zoom = "0.1"; /* kecilkan dulu supaya lebar area terbaca tanpa terdorong isi halaman */
+  view.style.zoom = String(Math.min(1, view.parentElement.clientWidth / LEBAR_DASH));
 }
 window.addEventListener("resize", () => { clearTimeout(pasHP.t); pasHP.t = setTimeout(pasHP, 120); });
 
