@@ -1672,6 +1672,11 @@ const REPORTS = [
       { id: "bast-history", label: "History", view: () => viewHistory("bast"), bind: () => {} },
     ],
     meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
+  { id: "weekly", nama: "Dashboard Weekly Sales Performance", menu: "DASHBOARD WEEKLY SALES PERFORMANCE", desc: "",
+    tabs: [
+      { id: "weekly", label: "Dashboard", view: () => `<div class="page gut" id="weeklyView"></div>`, bind: () => {} }, /* isi dibangun sendiri */
+    ],
+    meta: () => "" },
 ];
 function viewLaporan() {
   return `<div class="page gut"><div class="rhead"><div><h2>Monitoring Laporan</h2>
