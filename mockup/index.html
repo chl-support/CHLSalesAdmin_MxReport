@@ -406,6 +406,13 @@ select.th-sel { font: inherit; font-size: 13px; font-weight: 700; padding: 4px 8
 .mn-t td.tot { font-weight: 700; }
 .mn-t td.up { color: var(--green); font-weight: 700; } .mn-t td.down { color: var(--red); font-weight: 700; }
 .mn-t tr.mn-na td { color: var(--muted); font-style: italic; }
+/* Tanda peringatan data belum sama */
+.cek-warn { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; padding-top: 12px; padding-bottom: 12px; background: var(--red-soft); border-left: 4px solid var(--red); color: var(--text); font-size: 13.5px; }
+.cek-warn .cek-ic { font-size: 20px; line-height: 1; color: var(--red); }
+.cek-warn b { color: var(--ink); }
+.cek-warn ul { margin: 4px 0 6px; padding-left: 18px; }
+.cek-warn li { margin: 2px 0; }
+.cek-warn a { color: var(--red); font-weight: 700; }
 .mn-skema { margin-bottom: 18px; }
 .mn-cek .mn-st { text-align: left; min-width: 220px; }
 .mn-cek .mn-st small { display: block; color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: 2px; }
@@ -1768,6 +1775,7 @@ function viewSales() {
         <button class="btn-ghost" id="salesShot" type="button" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button>
       </div></div>
   </div>
+  ${salesTahun ? "" : cekPeringatan()}
   <div class="kpis gut">
     ${kpi("var(--gold)", "Laporan hari ini", T.hari, cur ? `Penjualan ${panjang(tgl)}` : "Hanya untuk bulan berjalan")}
     ${kpi("var(--blue)", `Bulan ${esc(bln)}`, T.bln, `Penjualan selama ${esc(BULAN[m - 1])}`)}
@@ -2515,6 +2523,7 @@ function viewWeekly(nama, id) {
   return `<div class="page cap" id="capWeekly">
   <div class="hero"><div class="tabs"><span class="tab">Weekly Sales Performance</span><span class="tab">${panjang(hari)}</span></div>
     <div class="hero-body gut"><h1>${esc(W.judul || "Weekly Report " + nama)}</h1><div class="sub">Tahun ${th} • data per ${ddmmyyyy(hari)} • nilai pada kartu: Nilai Kontrak Include PPN (Exclude PPN jika kosong)</div></div></div>
+  ${wkTahun && wkTahun < wkThIni() ? "" : cekPeringatan(nama)}
   <div class="kpis wk-kpis gut">${(() => { /* Minggu berjalan: minggu (Senin–Minggu) yang memuat tanggal laporan */
       const w = mg.find(x => hari >= x.dari && hari <= x.sampai) || mg[mg.length - 1], dlm = x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai;
       const l = jL.filter(dlm), bt = totU(bL.filter(dlm));
@@ -2874,7 +2883,7 @@ function mnData(th) {
     return { grup: x.grup, nama: x.nama, adaWk: !!W, jual, batal, hold: hd, holdU: hd.length, holdV: hd.reduce((a, h) => a + (h.tandaJadi || 0), 0) }; }) };
 }
 /* Cek kesesuaian: Daily Sales vs Weekly per proyek (penjualan & batal Jan s.d bulan terpilih, hold saat ini) */
-function mnCek(P, th, b) {
+function mnCekList(P, th, b) {
   const kd = v => String(v || "").replace(/\s+/g, "").toUpperCase(), nM = v => v ? idn(M(v)) : "–", beda = (a, c) => a !== c;
   let semuaSama = true;
   /* Batal di Daily dicatat per unit sejak sistem dipakai: dibandingkan mulai bulan pertama ada catatan batal di Daily */
@@ -2899,13 +2908,30 @@ function mnCek(P, th, b) {
       ...(hanyaD.length ? [`Hold hanya di Daily: ${hanyaD.join(", ")}`] : []),
       ...(hanyaW.length ? [`Hold hanya di Weekly: ${hanyaW.join(", ")}`] : [])];
     const td = (x, y, f) => `<td class="num${x !== y ? " mn-x" : ""}">${f(x)}</td>`;
-    return `<tr class="${ok ? "" : "mn-bad"}"><td class="mn-pn">${esc(p.nama)}</td>
+    return { nama: p.nama, ok, cat, html: `<tr class="${ok ? "" : "mn-bad"}"><td class="mn-pn">${esc(p.nama)}</td>
       <td class="num">${dJ[0]}</td><td class="acc">${nM(dJ[1])}</td>${W ? td(wJ[0], dJ[0], v => v) + `<td class="acc${rpBeda ? " mn-x" : ""}">${nM(wJ[1])}</td>` : `<td class="num">–</td><td class="acc">–</td>`}
       <td class="num">${dB}</td>${W ? td(wB, dB, v => v) : `<td class="num">–</td>`}
       <td class="num">${dH.length}</td>${W ? `<td class="num${hanyaD.length || hanyaW.length ? " mn-x" : ""}">${wH.length}</td>` : `<td class="num">–</td>`}
-      <td class="mn-st">${ok ? `<span class="mn-ok">✓ Sama</span>` : `<span class="mn-ng">⚠ Beda</span><small>${cat.map(esc).join("<br>")}</small>`}</td></tr>`;
-  }).join("");
-  return `<section class="gut"><h2>Cek kesesuaian data</h2><div class="desc">Membandingkan Daily Sales Dashboard dengan Weekly Sales Dashboard per proyek: penjualan Januari s.d ${BULAN[b - 1]} ${th}, batal ${mb <= b ? `${mb === b ? BULAN[b - 1] : BULAN[mb - 1] + " s.d " + BULAN[b - 1]} (sejak Daily mencatat batal)` : "(belum ada catatan batal di Daily)"}, serta Hold Reserved saat ini.
+      <td class="mn-st">${ok ? `<span class="mn-ok">✓ Sama</span>` : `<span class="mn-ng">⚠ Beda</span><small>${cat.map(esc).join("<br>")}</small>`}</td></tr>` };
+  });
+  return { list: rows, semuaSama, mb };
+}
+/* Tanda peringatan: proyek yang datanya belum sama antara Daily dan Weekly */
+function cekPeringatan(namaSaja) {
+  try {
+    const y = +todayISO().slice(0, 4); if (tahunKe() !== y) return "";
+    const simpan = mnProyek; mnProyek = null; let P; try { P = mnData(y).P; } finally { mnProyek = simpan; }
+    if (namaSaja) P = P.filter(p => p.nama === namaSaja);
+    const beda = mnCekList(P, y, bulanKe()).list.filter(x => !x.ok); if (!beda.length) return "";
+    const isi = beda.map(x => `<li><b>${esc(x.nama)}</b>: ${esc(x.cat.join("; "))}</li>`).join("");
+    return `<div class="cek-warn gut no-cap" role="alert"><div class="cek-ic" aria-hidden="true">⚠</div><div><b>Data belum sama antara Daily Sales dan Weekly Sales</b>${namaSaja ? "" : ` (${beda.length} proyek)`}
+      <ul>${isi}</ul><a href="#monthly" data-cekgo>Lihat detail di Cek kesesuaian data →</a></div></div>`;
+  } catch (e) { return ""; }
+}
+document.addEventListener("click", e => { if (e.target.closest("[data-cekgo]")) setTimeout(() => { const el = document.getElementById("mnCek"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 350); });
+function mnCek(P, th, b) {
+  const { list, semuaSama, mb } = mnCekList(P, th, b), rows = list.map(x => x.html).join("");
+  return `<section class="gut" id="mnCek"><h2>Cek kesesuaian data</h2><div class="desc">Membandingkan Daily Sales Dashboard dengan Weekly Sales Dashboard per proyek: penjualan Januari s.d ${BULAN[b - 1]} ${th}, batal ${mb <= b ? `${mb === b ? BULAN[b - 1] : BULAN[mb - 1] + " s.d " + BULAN[b - 1]} (sejak Daily mencatat batal)` : "(belum ada catatan batal di Daily)"}, serta Hold Reserved saat ini.
     ${semuaSama ? `<b class="mn-ok">Semua proyek sudah sama.</b>` : `<b class="mn-ng">Ada yang belum sama</b>, perbaiki di Input Data menu terkait.`}</div>
     <div class="tbl-wrap"><table class="hold-t pg-t mn-t mn-cek"><thead>
       <tr><th rowspan="2" class="mn-pn">Proyek</th><th colspan="2">Penjualan Daily</th><th colspan="2">Penjualan Weekly</th><th colspan="2">Batal (unit)${mb <= b ? `<br><small>${mb === b ? BULAN[b - 1] : `${BULAN[mb - 1].slice(0, 3)} s.d ${BULAN[b - 1].slice(0, 3)}`}</small>` : ""}</th><th colspan="2">Hold (unit)</th><th rowspan="2">Status</th></tr>
@@ -3019,6 +3045,7 @@ function viewMonthly() {
     <label class="wk-opt" for="mnBln">Bulan <select id="mnBln">${opsiBln}</select></label>
     <span class="wk-opt">Proyek <details class="dr-dd mn-dd" id="mnPr"${mnBukaPr ? " open" : ""}><summary>${esc(namaFilter)}</summary><div class="dr-dd-list">${opsiPr}</div></details></span>
     <span class="mn-act"><button type="button" class="btn sec" id="mnKirim">Kirim ringkasan</button><button type="button" class="btn sec" id="mnShot" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button><button type="button" class="btn sec" id="mnXls">Ekspor Excel</button></span></div>
+  ${th === +todayISO().slice(0, 4) ? cekPeringatan() : ""}
   <div class="kpis wk-kpis gut">${kpi("var(--blue)", `Penjualan ${BULAN[bi]}`, J[0], J[1], dLalu)}${kpi("var(--red)", `Batal ${BULAN[bi]}`, Bt[0], Bt[1], Bt[0] ? `${P.filter(p => p.batal[bi].u).length} proyek` : "Tidak ada pembatalan")}${kpi("var(--green)", `Bersih ${BULAN[bi]}`, J[0] - Bt[0], J[1] - Bt[1], "Penjualan dikurangi batal")}${kpi("var(--gold)", `YTD ${th}`, Y[0], Y[1], `Januari s.d ${BULAN[bi]} • batal ${YB[0]} unit`)}<div class="kpi" style="--c:var(--purple)"><div class="lbl">Hold Reserved</div><div class="val num">${H[0].toLocaleString(LOC())} <small>unit</small></div><div class="pct num">${rpRingkas(H[1])} <small style="font-size:13px;font-weight:600;color:var(--muted)">tanda jadi</small></div><div class="note">Posisi saat ini • belum dihitung sebagai penjualan</div></div></div>
   <section class="gut"><h2>Penjualan & batal per bulan ${th}</h2>
     <div class="mn-leg"><span><i class="mn-j"></i>Penjualan</span><span><i class="mn-b"></i>Batal</span><span class="desc">Arahkan kursor / sentuh bulan untuk rincian, klik untuk memilih bulan.</span>
