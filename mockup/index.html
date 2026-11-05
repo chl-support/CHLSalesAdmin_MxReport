@@ -2898,9 +2898,11 @@ function mnCekList(P, th, b) {
     /* bulan yang unitnya berbeda */
     const blnBeda = W ? BULAN.slice(0, b).map((nm, i) => { const d = p.jual[i].u, w = mnU(p.jual[i].l); return d !== w ? `${nm.slice(0, 3)} (Daily ${d} / Weekly ${w})` : ""; }).filter(Boolean) : [];
     const rpBeda = Math.abs(dJ[1] - wJ[1]) >= 1e6;
-    const ok = W && !beda(dJ[0], wJ[0]) && !rpBeda && !beda(dB, wB) && !hanyaD.length && !hanyaW.length;
+    /* Weekly tanpa transaksi dianggap sama selama Daily juga nol (mis. proyek yang memang tidak ada penjualan) */
+    const nihilD = !dJ[0] && !dJ[1] && !dB && !dH.length;
+    const ok = W ? !beda(dJ[0], wJ[0]) && !rpBeda && !beda(dB, wB) && !hanyaD.length && !hanyaW.length : nihilD;
     if (!ok) semuaSama = false;
-    const cat = !W ? ["Belum ada data Weekly"] : [
+    const cat = !W ? (nihilD ? [] : ["Belum ada data Weekly, padahal di Daily ada transaksi"]) : [
       ...(blnBeda.length ? [`Penjualan beda di: ${blnBeda.join(", ")}`] : rpBeda ? [`Nilai penjualan beda ${rp(Math.abs(dJ[1] - wJ[1]))}`] : []),
       ...(beda(dB, wB) ? [`Batal: Daily ${dB} unit, Weekly ${wB} unit`] : []),
       ...(hanyaD.length ? [`Hold hanya di Daily: ${hanyaD.join(", ")}`] : []),
