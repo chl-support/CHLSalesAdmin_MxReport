@@ -85,16 +85,43 @@ function userFromReq(req) {
 }
 
 /* ---------- what a restricted account may read: Weekly data and History of its own projects only ---------- */
-function historyVisible(h, user) {
+const lowS = s => String(s || "").trim().toLowerCase();
+/* Names of every project in the data (sales, BAST, Weekly), to filter History text */
+function projectNames(state) {
+  const n = new Set();
+  ((state.sales2 || {}).proyek || []).forEach(p => n.add(p.nama));
+  (state.proyek || []).forEach(p => n.add(p.nama));
+  Object.keys(state.weekly || {}).forEach(k => n.add(k));
+  return [...n].filter(Boolean);
+}
+/* A History line is visible when it does not mention a project of someone else */
+const itemVisible = (txt, user, names) => !names.some(nm => !user.proyek.includes(lowS(nm)) && String(txt).toLowerCase().includes(lowS(nm)));
+function historyVisible(h, user, names) {
   if (!user.proyek) return true;
   const m = /^weekly:(.+)$/.exec(String(h && h.report || ""));
-  return !m || user.proyek.includes(String(m[1]).trim().toLowerCase());
+  if (m) return user.proyek.includes(lowS(m[1]));
+  return !(h.items || []).length || (h.items || []).some(t => itemVisible(t, user, names || []));
 }
+/* What a restricted account may read: only its own projects (sales, BAST, Weekly, History) */
 function forUser(state, user) {
   if (!state || !user || !user.proyek) return state;
+  const ok = nama => user.proyek.includes(lowS(nama)), names = projectNames(state);
   const out = Object.assign({}, state);
-  if (state.weekly) { out.weekly = {}; Object.keys(state.weekly).forEach(k => { if (user.proyek.includes(String(k).trim().toLowerCase())) out.weekly[k] = state.weekly[k]; }); }
-  if (Array.isArray(state.history)) out.history = state.history.filter(h => historyVisible(h, user));
+  if (state.sales2) {
+    const s2 = Object.assign({}, state.sales2), ids = new Set((state.sales2.proyek || []).filter(p => ok(p.nama)).map(p => p.id));
+    s2.proyek = (state.sales2.proyek || []).filter(p => ok(p.nama));
+    ["batal", "hold", "pindah", "ganti"].forEach(j => { if (Array.isArray(state.sales2[j])) s2[j] = state.sales2[j].filter(x => ids.has(x.proyekId)); });
+    out.sales2 = s2;
+  }
+  if (state.proyek) {
+    const bids = new Set(state.proyek.filter(p => ok(p.nama)).map(p => p.id));
+    out.proyek = state.proyek.filter(p => ok(p.nama));
+    out.laporan = {};
+    Object.keys(state.laporan || {}).forEach(d => { const r = (state.laporan[d] || []).filter(x => bids.has(x.proyekId)); if (r.length) out.laporan[d] = r; });
+  }
+  if (state.weekly) { out.weekly = {}; Object.keys(state.weekly).forEach(k => { if (ok(k)) out.weekly[k] = state.weekly[k]; }); }
+  if (Array.isArray(state.history)) out.history = state.history.filter(h => historyVisible(h, user, names))
+    .map(h => /^weekly:/.test(h.report) ? h : Object.assign({}, h, { items: (h.items || []).filter(t => itemVisible(t, user, names)) }));
   return out;
 }
 /* ---------- merge: restricted admins only change their own projects ---------- */
@@ -103,9 +130,10 @@ function merge(old, inc, user) {
   if (!user.proyek) return inc;
   const ok = nama => user.proyek.includes(low(nama));
   const out = JSON.parse(JSON.stringify(old));
-  /* History: entries this user cannot see (other projects' Weekly) are kept from the stored data */
-  const hidden = (old.history || []).filter(h => !historyVisible(h, user));
-  out.history = Array.isArray(inc.history) ? [...inc.history, ...hidden].sort((a, b) => String(b.t).localeCompare(String(a.t))).slice(0, 500) : old.history;
+  /* History: stored entries stay complete (the user only received a filtered copy); new entries from the request are added */
+  const kunci = h => `${h.t}|${h.report}|${h.oleh}|${h.bagian}`, ada = new Set((old.history || []).map(kunci));
+  const baru = (Array.isArray(inc.history) ? inc.history : []).filter(h => !ada.has(kunci(h)));
+  out.history = [...baru, ...(old.history || [])].sort((a, b) => String(b.t).localeCompare(String(a.t))).slice(0, 500);
   /* BAST: rows of allowed projects come from the request, others stay as stored */
   const bastNama = id => ((old.proyek || []).find(p => p.id === id) || {}).nama;
   const dates = new Set([...Object.keys(old.laporan || {}), ...Object.keys(inc.laporan || {})]);

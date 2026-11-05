@@ -608,6 +608,8 @@ let SESI = null;
 /* Batasan per user: proyek yang boleh diedit (tanpa daftar = semua proyek) */
 const akunIni = () => SESI || null;
 const userTerbatas = () => !!(akunIni() && akunIni().proyek);
+/* Label total: akun terbatas hanya melihat proyeknya sendiri, jadi bukan total CHL */
+const lblTotal = (huruf) => userTerbatas() ? (huruf ? "TOTAL" : "Total") : (huruf ? "TOTAL CHL" : "Total CHL");
 /* Proyek Weekly yang boleh dibuka akun ini (akun tanpa daftar proyek, mis. Admin CHL / Viewer CHL, boleh semua) */
 function bolehLihat(namaProyek) {
   const a = akunIni();
@@ -1482,13 +1484,13 @@ function viewSales() {
       <td class="tot">${uN(x.akum[0])}<small>dari ${x.stok[0].toLocaleString(LOC())}</small></td><td class="tot">${rpN(x.akum[1])}<small>dari ${idn(M(x.stok[1]))}</small></td></tr>`
       + (x.p.catatan && x.p.catatanTampil !== false ? `<tr class="subnote"><td colspan="7">↳ ${esc(x.p.catatan)}</td></tr>` : ""));
   });
-  tbl += `<tr class="grand"><td class="proj">Total CHL</td><td>${T.bln[0]}</td><td>${rpN(T.bln[1])}</td><td>${T.ytd[0]}</td><td>${rpN(T.ytd[1])}</td>
+  tbl += `<tr class="grand"><td class="proj">${lblTotal()}</td><td>${T.bln[0]}</td><td>${rpN(T.bln[1])}</td><td>${T.ytd[0]}</td><td>${rpN(T.ytd[1])}</td>
     <td>${T.akum[0].toLocaleString(LOC())}<small>dari ${T.stok[0].toLocaleString(LOC())}</small></td><td>${rpN(T.akum[1])}<small>dari ${idn(M(T.stok[1]))}</small></td></tr></tbody>`;
   const pctU = T.stok[0] ? T.akum[0] / T.stok[0] * 100 : 0, pctR = T.stok[1] ? T.akum[1] / T.stok[1] * 100 : 0;
   const y = tahunKe(), batalBln = (S.sales2.batal || []).filter(x => +x.tanggal.slice(0, 4) === y && +x.tanggal.slice(5, 7) === m);
   const batalRp = batalBln.reduce((a, x) => a + (x.rp || 0), 0), hold = S.sales2.hold || [], holdTj = hold.reduce((a, x) => a + (x.tandaJadi || 0), 0);
   const notes = [
-    `CHL = total konsolidasi ${rows.length} proyek, bukan proyek tambahan. Jangan dijumlahkan dua kali.`,
+    userTerbatas() ? `Akun ini hanya menampilkan proyek: ${esc(rows.map(x => x.p.nama).join(", "))}.` : `CHL = total konsolidasi ${rows.length} proyek, bukan proyek tambahan. Jangan dijumlahkan dua kali.`,
     `Total nilai proyek CHL: ${rp(T.stok[1])} &nbsp;|&nbsp; Total terjual: ${rp(T.akum[1])} (${idn(pctR, 1)}%).`,
   ];
   return `<div class="page cap" id="capSales">
@@ -1600,7 +1602,7 @@ function exportSalesExcel() {
     inp.push([p.nama, p.grup, p.base[0], p.base[1], ...p.bulan.flat(), { f: ytdU }, { f: ytdR }, { f: `C${r}+AC${r}` }, { f: `D${r}+AD${r}` }, p.stok[0], p.stok[1], cur ? p.hari[0] : 0, cur ? p.hari[1] : 0]);
   });
   const last = first + list.length - 1, totR = last + 1;
-  inp.push(["TOTAL CHL", "", ...Array.from({ length: 34 }, (_, i) => ({ f: `SUM(${col(2 + i)}${first}:${col(2 + i)}${last})` }))]);
+  inp.push([lblTotal(1), "", ...Array.from({ length: 34 }, (_, i) => ({ f: `SUM(${col(2 + i)}${first}:${col(2 + i)}${last})` }))]);
   const I = c => `'input data'!${c}`;
   const dash = [["SALES PERFORMANCE", "", "", "", "", panjang(tgl).toUpperCase()], ["DASHBOARD PENJUALAN PROPERTI"], [`${BULAN[m - 1]} ${th}  •  YTD ${BULAN[m - 1]} ${th}  •  Total Terjual`], [],
     ["", "Laporan hari ini", `Bulan ${BULAN[m - 1]} ${th}`, `YTD s.d. ${BULAN[m - 1]}`, "Akumulasi total terjual"],
@@ -1614,7 +1616,7 @@ function exportSalesExcel() {
       { f: I(`AE${r}`) }, { f: I(`AF${r}`) + "/10^9" }, { f: I(`AG${r}`) }, { f: I(`AH${r}`) + "/10^9" }]);
   });
   const d1 = dash.length;
-  dash.push(["TOTAL CHL", "", ...["C", "D", "E", "F", "G", "H", "I", "J"].map(c => ({ f: `SUM(${c}${d0}:${c}${d1})` }))]);
+  dash.push([lblTotal(1), "", ...["C", "D", "E", "F", "G", "H", "I", "J"].map(c => ({ f: `SUM(${c}${d0}:${c}${d1})` }))]);
   const dt = dash.length;
   dash.push([], ["CATATAN PENTING"], [`CHL = total konsolidasi ${list.length} proyek, bukan proyek tambahan. Jangan dijumlahkan dua kali.`],
     [{ f: `"Total nilai proyek CHL: Rp"&TEXT(J${dt},"#,##0.00")&" M | Total terjual: Rp"&TEXT(H${dt},"#,##0.00")&" M ("&TEXT(H${dt}/J${dt},"0.0%")&")"` }],
@@ -1710,7 +1712,7 @@ function viewSalesInput() {
     });
   });
   const tc = (v, j) => `<td>${j ? fRp(v) : v.toLocaleString(LOC())}</td>`;
-  body += `<tr class="sum"><td class="stick">TOTAL CHL</td>${tc(tot.base[0], 0)}${tc(tot.base[1], 1)}${tot.bulan.map(v => tc(v[0], 0) + tc(v[1], 1)).join("")}
+  body += `<tr class="sum"><td class="stick">${lblTotal(1)}</td>${tc(tot.base[0], 0)}${tc(tot.base[1], 1)}${tot.bulan.map(v => tc(v[0], 0) + tc(v[1], 1)).join("")}
     ${tc(tot.ytd[0], 0)}${tc(tot.ytd[1], 1)}<td class="dari">${tot.akum[0].toLocaleString(LOC())}<small>dari ${tot.stok[0].toLocaleString(LOC())}</small></td><td class="dari">${fRp(tot.akum[1])}<small>dari ${fRp(tot.stok[1])}</small></td>${tc(tot.hari[0], 0)}${tc(tot.hari[1], 1)}</tr>`;
   const h1 = `<th rowspan="2" class="stick">Proyek</th><th colspan="2">Akumulasi s.d. ${th - 1}</th>${BULAN.map((b, i) => `<th colspan="2">${b} ${th}</th>`).join("")}
     <th colspan="2" class="calc-h">YTD ${BULAN[m - 1]}</th><th colspan="2" class="calc-h">Akumulasi terjual<br><span style="font-weight:400;font-size:11.5px">dari total stok</span></th><th colspan="2">Hari ini</th>`;
@@ -1972,7 +1974,7 @@ function teksDailyReport(bagian = "semua") {
     if (!L.length) L.push("Tidak ada perubahan");
     L.push(`${bln} / YTD : ${fU(T.bln[0])}/${fU(T.ytd[0])} Unit (${fM(T.bln[1])}/${fM(T.ytd[1])} M)`);
     L.push(`Total Terjual : ${fU(T.akum[0])}/${fU(T.stok[0])} Unit (${fM(T.akum[1])}/${fM(T.stok[1])} M)`);
-    out.push(`*CHL :*\n${L.join("\n")}`);
+    out.push(`*${userTerbatas() ? "Total" : "CHL"} :*\n${L.join("\n")}`);
     let t = `Daily Report\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n\n` + out.join("\n\n");
     /* Hold Reserved */
     const hold = S.sales2.hold || [];
