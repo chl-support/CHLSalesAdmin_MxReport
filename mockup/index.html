@@ -313,9 +313,17 @@ table { width: 100%; border-collapse: collapse; }
 .sub a { font-size: 12px; font-weight: 600; letter-spacing: .02em; line-height: 1.35; padding: 7px 10px; }
 .sub a.cur { font-weight: 700; color: var(--gold-ink); }
 .sub-chev { margin-left: 6px; font-size: 10px; }
-.wk-t td.wk { min-width: 270px; vertical-align: top; white-space: nowrap; }
-.wk-t td.wk b { color: var(--ink); margin-right: 6px; }
-.wk-t td.wk small { color: var(--muted); font-size: 12px; }
+.wk-t { min-width: 0; }
+.wk-t th, .wk-t td { padding-left: 7px; padding-right: 7px; }
+.wk-t td { font-size: 13.5px; }
+.wk-t td.nowrap { white-space: nowrap; }
+.wk-t td.ket { min-width: 170px; }
+.wk-t th, .wk-rk th, .wk-in th { white-space: nowrap; vertical-align: middle; }
+.wk-t th.c { text-align: center; }
+.wk-rk th.c, .wk-in th.c { text-align: center; }
+.wk-t td.wk { white-space: nowrap; vertical-align: top; }
+.wk-t td.wk b { display: block; color: var(--ink); }
+.wk-t td.wk small { display: block; color: var(--muted); font-size: 11.5px; }
 .wk-t tr.kosong td { color: var(--muted); padding-top: 4px; padding-bottom: 4px; font-size: 13px; }
 .wk-t td, .wk-rk td { vertical-align: top; }
 .wk-rk tr.lalu td:first-child { font-weight: 700; color: var(--ink); }
@@ -1716,6 +1724,9 @@ document.getElementById("drShare").onclick = async () => { try { await navigator
 /* ===================== Weekly Sales Performance (per proyek) ===================== */
 const WK_AWAL = 2019;
 const WK_BAG = { jual: { judul: "Penjualan", tgl: "Tanggal Pemesanan" }, batal: { judul: "Batal", tgl: "Tanggal Batal" }, hold: { judul: "Hold Reserved", tgl: "Tanggal Transaksi" } };
+/* "05 Jan s.d 11 Jan 2026" (tahun ditulis di akhir; ditulis dua kali jika beda tahun) */
+const wkPendek = (a, b) => { const t = iso => `${iso.slice(8, 10)} ${BULAN[+iso.slice(5, 7) - 1].slice(0, 3)}`;
+  return a.slice(0, 4) === b.slice(0, 4) ? `${t(a)} s.d ${t(b)} ${b.slice(0, 4)}` : `${t(a)} ${a.slice(0, 4)} s.d ${t(b)} ${b.slice(0, 4)}`; };
 const wkTgl = iso => `${iso.slice(8, 10)} ${BULAN[+iso.slice(5, 7) - 1]} ${iso.slice(0, 4)}`;
 /* Minggu Senin–Minggu dalam satu tahun, mulai Senin pertama; 1–4 Jan (jika bukan Senin) jadi minggu awal tersendiri */
 function wkMinggu(th) {
@@ -1743,7 +1754,7 @@ function viewWeekly(nama, id) {
     return { semua, g };
   };
   const rekapTbl = (j, judulTotal) => { const { semua, g } = rekapRows(j);
-    return `<div class="tbl-wrap"><table class="hold-t pg-t wk-rk"><thead><tr><th>Periode</th><th>Jumlah</th><th>Rp (Termasuk PPN)</th><th>Rp (Tidak Termasuk PPN)</th></tr></thead><tbody>
+    return `<div class="tbl-wrap"><table class="hold-t pg-t wk-rk"><thead><tr><th>Periode</th><th>Jumlah</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th></tr></thead><tbody>
       ${semua.map(([l, v]) => `<tr class="${l.startsWith("TOTAL") ? "lalu" : ""}"><td>${esc(l)}</td><td class="nowrap">${v[0] ? v[0].toLocaleString(LOC()) + " Unit" : "–"}</td><td class="acc">${wkRp(v[1])}</td><td class="acc">${wkRp(v[2])}</td></tr>`).join("")}
       <tr class="t"><td>${esc(judulTotal)}</td><td class="nowrap">${g[0].toLocaleString(LOC())} Unit</td><td class="acc">${wkRp(g[1])}</td><td class="acc">${wkRp(g[2])}</td></tr></tbody></table></div>`; };
   const baris = x => `<td class="nowrap">${ddmmyyyy(x.tanggal)}</td><td>${esc(x.klaster || "–")}</td><td class="nowrap">${x.jumlah ? x.jumlah + " Unit" : "–"}</td><td>${esc(x.tipe || "–")}</td><td>${esc(x.bayar || "–")}</td>
@@ -1753,10 +1764,10 @@ function viewWeekly(nama, id) {
     const rows = mg.filter(w => (w.dari <= hari && !w.awal) || list.some(x => x.tanggal >= w.dari && x.tanggal <= w.sampai)).map(w => {
       const isi = list.filter(x => x.tanggal >= w.dari && x.tanggal <= w.sampai);
       if (!isi.length && wkHanyaIsi) return "";
-      const lbl = `<td class="wk" rowspan="${Math.max(1, isi.length)}"><b>${w.n ? `Minggu ke-${w.n}` : "Awal tahun"}</b><small>(${wkTgl(w.dari)} s.d ${wkTgl(w.sampai)})</small></td>`;
+      const lbl = `<td class="wk" rowspan="${Math.max(1, isi.length)}"><b>${w.n ? `Minggu ke-${w.n}` : "Awal tahun"}</b><small>(${wkPendek(w.dari, w.sampai)})</small></td>`;
       return isi.length ? isi.map((x, i) => `<tr>${i ? "" : lbl}${baris(x)}</tr>`).join("") : `<tr class="kosong">${lbl}<td colspan="9">–</td></tr>`;
     }).join("");
-    return `<div class="tbl-wrap"><table class="hold-t pg-t wk-t"><thead><tr><th>Minggu ke-</th><th>${WK_BAG[j].tgl}</th><th>Klaster</th><th>Jumlah</th><th>Tipe</th><th>Keterangan Pembayaran</th><th>Rp (Termasuk PPN)</th><th>Rp (Tidak Termasuk PPN)</th><th>Nama Sales</th><th>Keterangan</th></tr></thead>
+    return `<div class="tbl-wrap"><table class="hold-t pg-t wk-t"><thead><tr><th>Minggu ke-</th><th>${WK_BAG[j].tgl.replace(" ", "<br>")}</th><th>Klaster</th><th>Jumlah</th><th>Tipe</th><th>Keterangan<br>Pembayaran</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th><th>Nama<br>Sales</th><th>Keterangan</th></tr></thead>
       <tbody>${rows || `<tr><td colspan="10" style="text-align:center;color:var(--muted)">Belum ada transaksi.</td></tr>`}</tbody></table></div>`;
   };
   const jTh = wkSum(thIni("jual")), bTh = wkSum(thIni("batal")), akum = rekapRows("jual").g, hold = (W.hold || []).slice().sort((a, b) => a.tanggal.localeCompare(b.tanggal)), hTot = wkSum(hold);
@@ -1772,7 +1783,7 @@ function viewWeekly(nama, id) {
   <section class="gut"><h2>Batal per minggu ${th}</h2>${mingguTbl("batal")}
     <h3 class="wk-sub">Rekap batal</h3>${rekapTbl("batal", "Grand Total")}</section>
   <section class="gut"><h2>Hold Reserved</h2>
-    <div class="tbl-wrap"><table class="hold-t pg-t wk-t"><thead><tr><th>${WK_BAG.hold.tgl}</th><th>Klaster</th><th>Jumlah</th><th>Tipe</th><th>Keterangan Pembayaran</th><th>Rp (Termasuk PPN)</th><th>Rp (Tidak Termasuk PPN)</th><th>Nama Sales</th><th>Keterangan</th></tr></thead><tbody>
+    <div class="tbl-wrap"><table class="hold-t pg-t wk-t"><thead><tr><th>${WK_BAG.hold.tgl.replace(" ", "<br>")}</th><th>Klaster</th><th>Jumlah</th><th>Tipe</th><th>Keterangan<br>Pembayaran</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th><th>Nama<br>Sales</th><th>Keterangan</th></tr></thead><tbody>
     ${hold.map(x => `<tr>${baris(x)}</tr>`).join("") || `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Tidak ada unit hold saat ini.</td></tr>`}
     ${hold.length ? `<tr class="t"><td>Total</td><td></td><td class="nowrap">${hTot[0]} Unit</td><td></td><td></td><td class="acc">${wkRp(hTot[1])}</td><td class="acc">${wkRp(hTot[2])}</td><td></td><td></td></tr>` : ""}</tbody></table></div></section>
   <div class="notes gut"><p class="desc" style="margin:0">Sumber: Weekly Report ${esc(nama)} • Rp = Rupiah penuh • “–” = nihil</p></div>
@@ -1793,7 +1804,7 @@ function viewWeeklyInput(nama, id) {
   const tabel = j => { const list = (d[j] || []).slice().sort((a, b) => a.tanggal.localeCompare(b.tanggal));
     return `<div class="bh-box"><div class="bh-head"><div><h3>${WK_BAG[j].judul}</h3><div class="desc">${j === "hold" ? "Unit yang ditahan, belum dihitung sebagai penjualan." : `Satu baris per transaksi, masuk ke minggu dan bulan sesuai tanggalnya.`} Rp tanpa PPN otomatis ÷ 1,11 jika kosong.</div></div>
       ${lk ? "" : `<button class="btn sec" data-wkadd="${j}" type="button">Tambah baris</button>`}</div>
-      <div class="tbl-wrap"><table class="edit bh-t wk-in"><thead><tr><th>${WK_BAG[j].tgl}</th><th>Klaster</th><th>Jumlah (unit)</th><th>Tipe</th><th>Keterangan Pembayaran</th><th>Rp (Termasuk PPN)</th><th>Rp (Tidak Termasuk PPN)</th><th>Nama Sales</th><th>Keterangan</th><th></th></tr></thead><tbody>
+      <div class="tbl-wrap"><table class="edit bh-t wk-in"><thead><tr><th>${WK_BAG[j].tgl}</th><th>Klaster</th><th>Jumlah (unit)</th><th>Tipe</th><th>Keterangan Pembayaran</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th><th>Nama Sales</th><th>Keterangan</th><th></th></tr></thead><tbody>
       ${list.map(x => `<tr><td><input type="date" id="wk-${j}-${x.id}-tanggal" data-wk="${j}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal}" ${ro}></td><td>${tx(j, x, "klaster")}</td>
         <td><input type="number" min="0" step="1" id="wk-${j}-${x.id}-jumlah" data-wk="${j}" data-id="${x.id}" data-f="jumlah" value="${x.jumlah || 0}" ${ro}></td><td>${tx(j, x, "tipe")}</td><td>${tx(j, x, "bayar", "KPR / Cash")}</td>
         <td>${rpI(j, x, "rpInc")}</td><td>${rpI(j, x, "rpExc")}</td><td>${tx(j, x, "sales")}</td><td>${tx(j, x, "ket")}</td>
@@ -1810,7 +1821,7 @@ function viewWeeklyInput(nama, id) {
     <div class="bh">${tabel("jual")}${tabel("batal")}${tabel("hold")}
     <div class="bh-box"><h3>Rekap tahun sebelumnya</h3><div class="desc">Total per tahun dari Weekly Report lama. Bulan-bulan tahun ${th} dihitung otomatis dari tabel di atas.</div>
       <div class="tbl-wrap"><table class="edit bh-t wk-in"><thead><tr><th rowspan="2">Tahun</th><th colspan="3">Penjualan</th><th colspan="3">Batal</th></tr>
-        <tr><th>Unit</th><th>Rp (Termasuk PPN)</th><th>Rp (Tidak Termasuk PPN)</th><th>Unit</th><th>Rp (Termasuk PPN)</th><th>Rp (Tidak Termasuk PPN)</th></tr></thead><tbody>
+        <tr><th>Unit</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th><th>Unit</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th></tr></thead><tbody>
         ${tahunLalu.map(y => `<tr><td class="proj-c">TOTAL (${y})</td>${[0, 1, 2].map(k => `<td>${rk("jual", y, k)}</td>`).join("")}${[0, 1, 2].map(k => `<td>${rk("batal", y, k)}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>
     </div></div>`;
 }
