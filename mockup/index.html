@@ -196,8 +196,11 @@ table { width: 100%; border-collapse: collapse; }
 .sales-in tr.sum td.stick { background: var(--blue-soft); }
 .sales-in tr.err td.stick { background: var(--red-soft); }
 .hist { min-width: 720px; }
-.hist th { background: var(--navy); color: #fff; font-size: 13px; padding: 8px 10px; text-align: left; }
-.hist td { border-bottom: 1px solid var(--line); padding: 8px 10px; vertical-align: top; font-size: 13.5px; }
+.hist { width: 100%; border-collapse: collapse; }
+.hist th { background: var(--navy); color: #fff; font-size: 13px; padding: 9px 12px; text-align: center; }
+.hist td { border-bottom: 1px solid var(--line); padding: 9px 12px; vertical-align: middle; font-size: 13.5px; text-align: center; }
+.hist td.chg { text-align: left; }
+.hist td:last-child { white-space: nowrap; }
 .hist td.nowrap { white-space: nowrap; color: var(--muted); }
 .hist .bag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 3px; background: var(--blue-soft); color: var(--ink); white-space: nowrap; }
 .hist td.chg ul { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 2px; }
@@ -648,7 +651,7 @@ function viewHistory(report) {
   }).join("");
   return `<div class="page gut"><div class="form-head"><div><h2>History Perubahan</h2>
     <div class="desc">${list.length} catatan, terbaru di atas. Dicatat setiap kali data disimpan di Input Data atau diubah di Master. Disimpan di browser ini saja.</div></div></div>
-    <div class="tbl-wrap" style="margin-top:16px"><table class="hist"><thead><tr><th style="width:140px">Waktu</th><th style="width:120px">Bagian</th><th>Perubahan</th><th style="width:80px">Oleh</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    <div class="tbl-wrap" style="margin-top:16px"><table class="hist"><thead><tr><th style="width:150px">Waktu</th><th style="width:130px">Bagian</th><th>Perubahan</th><th style="width:150px">Oleh</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 
 function toast(m) { try { if (isEN()) m = teksEN(m); } catch (e) {} toastEl.textContent = m; toastEl.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => toastEl.hidden = true, 2400); }
