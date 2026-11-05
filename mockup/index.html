@@ -370,6 +370,9 @@ table { width: 100%; border-collapse: collapse; }
 .wk-opt { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
 .wk-opts { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .btn.wk-tgl { font-size: 12.5px; padding: 6px 10px; }
+/* Master Proyek Penjualan: tabel tidak selebar layar */
+.sm-box { max-width: 960px; }
+.sm-t { min-width: 640px; }
 select.th-sel { font: inherit; font-size: 13px; font-weight: 700; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--input-bg, #fff); color: var(--ink); }
 .wk-opt select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); font: inherit; font-size: 13px; max-width: 340px; }
 .wk-sub { font-size: 15px; margin: 18px 0 0; }
@@ -2132,7 +2135,7 @@ function viewSalesMaster() {
   const items = S.sales2.proyek.slice().sort(byUrut);
   return `<div class="page gut"><div class="form-head"><div><h2>Master Proyek Penjualan</h2>
     <div class="desc">Nama dan grup di sini dipakai di Input Data dan dashboard. Urutan menentukan urutan tampil. Proyek nonaktif tidak dihitung di dashboard.</div></div></div>
-    <div class="tbl-wrap" style="margin-top:16px"><table class="edit" style="min-width:760px"><thead><tr><th style="width:70px">Urutan</th><th>Proyek</th><th>Grup</th><th style="width:70px">Aktif</th></tr></thead><tbody>
+    <div class="sm-box"><div class="tbl-wrap" style="margin-top:16px"><table class="edit sm-t"><thead><tr><th style="width:70px">Urutan</th><th style="width:36%">Proyek</th><th>Grup</th><th style="width:70px">Aktif</th></tr></thead><tbody>
     ${items.map((x, i) => `<tr>
       <td><button class="ord" data-smup="${x.id}" type="button" aria-label="Naikkan ${esc(x.nama)}" ${i === 0 ? "disabled" : ""}>↑</button></td>
       <td><input type="text" id="smn-${x.id}" data-smn="${x.id}" value="${esc(x.nama)}" aria-label="Nama proyek"></td>
@@ -2144,7 +2147,7 @@ function viewSalesMaster() {
       <input type="text" id="smNewN" placeholder="Nama proyek baru" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--input-bg);color:var(--ink)">
       <input type="text" id="smNewG" placeholder="Grup" list="smGrupList" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:4px;background:var(--input-bg);color:var(--ink)">
       <button class="btn" id="smAdd" type="button">Tambah</button></div>
-    <p class="hint">Proyek baru mulai dengan angka 0; isi angkanya di tab Input Data.</p></div>`;
+    <p class="hint">Proyek baru mulai dengan angka 0; isi angkanya di tab Input Data.</p></div></div>`;
 }
 function bindSalesMaster() {
   const v = document.getElementById("view"), byId = id => S.sales2.proyek.find(x => x.id === +id);
