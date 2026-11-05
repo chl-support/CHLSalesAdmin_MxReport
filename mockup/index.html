@@ -241,6 +241,10 @@ table { width: 100%; border-collapse: collapse; }
 .dr-x { font-size: 24px; line-height: 1; background: none; border: none; cursor: pointer; color: var(--muted); padding: 4px 8px; }
 .dr-box textarea { flex: 1; min-height: 320px; width: 100%; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--ink); resize: vertical; white-space: pre-wrap; }
 @media (max-width: 640px) { .dr-sp { display: none; } .dr-act .btn { flex: 1 1 auto; } .dr-box { padding: 14px; } }
+.dr-mode { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.dr-ml { font-size: 12.5px; font-weight: 700; color: var(--muted); margin-right: 4px; }
+.dr-mode button { font: inherit; font-size: 13px; font-weight: 700; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.dr-mode button.on { background: var(--navy); border-color: var(--navy); color: #fff; }
 .dr-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
 .dr-tabs button { font: inherit; font-size: 13px; font-weight: 600; background: none; border: none; border-bottom: 2.5px solid transparent; padding: 6px 12px; cursor: pointer; color: var(--muted); margin-bottom: -1px; }
 .dr-tabs button.on { color: var(--ink); border-bottom-color: var(--gold); }
@@ -468,6 +472,8 @@ a.rcard:hover { border-color: var(--gold); }
   <div class="dr-box" role="dialog" aria-modal="true" aria-labelledby="drTitle">
     <div class="dr-head"><h2 id="drTitle">Daily Report</h2><button type="button" class="dr-x" id="drClose" aria-label="Tutup">×</button></div>
     <p class="desc" id="drDesc"></p>
+    <div class="dr-mode" role="group" aria-label="Isi report"><span class="dr-ml">Isi report</span>
+      <button type="button" data-drm="semua" class="on">Gabungan</button><button type="button" data-drm="jual">Daily Report Penjualan</button><button type="button" data-drm="bast">Report BAST</button></div>
     <div class="dr-tabs" role="tablist"><button type="button" class="on" id="drTabPrev">Pratinjau</button><button type="button" id="drTabEdit">Edit teks</button></div>
     <div class="dr-prev" id="drPrev" aria-label="Pratinjau Daily Report"></div>
     <textarea id="drText" spellcheck="false" aria-label="Teks Daily Report" hidden></textarea>
@@ -1555,7 +1561,8 @@ function rpPendek(v) {
 /* Grup bermerek seperti "PT. … – The Sanctuary Collection" mendapat judul sendiri; singkatan untuk Hold: TSC */
 const merek = grup => { const i = String(grup || "").indexOf(" – "); return i < 0 ? null : grup.slice(i + 3).trim(); };
 const singkat = nama => nama.split(/\s+/).map(w => w[0]).join("").toUpperCase();
-function teksDailyReport() {
+/* bagian: "semua" (gabungan), "jual" (Daily Report penjualan + Hold) atau "bast" (Report BAST saja) */
+function teksDailyReport(bagian = "semua") {
   return denganID(() => {
     const tgl = S.sales2.tanggal, m = bulanKe(tgl), bln = BULAN[m - 1];
     const { rows, tot: T } = hitungSales(undefined, m);
@@ -1612,18 +1619,21 @@ function teksDailyReport() {
     }
     /* Report BAST: laporan terakhir pada/sebelum hari ini */
     const dBast = laporanPada(todayISO()) || dates()[0];
+    let tb = "";
     if (dBast) {
       const H = hitung(dBast), g = n => n === 0 ? "-" : n;
-      t += `\n\nReport BAST Program PPN DTP\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n`;
+      tb = `Report BAST Program PPN DTP\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n`;
       H.periodes.forEach(({ p, rincian }) => {
-        t += `\n*Periode PPN DTP (${p.nama})*\n`;
+        tb += `\n*Periode PPN DTP (${p.nama})*\n`;
         rincian.forEach(({ j, r }) => {
-          t += `*${j.nama.toUpperCase()}*\nBAST PPN DTP\n    Total ${g(r.d[0])} unit dari ${g(r.d[1])} unit\nBAST Non PPN DTP\n    Total ${g(r.d[2])} unit dari ${g(r.d[3])} unit\n`;
+          tb += `*${j.nama.toUpperCase()}*\nBAST PPN DTP\n    Total ${g(r.d[0])} unit dari ${g(r.d[1])} unit\nBAST Non PPN DTP\n    Total ${g(r.d[2])} unit dari ${g(r.d[3])} unit\n`;
         });
       });
-      t = t.replace(/\n+$/, "");
+      tb = tb.replace(/\n+$/, "");
     }
-    return t;
+    if (bagian === "jual") return t;
+    if (bagian === "bast") return tb || "Belum ada laporan BAST.";
+    return tb ? `${t}\n\n${tb}` : t;
   });
 }
 /* Pratinjau: *teks* (format WhatsApp) ditampilkan tebal */
@@ -1637,9 +1647,21 @@ function drTab(edit) {
 }
 document.getElementById("drTabPrev").onclick = () => drTab(false);
 document.getElementById("drTabEdit").onclick = () => drTab(true);
+/* Pilihan isi: gabungan atau terpisah (Penjualan / BAST). Teks tiap pilihan disimpan selama dialog terbuka, jadi editan tidak hilang saat berpindah */
+let drMode = "semua", drTeks = {};
+function drPilih(mode) {
+  const ta = document.getElementById("drText"), edit = !ta.hidden;
+  drTeks[drMode] = ta.value; drMode = mode;
+  ta.value = drTeks[mode] != null ? drTeks[mode] : (drTeks[mode] = teksDailyReport(mode));
+  document.querySelectorAll("[data-drm]").forEach(b => { const on = b.dataset.drm === mode; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
+  drTab(edit); if (!edit) document.getElementById("drPrev").scrollTop = 0;
+}
+document.querySelectorAll("[data-drm]").forEach(b => b.onclick = () => drPilih(b.dataset.drm));
 function bukaDailyReport() {
   const w = document.getElementById("drWrap"), ta = document.getElementById("drText");
-  ta.value = teksDailyReport(); drTab(false);
+  drTeks = {}; ta.value = drTeks[drMode] = teksDailyReport(drMode); ta.hidden = true;
+  document.querySelectorAll("[data-drm]").forEach(b => { const on = b.dataset.drm === drMode; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
+  drTab(false);
   document.getElementById("drDesc").textContent = isEN() ? `Generated from the data as of ${ddmmyyyy(S.sales2.tanggal)}. The report text stays in Indonesian. Bold text is marked with *asterisks* in WhatsApp format; edit it in the Edit text tab.` : `Dibuat otomatis dari data per ${ddmmyyyy(S.sales2.tanggal)}. Tulisan tebal di WhatsApp ditandai *bintang* saat diedit. Teks bisa diedit dulu lewat tab Edit teks.`;
   document.getElementById("drShare").hidden = !navigator.share;
   w.hidden = false; try { terapkanBahasa(w); } catch (e) {}
@@ -1649,7 +1671,7 @@ document.addEventListener("click", e => { if (e.target.closest("[data-dr]")) { e
 document.getElementById("drClose").onclick = tutupDailyReport;
 document.getElementById("drWrap").addEventListener("click", e => { if (e.target.id === "drWrap") tutupDailyReport(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !document.getElementById("drWrap").hidden) tutupDailyReport(); });
-document.getElementById("drReset").onclick = () => { document.getElementById("drText").value = teksDailyReport(); drTab(false); toast("Teks dibuat ulang dari data terbaru"); };
+document.getElementById("drReset").onclick = () => { document.getElementById("drText").value = drTeks[drMode] = teksDailyReport(drMode); drTab(false); toast("Teks dibuat ulang dari data terbaru"); };
 document.getElementById("drCopy").onclick = () => { const ta = document.getElementById("drText");
   /* Teks biasa (dengan *bintang*, untuk WhatsApp) + HTML tebal (untuk email/Word) */
   const html = `<div style="white-space:pre-wrap;font-family:Arial,sans-serif">${drHTML(ta.value)}</div>`;
@@ -1903,7 +1925,7 @@ const EN = {
   "Di browser ini gambar akan diunduh dulu": "This browser will download the image first",
   "Gambar siap. Ketuk Bagikan sekali lagi.": "Image ready. Tap Share once more.",
   "Browser ini belum bisa membagikan gambar langsung. Gambar diunduh; bagikan dari galeri atau folder Download.": "This browser can't share images directly. The image was downloaded; share it from your gallery or Downloads folder.",
-  "Kirim Daily Report": "Send Daily Report", "Buat ulang dari data": "Rebuild from data", "Salin teks": "Copy text", "Pratinjau": "Preview", "Edit teks": "Edit text", "Kirim ke WhatsApp": "Send to WhatsApp",
+  "Kirim Daily Report": "Send Daily Report", "Buat ulang dari data": "Rebuild from data", "Salin teks": "Copy text", "Pratinjau": "Preview", "Edit teks": "Edit text", "Isi report": "Report content", "Gabungan": "Combined", "Daily Report Penjualan": "Sales Daily Report", "Report BAST": "BAST report", "Kirim ke WhatsApp": "Send to WhatsApp",
   "Daily Report disalin": "Daily Report copied", "Teks dibuat ulang dari data terbaru": "Text rebuilt from the latest data",
   "Master Periode & Proyek": "Periods & projects master", "Master Proyek Penjualan": "Sales projects master", "Tambah": "Add", "Urutan": "Order", "Aktif": "Active",
 };
