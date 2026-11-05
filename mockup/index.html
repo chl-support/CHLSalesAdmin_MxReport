@@ -350,6 +350,11 @@ table { width: 100%; border-collapse: collapse; }
 .wk-opt select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); font: inherit; font-size: 13px; max-width: 340px; }
 .wk-sub { font-size: 15px; margin: 18px 0 0; }
 .wk-bar { margin-top: 12px; }
+/* Kolom SBUM: kotak tersendiri */
+.wk-t th.c-sbum, .wk-rk th.c-sbum, .wk-in th.c-sbum { background: var(--blue); }
+.wk-t td.c-sbum, .wk-rk td.c-sbum, .wk-in td.c-sbum { background: var(--green-soft); border-left: 2px solid var(--green); border-right: 2px solid var(--green); }
+.wk-t tr:last-child td.c-sbum, .wk-rk tr:last-child td.c-sbum { border-bottom: 2px solid var(--green); }
+.wk-rk tr.t td.c-sbum, .wk-t tr.t td.c-sbum { background: var(--green-soft); }
 .edit.wk-fit { min-width: 0; width: 100%; table-layout: fixed; }
 .edit.wk-fit th { white-space: normal; font-size: 12px; padding: 6px 4px; }
 .edit.wk-fit td { padding: 4px 3px; }
@@ -2041,16 +2046,16 @@ function viewWeekly(nama, id) {
     const semua = [...lalu, ...bln], g = semua.reduce((a, [, v]) => a.map((n, i) => n + (v[i] || 0)), nol());
     return { semua, g, nilai: semua.reduce((a, r) => a + r[2], 0) };
   };
-  const rkHead = K.filter(c => c.t === "rp").map(c => `<th class="c">${c.l}</th>`).join("");
+  const rkHead = K.filter(c => c.t === "rp").map(c => `<th class="c${c.k === "sbum" ? " c-sbum" : ""}">${c.l}</th>`).join("");
   const rekapTbl = (j, judulTotal) => { const { semua, g } = rekapRows(j);
     return `<div class="tbl-wrap"><table class="hold-t pg-t wk-rk"><thead><tr><th>Periode</th><th>Jumlah</th>${rkHead}</tr></thead><tbody>
-      ${semua.map(([l, v]) => `<tr class="${l.startsWith("TOTAL") ? "lalu" : ""}"><td>${esc(l)}</td><td class="nowrap">${v[0] ? v[0].toLocaleString(LOC()) + " Unit" : "–"}</td>${rk.map((k, i) => `<td class="acc">${wkRp(v[i + 1])}</td>`).join("")}</tr>`).join("")}
-      <tr class="t"><td>${esc(judulTotal)}</td><td class="nowrap">${g[0].toLocaleString(LOC())} Unit</td>${rk.map((k, i) => `<td class="acc">${wkRp(g[i + 1])}</td>`).join("")}</tr></tbody></table></div>`; };
-  const sel = (c, x) => c.t === "rp" ? `<td class="acc">${wkRp(x[c.k])}</td>` : c.k === "jumlah" ? `<td class="nowrap">${x.jumlah ? x.jumlah + " Unit" : "–"}</td>`
+      ${semua.map(([l, v]) => `<tr class="${l.startsWith("TOTAL") ? "lalu" : ""}"><td>${esc(l)}</td><td class="nowrap">${v[0] ? v[0].toLocaleString(LOC()) + " Unit" : "–"}</td>${rk.map((k, i) => `<td class="acc${k === "sbum" ? " c-sbum" : ""}">${wkRp(v[i + 1])}</td>`).join("")}</tr>`).join("")}
+      <tr class="t"><td>${esc(judulTotal)}</td><td class="nowrap">${g[0].toLocaleString(LOC())} Unit</td>${rk.map((k, i) => `<td class="acc${k === "sbum" ? " c-sbum" : ""}">${wkRp(g[i + 1])}</td>`).join("")}</tr></tbody></table></div>`; };
+  const sel = (c, x) => c.t === "rp" ? `<td class="acc${c.k === "sbum" ? " c-sbum" : ""}">${wkRp(x[c.k])}</td>` : c.k === "jumlah" ? `<td class="nowrap">${x.jumlah ? x.jumlah + " Unit" : "–"}</td>`
     : c.t === "ket" ? `<td class="ket">${esc(x[c.k] || "")}</td>` : `<td class="c-${c.k}${c.k === "unit" ? " nowrap" : ""}">${esc(x[c.k] || "–")}</td>`;
   const baris = x => `<td class="nowrap">${x.tanggal ? ddmmyyyy(x.tanggal) : "–"}</td>${K.map(c => sel(c, x)).join("")}`;
   const lebar = K.length > 8;
-  const kepala = (pertama, tgl) => `<thead><tr>${pertama ? `<th>${pertama}</th>` : ""}<th>${tgl.replace(" ", "<br>")}</th>${K.map(c => `<th${c.t === "rp" ? ' class="c"' : ""}>${lebar && c.ls ? c.ls : c.l}</th>`).join("")}</tr></thead>`;
+  const kepala = (pertama, tgl) => `<thead><tr>${pertama ? `<th>${pertama}</th>` : ""}<th>${tgl.replace(" ", "<br>")}</th>${K.map(c => `<th class="${c.t === "rp" ? "c" : ""}${c.k === "sbum" ? " c-sbum" : ""}">${lebar && c.ls ? c.ls : c.l}</th>`).join("")}</tr></thead>`;
   const mingguTbl = j => {
     const list = thIni(j);
     const rows = mg.filter(w => wkPilihMg ? w.dari === wkPilihMg : (w.dari <= hari && !w.awal) || list.some(x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai)).map(w => {
@@ -2089,7 +2094,7 @@ function viewWeekly(nama, id) {
   <section class="gut"><h2>Hold Reserved</h2>
     <div class="tbl-wrap"><table class="hold-t pg-t wk-t ${K.length > 8 ? "wk-lebar" : ""}">${kepala("", WK_BAG.hold.tgl)}<tbody>
     ${hold.map(x => `<tr>${baris(x)}</tr>`).join("") || `<tr><td colspan="${K.length + 1}" style="text-align:center;color:var(--muted)">Tidak ada unit hold saat ini.</td></tr>`}
-    ${hold.length ? `<tr class="t"><td>Total</td>${K.map(c => c.k === "jumlah" ? `<td class="nowrap">${hTot[0]} Unit</td>` : c.t === "rp" ? `<td class="acc">${wkRp(hTot[rk.indexOf(c.k) + 1])}</td>` : "<td></td>").join("")}</tr>` : ""}</tbody></table></div></section>
+    ${hold.length ? `<tr class="t"><td>Total</td>${K.map(c => c.k === "jumlah" ? `<td class="nowrap">${hTot[0]} Unit</td>` : c.t === "rp" ? `<td class="acc${c.k === "sbum" ? " c-sbum" : ""}">${wkRp(hTot[rk.indexOf(c.k) + 1])}</td>` : "<td></td>").join("")}</tr>` : ""}</tbody></table></div></section>
   <div class="notes gut"><p class="desc" style="margin:0">Sumber: Weekly Report ${esc(nama)} • Rp = Rupiah penuh • “–” = nihil</p></div>
   </div>`;
 }
@@ -2124,8 +2129,8 @@ function viewWeeklyInput(nama, id) {
     const more = cocok.length > WK_LIHAT ? `<div class="wk-more">${list.length < cocok.length ? `<button type="button" class="btn sec" data-wkmore="${j}">Tampilkan ${Math.min(WK_LIHAT, cocok.length - list.length)} lagi</button><button type="button" class="btn sec" data-wkall="${j}">Tampilkan semua (${cocok.length})</button>` : ""}${list.length > WK_LIHAT ? `<button type="button" class="btn sec" data-wkless="${j}">Ringkas</button>` : ""}</div>` : "";
     return `<div class="bh-box"><div class="bh-head"><div><h3>${WK_BAG[j].judul}</h3><div class="desc">${j === "hold" ? "Unit yang ditahan, belum dihitung sebagai penjualan." : `Satu baris per transaksi, masuk ke minggu dan bulan sesuai tanggalnya.`}${oto ? " Rp tanpa PPN otomatis ÷ 1,11 jika kosong." : ""}</div></div>
       ${lk ? "" : `<button class="btn sec" data-wkadd="${j}" type="button">Tambah baris</button>`}</div>
-      ${bar}<div class="tbl-wrap"><table class="edit bh-t wk-in wk-fit"><colgroup><col style="width:124px">${K.map(c => `<col${WK_COLW[c.k] ? ` style="width:${WK_COLW[c.k]}"` : ""}>`).join("")}<col style="width:28px"></colgroup><thead><tr><th>${WK_BAG[j].tgl}</th>${K.map(c => `<th${c.t === "rp" ? ' class="c"' : ""}>${c.k === "jumlah" ? "Jumlah (unit)" : c.l}</th>`).join("")}<th></th></tr></thead><tbody>
-      ${list.map(x => `<tr><td><input type="date" id="wk-${j}-${x.id}-tanggal" data-wk="${j}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal || ""}" ${ro} ${x.minggu && wkEf(x) !== x.tanggal ? `title="Di Excel ada di minggu ${wkTgl(x.minggu)}"` : ""}></td>${K.map(c => `<td>${inp(j, x, c)}</td>`).join("")}
+      ${bar}<div class="tbl-wrap"><table class="edit bh-t wk-in wk-fit"><colgroup><col style="width:124px">${K.map(c => `<col${WK_COLW[c.k] ? ` style="width:${WK_COLW[c.k]}"` : ""}>`).join("")}<col style="width:28px"></colgroup><thead><tr><th>${WK_BAG[j].tgl}</th>${K.map(c => `<th class="${c.t === "rp" ? "c" : ""}${c.k === "sbum" ? " c-sbum" : ""}">${c.k === "jumlah" ? "Jumlah (unit)" : c.l}</th>`).join("")}<th></th></tr></thead><tbody>
+      ${list.map(x => `<tr><td><input type="date" id="wk-${j}-${x.id}-tanggal" data-wk="${j}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal || ""}" ${ro} ${x.minggu && wkEf(x) !== x.tanggal ? `title="Di Excel ada di minggu ${wkTgl(x.minggu)}"` : ""}></td>${K.map(c => `<td${c.k === "sbum" ? ' class="c-sbum"' : ""}>${inp(j, x, c)}</td>`).join("")}
         <td>${lk ? ikonKunci : `<button class="del" data-wkdel="${j}:${x.id}" type="button" aria-label="Hapus">×</button>`}</td></tr>`).join("")
         || `<tr><td colspan="${K.length + 2}" style="color:var(--muted);text-align:center;padding:12px">${semua.length ? "Tidak ada baris pada bulan ini." : "Belum ada data."}</td></tr>`}</tbody></table></div>${more}</div>`; };
   const tahunLalu = []; for (let y = aw; y < th; y++) tahunLalu.push(y);
