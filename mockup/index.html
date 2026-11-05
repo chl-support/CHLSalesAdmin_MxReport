@@ -1091,73 +1091,68 @@ const WK_SEED = {
     jual: [],
     batal: [{ id: 1, tanggal: "2026-01-05", klaster: "", jumlah: 1, tipe: "", bayar: "", rpInc: 0, rpExc: 0, sales: "", ket: "Dari Excel: 1 unit batal Januari 2026, detail belum diisi" }],
     hold: [] },
-  /* Permai Indah: rumah subsidi (Rp tidak termasuk PPN + SBUM), mulai 2025. Transaksi 2026 dari Weekly Report Permai Indah (Excel),
+  /* Permai Indah: rumah subsidi (Rp tidak termasuk PPN + SBUM), mulai 2025. Transaksi 2026 dari Weekly Report Permai Indah (Excel, versi per 05-11-2026),
      semua baris dimasukkan; kolom Konsumen dikosongkan di sini karena kode halaman publik (isi lewat Input Data / Impor dari Excel). */
-  "Permai Indah": { judul: "Weekly Report Permai Indah", awal: 2025, ekstra: ["unit", "konsumen", "sbum"], ppnOto: false, cfgV: 1, dataV: 1,
+  "Permai Indah": { judul: "Weekly Report Permai Indah", awal: 2025, ekstra: ["unit", "konsumen", "sbum"], ppnOto: false, cfgV: 1, dataV: 2,
     rekap: { jual: { 2025: [13, 0, 2405000000, 52000000] }, batal: { 2025: [0, 0, 0, 0] } },
     jual: [
       {"id":1,"tanggal":"2026-01-06","minggu":"2026-01-05","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-16","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Richela Angriawan / Icon Property"},
-      {"id":2,"tanggal":"","minggu":"2026-01-12","jumlah":0,"unit":"B1-08","konsumen":""},
-      {"id":3,"tanggal":"2026-01-28","minggu":"2026-01-26","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-10","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Siska Sugianti / New Milenial Property"},
-      {"id":4,"tanggal":"2026-03-03","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"B7-05","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Richa Doremifa Meilody Rusdiatman"},
-      {"id":5,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"B2-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Sri Antarsih Indriya / Wiguna Property"},
-      {"id":6,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"B4-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Sri Antarsih Indriya / Wiguna Property"},
-      {"id":7,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-12","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":8,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"B4-06","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Suharti / Property Pro Amazing"},
-      {"id":9,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"A6-10","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":10,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"A4-03","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":11,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-03","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":12,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-08","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":13,"tanggal":"2026-03-12","minggu":"2026-03-09","klaster":"PERMAI INDAH","jumlah":1,"unit":"B2-10","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Richa Doremifa Meilody Rusdiatman"},
-      {"id":14,"tanggal":"2026-04-09","minggu":"2026-04-06","klaster":"PERMAI INDAH","jumlah":1,"unit":"A6-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Chamnah Diana Rachmat / Ljh Realty Serpong"},
-      {"id":15,"tanggal":"2026-04-09","minggu":"2026-04-06","klaster":"PERMAI INDAH","jumlah":1,"unit":"A6-15","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Muhammad Jarkasih/ New Millenial Property"},
-      {"id":16,"tanggal":"2026-04-09","minggu":"2026-04-06","klaster":"PERMAI INDAH","jumlah":1,"unit":"A5-16","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Suharti / Property Pro Amazing"},
-      {"id":17,"tanggal":"2026-04-09","minggu":"2026-04-06","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-11","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":18,"tanggal":"2026-04-09","minggu":"2026-04-06","klaster":"PERMAI INDAH","jumlah":1,"unit":"B1-07","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Suharti / Property Pro Amazing"},
-      {"id":19,"tanggal":"2026-04-09","minggu":"2026-04-06","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-05","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":20,"tanggal":"2026-05-06","minggu":"2026-05-04","klaster":"PERMAI INDAH","jumlah":1,"unit":"A4-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Della Sasmita"},
-      {"id":21,"tanggal":"2026-05-06","minggu":"2026-05-04","klaster":"PERMAI INDAH","jumlah":1,"unit":"A8-12","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Della Sasmita"},
-      {"id":22,"tanggal":"2026-05-10","minggu":"2026-05-04","klaster":"PERMAI INDAH","jumlah":1,"unit":"B3-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Richa Doremifa Meilody Rusdiatman"},
-      {"id":23,"tanggal":"2026-05-21","minggu":"2026-05-18","klaster":"PERMAI INDAH","jumlah":1,"unit":"A3-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Elisabeth Maria Ratuela / Multi Property"},
-      {"id":24,"tanggal":"2026-06-15","minggu":"2026-06-15","klaster":"PERMAI INDAH","jumlah":1,"unit":"A4-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpInc":205350000,"sales":"Kristina Hutapea / Ljhr Serpong"},
-      {"id":25,"tanggal":"2026-06-15","minggu":"2026-06-15","klaster":"PERMAI INDAH","jumlah":1,"unit":"A6-18","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpInc":205350000,"sales":"Kristina Hutapea / Ljhr Serpong"},
-      {"id":26,"tanggal":"2025-12-22","minggu":"2026-06-15","klaster":"PERMAI INDAH","jumlah":1,"unit":"B7-07","konsumen":"","tipe":"22.5/60","bayar":"KPR INTERNAL","rpExc":185000000,"sbum":4000000,"sales":"Ari Putra"},
-      {"id":27,"tanggal":"2026-06-24","minggu":"2026-06-22","klaster":"PERMAI INDAH","jumlah":1,"unit":"B5-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Richa Doremifa Meilody Rusdiatman"},
-      {"id":28,"tanggal":"2026-06-25","minggu":"2026-06-22","klaster":"PERMAI INDAH","jumlah":1,"unit":"B3-08","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Muhammad Jarkasih/ New Millenial Property"},
-      {"id":29,"tanggal":"2026-06-25","minggu":"2026-06-22","klaster":"PERMAI INDAH","jumlah":1,"unit":"A4-12","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Muhammad Jarkasih/ New Millenial Property"},
-      {"id":30,"tanggal":"2026-07-02","minggu":"2026-06-29","klaster":"PERMAI INDAH","jumlah":1,"unit":"A6-05","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Della Sasmita"},
-      {"id":31,"tanggal":"2026-07-17","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Michael / Harvest Property"},
-      {"id":32,"tanggal":"","minggu":"2026-07-13","jumlah":0,"unit":"A5-02","konsumen":""},
-      {"id":33,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"B2-07","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Elisabeth Maria Ratuela / Multi Property"},
-      {"id":34,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"A5-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":35,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-09","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":36,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"B4-10","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Elisabeth Maria Ratuela / Multi Property"},
-      {"id":37,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"B1-10","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Suharti / Property Pro Amazing"},
-      {"id":38,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"B2-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":39,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-15","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Rustam Simanulang / Indomora Pro"},
-      {"id":40,"tanggal":"","minggu":"2026-07-13","jumlah":0,"unit":"A5-06","konsumen":""},
-      {"id":41,"tanggal":"","minggu":"2026-07-13","jumlah":0,"unit":"A4-15","konsumen":""},
-      {"id":42,"tanggal":"2026-07-20","minggu":"2026-07-20","klaster":"PERMAI INDAH","jumlah":1,"unit":"B3-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Suharti / Property Pro Amazing"},
-      {"id":43,"tanggal":"2026-07-21","minggu":"2026-07-20","klaster":"PERMAI INDAH","jumlah":1,"unit":"A7-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":44,"tanggal":"2026-07-24","minggu":"2026-07-20","klaster":"PERMAI INDAH","jumlah":1,"unit":"B3-05","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Della Sasmita"},
-      {"id":45,"tanggal":"2026-07-26","minggu":"2026-07-20","klaster":"PERMAI INDAH","jumlah":1,"unit":"B4-05","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":46,"tanggal":"2026-07-26","minggu":"2026-07-20","klaster":"PERMAI INDAH","jumlah":1,"unit":"A7-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":47,"tanggal":"2026-07-29","minggu":"2026-07-27","klaster":"PERMAI INDAH","jumlah":1,"unit":"B7-08","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Chamnah Diana Rachmat / Ljh Realty Serpong"},
-      {"id":48,"tanggal":"2026-08-03","minggu":"2026-08-03","klaster":"PERMAI INDAH","jumlah":1,"unit":"B5-06","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Chamnah Diana Rachmat / Ljh Realty Serpong"},
-      {"id":49,"tanggal":"2026-08-13","minggu":"2026-08-10","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":50,"tanggal":"","minggu":"2026-08-17","jumlah":0,"unit":"B1-02","konsumen":""},
-      {"id":51,"tanggal":"2026-08-17","minggu":"2026-08-17","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-07","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":52,"tanggal":"2026-08-27","minggu":"2026-08-17","klaster":"PERMAI INDAH","jumlah":1,"unit":"B1-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Della Sasmita"},
-      {"id":53,"tanggal":"2026-08-27","minggu":"2026-08-17","klaster":"PERMAI INDAH","jumlah":1,"unit":"A8-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
-      {"id":54,"tanggal":"2026-09-01","minggu":"2026-08-31","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-12","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Elisabeth Maria Ratuela / Multi Property"},
-      {"id":55,"tanggal":"2026-09-03","minggu":"2026-08-31","klaster":"PERMAI INDAH","jumlah":1,"unit":"B7-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Deby Amalia"},
-      {"id":56,"tanggal":"2026-09-24","minggu":"2026-09-21","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-15","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Elisabeth Maria Ratuela / Multi Property"},
-      {"id":57,"tanggal":"2026-09-27","minggu":"2026-09-21","klaster":"PERMAI INDAH","jumlah":1,"unit":"B2-08","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Muhammad Jarkasih/ New Millenial Property"},
-      {"id":58,"tanggal":"2026-10-02","minggu":"2026-09-28","klaster":"PERMAI INDAH","jumlah":1,"unit":"B5-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Chamnah Diana Rachmat / Ljh Realty Serpong"},
-      {"id":59,"tanggal":"2026-10-03","minggu":"2026-09-28","klaster":"PERMAI INDAH","jumlah":1,"unit":"A6-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Kristina Hutapea / Ljhr Serpong"},
-      {"id":60,"tanggal":"2026-10-03","minggu":"2026-09-28","klaster":"PERMAI INDAH","jumlah":1,"unit":"C1-05","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Richa Doremifa Meilody Rusdiatman"},
-      {"id":61,"tanggal":"2026-10-12","minggu":"2026-10-12","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-06","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Atika Purnamasari / Jendela123"},
-      {"id":62,"tanggal":"2026-10-18","minggu":"2026-10-12","klaster":"PERMAI INDAH","jumlah":1,"unit":"BLV-06","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Atika Purnamasari / Jendela123"}],
+      {"id":2,"tanggal":"2026-01-28","minggu":"2026-01-26","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-10","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Siska Sugianti / New Milenial Property"},
+      {"id":3,"tanggal":"2026-03-03","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"B7-05","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Richa Doremifa Meilody Rusdiatman"},
+      {"id":4,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"B2-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Sri Antarsih Indriya / Wiguna Property"},
+      {"id":5,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"B4-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Sri Antarsih Indriya / Wiguna Property"},
+      {"id":6,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-12","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":7,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"B4-06","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Suharti / Property Pro Amazing"},
+      {"id":8,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"A6-10","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":9,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"A4-03","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":10,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-03","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":11,"tanggal":"2026-03-06","minggu":"2026-03-02","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-08","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":12,"tanggal":"2026-03-12","minggu":"2026-03-09","klaster":"PERMAI INDAH","jumlah":1,"unit":"B2-10","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Richa Doremifa Meilody Rusdiatman"},
+      {"id":13,"tanggal":"2026-04-09","minggu":"2026-04-06","klaster":"PERMAI INDAH","jumlah":1,"unit":"A6-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Chamnah Diana Rachmat / Ljh Realty Serpong"},
+      {"id":14,"tanggal":"2026-04-09","minggu":"2026-04-06","klaster":"PERMAI INDAH","jumlah":1,"unit":"A6-15","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Muhammad Jarkasih/ New Millenial Property"},
+      {"id":15,"tanggal":"2026-04-09","minggu":"2026-04-06","klaster":"PERMAI INDAH","jumlah":1,"unit":"A5-16","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Suharti / Property Pro Amazing"},
+      {"id":16,"tanggal":"2026-04-09","minggu":"2026-04-06","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-11","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":17,"tanggal":"2026-04-09","minggu":"2026-04-06","klaster":"PERMAI INDAH","jumlah":1,"unit":"B1-07","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Suharti / Property Pro Amazing"},
+      {"id":18,"tanggal":"2026-04-09","minggu":"2026-04-06","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-05","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":19,"tanggal":"2026-05-06","minggu":"2026-05-04","klaster":"PERMAI INDAH","jumlah":1,"unit":"A4-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Della Sasmita"},
+      {"id":20,"tanggal":"2026-05-06","minggu":"2026-05-04","klaster":"PERMAI INDAH","jumlah":1,"unit":"A8-12","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Della Sasmita"},
+      {"id":21,"tanggal":"2026-05-10","minggu":"2026-05-04","klaster":"PERMAI INDAH","jumlah":1,"unit":"B3-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Richa Doremifa Meilody Rusdiatman"},
+      {"id":22,"tanggal":"2026-05-21","minggu":"2026-05-18","klaster":"PERMAI INDAH","jumlah":1,"unit":"A3-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Elisabeth Maria Ratuela / Multi Property"},
+      {"id":23,"tanggal":"2026-06-15","minggu":"2026-06-15","klaster":"PERMAI INDAH","jumlah":1,"unit":"A4-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpInc":205350000,"sales":"Kristina Hutapea / Ljhr Serpong"},
+      {"id":24,"tanggal":"2026-06-15","minggu":"2026-06-15","klaster":"PERMAI INDAH","jumlah":1,"unit":"A6-18","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpInc":205350000,"sales":"Kristina Hutapea / Ljhr Serpong"},
+      {"id":25,"tanggal":"2025-12-22","minggu":"2026-06-15","klaster":"PERMAI INDAH","jumlah":1,"unit":"B7-07","konsumen":"","tipe":"22.5/60","bayar":"KPR INTERNAL","rpExc":185000000,"sbum":4000000,"sales":"Ari Putra"},
+      {"id":26,"tanggal":"2026-06-24","minggu":"2026-06-22","klaster":"PERMAI INDAH","jumlah":1,"unit":"B5-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Richa Doremifa Meilody Rusdiatman"},
+      {"id":27,"tanggal":"2026-06-25","minggu":"2026-06-22","klaster":"PERMAI INDAH","jumlah":1,"unit":"B3-08","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Muhammad Jarkasih/ New Millenial Property"},
+      {"id":28,"tanggal":"2026-06-25","minggu":"2026-06-22","klaster":"PERMAI INDAH","jumlah":1,"unit":"A4-12","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Muhammad Jarkasih/ New Millenial Property"},
+      {"id":29,"tanggal":"2026-07-02","minggu":"2026-06-29","klaster":"PERMAI INDAH","jumlah":1,"unit":"A6-05","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Della Sasmita"},
+      {"id":30,"tanggal":"2026-07-17","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Michael / Harvest Property"},
+      {"id":31,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"B2-07","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Elisabeth Maria Ratuela / Multi Property"},
+      {"id":32,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"A5-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":33,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-09","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":34,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"B4-10","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Elisabeth Maria Ratuela / Multi Property"},
+      {"id":35,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"B1-10","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Suharti / Property Pro Amazing"},
+      {"id":36,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"B2-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":37,"tanggal":"2026-07-18","minggu":"2026-07-13","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-15","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Rustam Simanulang / Indomora Pro"},
+      {"id":38,"tanggal":"2026-07-20","minggu":"2026-07-20","klaster":"PERMAI INDAH","jumlah":1,"unit":"B3-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Suharti / Property Pro Amazing"},
+      {"id":39,"tanggal":"2026-07-21","minggu":"2026-07-20","klaster":"PERMAI INDAH","jumlah":1,"unit":"A7-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":40,"tanggal":"2026-07-24","minggu":"2026-07-20","klaster":"PERMAI INDAH","jumlah":1,"unit":"B3-05","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Della Sasmita"},
+      {"id":41,"tanggal":"2026-07-26","minggu":"2026-07-20","klaster":"PERMAI INDAH","jumlah":1,"unit":"B4-05","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":42,"tanggal":"2026-07-26","minggu":"2026-07-20","klaster":"PERMAI INDAH","jumlah":1,"unit":"A7-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":43,"tanggal":"2026-07-29","minggu":"2026-07-27","klaster":"PERMAI INDAH","jumlah":1,"unit":"B7-08","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Chamnah Diana Rachmat / Ljh Realty Serpong"},
+      {"id":44,"tanggal":"2026-08-03","minggu":"2026-08-03","klaster":"PERMAI INDAH","jumlah":1,"unit":"B5-06","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Chamnah Diana Rachmat / Ljh Realty Serpong"},
+      {"id":45,"tanggal":"2026-08-13","minggu":"2026-08-10","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":46,"tanggal":"2026-08-17","minggu":"2026-08-17","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-07","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":47,"tanggal":"2026-08-27","minggu":"2026-08-17","klaster":"PERMAI INDAH","jumlah":1,"unit":"B1-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Della Sasmita"},
+      {"id":48,"tanggal":"2026-08-27","minggu":"2026-08-17","klaster":"PERMAI INDAH","jumlah":1,"unit":"A8-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Meta Oktaria / Khanza Property"},
+      {"id":49,"tanggal":"2026-09-01","minggu":"2026-08-31","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-12","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Elisabeth Maria Ratuela / Multi Property"},
+      {"id":50,"tanggal":"2026-09-03","minggu":"2026-08-31","klaster":"PERMAI INDAH","jumlah":1,"unit":"B7-01","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Deby Amalia"},
+      {"id":51,"tanggal":"2026-09-24","minggu":"2026-09-21","klaster":"PERMAI INDAH","jumlah":1,"unit":"A2-15","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Elisabeth Maria Ratuela / Multi Property"},
+      {"id":52,"tanggal":"2026-09-27","minggu":"2026-09-21","klaster":"PERMAI INDAH","jumlah":1,"unit":"B2-08","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Muhammad Jarkasih/ New Millenial Property"},
+      {"id":53,"tanggal":"2026-10-02","minggu":"2026-09-28","klaster":"PERMAI INDAH","jumlah":1,"unit":"B5-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Chamnah Diana Rachmat / Ljh Realty Serpong"},
+      {"id":54,"tanggal":"2026-10-03","minggu":"2026-09-28","klaster":"PERMAI INDAH","jumlah":1,"unit":"A6-02","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Kristina Hutapea / Ljhr Serpong"},
+      {"id":55,"tanggal":"2026-10-03","minggu":"2026-09-28","klaster":"PERMAI INDAH","jumlah":1,"unit":"C1-05","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Richa Doremifa Meilody Rusdiatman"},
+      {"id":56,"tanggal":"2026-10-12","minggu":"2026-10-12","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-06","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Atika Purnamasari / Jendela123"},
+      {"id":57,"tanggal":"2026-10-18","minggu":"2026-10-12","klaster":"PERMAI INDAH","jumlah":1,"unit":"BLV-06","konsumen":"","tipe":"22.5/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sbum":4000000,"sales":"Atika Purnamasari / Jendela123"}],
     batal: [
       {"id":1,"tanggal":"2026-01-08","minggu":"2026-01-05","klaster":"PERMAI INDAH","jumlah":1,"unit":"A1-09","konsumen":"","tipe":"22","bayar":"KPR DP 1%/1x","rpExc":185000000,"sales":"Siska Sugianti / New Milenial Property"},
       {"id":2,"tanggal":"2026-01-09","minggu":"2026-01-05","klaster":"PERMAI INDAH","jumlah":1,"unit":"A4-08","konsumen":"","tipe":"22","bayar":"KPR DP 1%/1x","rpExc":185000000,"sales":"Muhamad Aldi / New Millenial Property"},
@@ -1316,8 +1311,14 @@ function seedWeekly() {
     if (!w) { S.weekly[k] = clone(sd); ubah = true; return; }
     if ((w.cfgV || 0) < (sd.cfgV || 0)) { ["judul", "awal", "ekstra", "ppnOto"].forEach(f => { if (sd[f] !== undefined) w[f] = clone(sd[f]); }); w.cfgV = sd.cfgV; ubah = true; }
     if ((w.dataV || 0) < (sd.dataV || 0)) {
-      if (!["jual", "batal", "hold"].some(j => (w[j] || []).length)) ["jual", "batal", "hold"].forEach(j => w[j] = clone(sd[j]));
+      /* Muat ulang dari Excel terbaru. Nama konsumen yang sudah diisi dipertahankan (dicocokkan dari tanggal + kode unit). */
+      const kunci = x => `${x.tanggal || ""}|${(x.unit || "").toUpperCase()}`;
+      ["jual", "batal", "hold"].forEach(j => {
+        const nama = {}; (w[j] || []).forEach(x => { if (x.konsumen) nama[kunci(x)] = x.konsumen; });
+        w[j] = clone(sd[j]).map(x => (nama[kunci(x)] && !x.konsumen ? { ...x, konsumen: nama[kunci(x)] } : x));
+      });
       w.dataV = sd.dataV; ubah = true;
+      try { catat(`weekly:${k}`, "Input Data", [`${k} · Data dimuat ulang dari Weekly Report Excel terbaru (${sd.jual.length} penjualan, ${sd.batal.length} batal, ${sd.hold.length} hold)`]); } catch (e) {}
     }
   });
   return ubah;
@@ -2187,11 +2188,15 @@ function wkBacaExcel(rows, W, th) {
     if (!m) return null; const b1 = BLN.indexOf(m[2]), b2 = BLN.indexOf(m[5]); if (b1 < 0 || b2 < 0) return null;
     const y2 = m[6] ? +m[6] : m[7] ? 2000 + +m[7] : th, y1 = m[3] ? +m[3] : (b1 > b2 ? y2 - 1 : y2);
     return `${y1}-${String(b1 + 1).padStart(2, "0")}-${String(+m[1]).padStart(2, "0")}`; };
-  let urutan = 0, bag = null, map = null, cur = null;
+  /* lc = kolom judul/label minggu (A atau B, tergantung file) */
+  let urutan = 0, bag = null, map = null, cur = null, lc = 0;
   for (let r = 0; r < rows.length; r++) {
-    const row = rows[r] || [], a = low(row[0]);
+    const row = rows[r] || [];
     const iT = row.findIndex(v => /^tanggal/.test(low(v)));
-    if (iT >= 0 && (a.startsWith("minggu ke") || a === "batal" || a.startsWith("hold"))) {
+    const li = iT > 0 ? row.slice(0, iT).findIndex(v => /^(minggu ke|batal$|hold)/.test(low(v))) : -1;
+    if (li >= 0) lc = li;
+    const a = low(row[lc]);
+    if (li >= 0) {
       bag = a.startsWith("hold") ? "hold" : (urutan++ === 0 && a !== "batal") ? "jual" : "batal";
       if (a === "batal") bag = "batal";
       map = { tanggal: iT }; const sub = rows[r + 1] || [];
@@ -2203,7 +2208,7 @@ function wkBacaExcel(rows, W, th) {
       continue;
     }
     if (!bag) continue;
-    const bk = blok(row[0]); if (bk) cur = bk;
+    const bk = blok(row[lc]); if (bk) cur = bk;
     const rek = a.match(/^total \((\d{4})\)/);
     if (rek && bag !== "hold") { const y = +rek[1];
       if (y < th) out.rekap[bag][y] = [angka(row[map.jumlah]), ...wkRpK(W).map(k => map[k] != null ? angka(row[map[k]]) : 0)]; continue; }
