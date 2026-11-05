@@ -261,9 +261,16 @@ table { width: 100%; border-collapse: collapse; }
 .dr-ml { font-size: 12.5px; font-weight: 700; color: var(--muted); margin-right: 4px; }
 .dr-mode button { font: inherit; font-size: 13px; font-weight: 700; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
 .dr-mode button.on { background: var(--navy); border-color: var(--navy); color: #fff; }
-.dr-proy button { font-weight: 600; font-size: 12.5px; padding: 5px 10px; }
-.dr-proy button.on { background: var(--gold); border-color: var(--gold); color: var(--navy); }
-.dr-proy button.dr-all { font-weight: 700; }
+/* Pilihan proyek: dropdown dengan centang */
+.dr-dd { position: relative; }
+.dr-dd > summary { list-style: none; cursor: pointer; font-size: 13px; font-weight: 700; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); display: inline-flex; gap: 6px; align-items: center; max-width: 100%; }
+.dr-dd > summary::-webkit-details-marker { display: none; }
+.dr-dd > summary::after { content: "▾"; font-size: 11px; color: var(--muted); }
+.dr-dd[open] > summary { border-color: var(--navy); }
+.dr-dd-list { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; min-width: 230px; max-width: calc(100vw - 110px); max-height: 260px; overflow-y: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 24px rgba(0,0,0,.15); padding: 6px; }
+.dr-dd-list label { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 6px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.dr-dd-list label:hover { background: var(--input-bg); }
+.dr-dd-list label.dr-all { font-weight: 700; border-bottom: 1px solid var(--line); border-radius: 6px 6px 0 0; margin-bottom: 2px; }
 .dr-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
 .dr-tabs button { font: inherit; font-size: 13px; font-weight: 600; background: none; border: none; border-bottom: 2.5px solid transparent; padding: 6px 12px; cursor: pointer; color: var(--muted); margin-bottom: -1px; }
 .dr-tabs button.on { color: var(--ink); border-bottom-color: var(--gold); }
@@ -2090,7 +2097,7 @@ function teksDailyReport(bagian = "semua") {
     if (!L.length) L.push("Tidak ada perubahan");
     L.push(`${bln} / YTD : ${fU(T.bln[0])}/${fU(T.ytd[0])} Unit (${fM(T.bln[1])}/${fM(T.ytd[1])} M)`);
     L.push(`Total Terjual : ${fU(T.akum[0])}/${fU(T.stok[0])} Unit (${fM(T.akum[1])}/${fM(T.stok[1])} M)`);
-    if (rows.length > 1 || !pil) out.push(`*${userTerbatas() || pil ? "Total" : "CHL"} :*\n${L.join("\n")}`);
+    out.push(`*${userTerbatas() || pil ? "Total" : "CHL"} :*\n${L.join("\n")}`);
     let t = `Daily Report\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n\n` + out.join("\n\n");
     /* Hold Reserved */
     const hold = (S.sales2.hold || []).filter(dipilih);
@@ -2155,9 +2162,12 @@ const drProyekList = () => { const L = hitungSales().rows.map(x => x.p), nm = p 
 function drProyekPilih() { if (!drProyek) return null; const ids = new Set(drProyekList().map(p => p.id)), s = new Set([...drProyek].filter(id => ids.has(id))); return s.size && s.size < ids.size ? s : null; }
 function drProyekGambar() {
   const el = document.getElementById("drProy"), pil = drProyekPilih(), L = drProyekList();
-  el.innerHTML = `<span class="dr-ml">Proyek</span><button type="button" class="dr-all${pil ? "" : " on"}" data-drp="" aria-pressed="${!pil}">Semua proyek</button>` +
-    L.map(p => { const on = !!pil && pil.has(p.id); return `<button type="button" data-drp="${p.id}" class="${on ? "on" : ""}" aria-pressed="${on}">${esc(p.nama)}</button>`; }).join("");
-  el.querySelectorAll("[data-drp]").forEach(b => b.onclick = () => {
+  const buka = !!el.querySelector(".dr-dd[open]");
+  const lbl = !pil ? "Semua proyek" : pil.size === 1 ? L.find(p => pil.has(p.id)).nama : `${pil.size} proyek dipilih`;
+  el.innerHTML = `<span class="dr-ml">Proyek</span><details class="dr-dd"${buka ? " open" : ""}><summary>${esc(lbl)}</summary><div class="dr-dd-list">` +
+    `<label class="dr-all"><input type="checkbox" data-drp="" ${pil ? "" : "checked"}> Semua proyek</label>` +
+    L.map(p => `<label><input type="checkbox" data-drp="${p.id}" ${pil && pil.has(p.id) ? "checked" : ""}> ${esc(p.nama)}</label>`).join("") + `</div></details>`;
+  el.querySelectorAll("[data-drp]").forEach(b => b.onchange = () => {
     const id = b.dataset.drp; let s = drProyekPilih() ? new Set(drProyekPilih()) : new Set();
     if (!id) s = null; else { const v = isNaN(+id) ? id : (L.some(p => p.id === +id) ? +id : id); s.has(v) ? s.delete(v) : s.add(v); if (!s.size) s = null; }
     drProyek = s; drProyekGambar();
@@ -2180,7 +2190,8 @@ function tutupDailyReport() { document.getElementById("drWrap").hidden = true; }
 document.addEventListener("click", e => { if (e.target.closest("[data-wktambahan]")) { S.wkTambahanOff = !S.wkTambahanOff; save(); render(); return; } });
 document.addEventListener("click", e => { if (e.target.closest("[data-dr]")) { e.preventDefault(); setMenu(false); bukaDailyReport(); } });
 document.getElementById("drClose").onclick = tutupDailyReport;
-document.getElementById("drWrap").addEventListener("click", e => { if (e.target.id === "drWrap") tutupDailyReport(); });
+document.getElementById("drWrap").addEventListener("click", e => { if (e.target.id === "drWrap") tutupDailyReport();
+  const dd = document.querySelector("#drProy .dr-dd[open]"); if (dd && !dd.contains(e.target)) dd.open = false; });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !document.getElementById("drWrap").hidden) tutupDailyReport(); });
 document.getElementById("drReset").onclick = () => { document.getElementById("drText").value = drTeks[drMode] = teksDailyReport(drMode); drTab(false); toast("Teks dibuat ulang dari data terbaru"); };
 document.getElementById("drCopy").onclick = () => { const ta = document.getElementById("drText");
