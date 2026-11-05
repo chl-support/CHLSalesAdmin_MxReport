@@ -37,7 +37,8 @@
 /* Matikan pembesaran teks otomatis di HP (iPhone/Android) supaya tata letak dashboard tidak berantakan */
 html { -webkit-text-size-adjust: 100%; -moz-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.45; }
-.page { max-width: 1240px; margin: 0 auto; padding-bottom: 48px; }
+/* Lebar halaman mengikuti layar perangkat (di HP tampilan laptop 1240px diperkecil, lihat #view.fit) */
+.page { max-width: none; margin: 0 auto; padding-bottom: 48px; }
 .gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .num { font-variant-numeric: tabular-nums; }
 button, select, input { font: inherit; color: inherit; }
@@ -126,14 +127,14 @@ table { width: 100%; border-collapse: collapse; }
 .btn.sec { background: transparent; color: var(--blue); border-color: var(--line); }
 .btn.sec:hover { border-color: var(--blue); }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.edit { min-width: 1100px; margin-top: 12px; }
+.edit { min-width: 980px; margin-top: 12px; }
 .edit thead tr:first-child th:first-child { width: 52px; }
 .edit select, .edit input[type="text"], .edit .msg { text-align: center; text-align-last: center; }
 .edit { border: 1px solid var(--line); }
 .edit th { border: 1px solid rgba(255, 255, 255, .28); }
 .edit td { border: 1px solid var(--line); vertical-align: middle; }
-.edit td:nth-child(2) select, .edit td:nth-child(2) input[type="text"] { min-width: 205px; }
-.edit td:nth-child(3) select, .edit td:nth-child(3) input[type="text"] { min-width: 190px; }
+.edit td:nth-child(2) select, .edit td:nth-child(2) input[type="text"] { min-width: 170px; }
+.edit td:nth-child(3) select, .edit td:nth-child(3) input[type="text"] { min-width: 160px; }
 .edit td input[data-d] { min-width: 58px; }
 .edit td.grup-cell { min-width: 220px; font-size: 13px; color: var(--muted); }
 .edit select[data-sp] { min-width: 210px; }
@@ -347,7 +348,6 @@ table { width: 100%; border-collapse: collapse; }
 .wk-opt { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
 .wk-sub { font-size: 15px; margin: 18px 0 0; }
 .wk-bar { margin-top: 12px; }
-#view[data-rep="weekly"] .page { max-width: none; }
 .edit.wk-fit { min-width: 0; width: 100%; table-layout: fixed; }
 .edit.wk-fit th { white-space: normal; font-size: 12px; padding: 6px 4px; }
 .edit.wk-fit td { padding: 4px 3px; }
