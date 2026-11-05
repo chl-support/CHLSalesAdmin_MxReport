@@ -346,6 +346,8 @@ table { width: 100%; border-collapse: collapse; }
 .wk-rk tr.lalu td:first-child { font-weight: 700; color: var(--ink); }
 .wk-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .wk-opt { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+.wk-opts { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.wk-opt select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); font: inherit; font-size: 13px; max-width: 340px; }
 .wk-sub { font-size: 15px; margin: 18px 0 0; }
 .wk-bar { margin-top: 12px; }
 .edit.wk-fit { min-width: 0; width: 100%; table-layout: fixed; }
@@ -2027,7 +2029,7 @@ const wkEf = x => { if (!x.minggu) return x.tanggal || "";
 const wkUrut = (a, b) => wkEf(a).localeCompare(wkEf(b)) || (a.id - b.id);
 const wkKosong = (nama, bagian, id) => `<div class="page gut weekly-p" id="${id}-view" data-proyek="${esc(nama)}" data-bagian="${bagian}"></div>`;
 const wkBaru = (W, id) => { const r = { id, tanggal: todayISO(), jumlah: 1 }; wkKolom(W).forEach(c => { if (c.k !== "jumlah") r[c.k] = c.t === "rp" ? 0 : ""; }); return r; };
-let wkHanyaIsi = false;
+let wkHanyaIsi = false, wkPilihMg = ""; /* wkPilihMg = tanggal awal minggu yang dipilih ("" = semua minggu) */
 function viewWeekly(nama, id) {
   const W = S.weekly && S.weekly[nama];
   if (!W) return wkKosong(nama, "Dashboard", id);
@@ -2051,9 +2053,9 @@ function viewWeekly(nama, id) {
   const kepala = (pertama, tgl) => `<thead><tr>${pertama ? `<th>${pertama}</th>` : ""}<th>${tgl.replace(" ", "<br>")}</th>${K.map(c => `<th${c.t === "rp" ? ' class="c"' : ""}>${lebar && c.ls ? c.ls : c.l}</th>`).join("")}</tr></thead>`;
   const mingguTbl = j => {
     const list = thIni(j);
-    const rows = mg.filter(w => (w.dari <= hari && !w.awal) || list.some(x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai)).map(w => {
+    const rows = mg.filter(w => wkPilihMg ? w.dari === wkPilihMg : (w.dari <= hari && !w.awal) || list.some(x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai)).map(w => {
       const isi = list.filter(x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai);
-      if (!isi.length && wkHanyaIsi) return "";
+      if (!isi.length && wkHanyaIsi && !wkPilihMg) return "";
       const lbl = `<td class="wk" rowspan="${Math.max(1, isi.length)}"><b>${w.n ? `Minggu ke-${w.n}` : "Awal tahun"}</b><small>(${lebar ? wkRingkas(w.dari, w.sampai) : wkPendek(w.dari, w.sampai)})</small></td>`;
       return isi.length ? isi.map((x, i) => `<tr>${i ? "" : lbl}${baris(x)}</tr>`).join("") : `<tr class="kosong">${lbl}<td colspan="${K.length + 1}">–</td></tr>`;
     }).join("");
@@ -2073,8 +2075,14 @@ function viewWeekly(nama, id) {
   ${!jL.length && !bL.length && !hold.length ? `<div class="wk-imp gut no-cap"><b>Belum ada transaksi ${th} untuk ${esc(nama)}.</b> ${S.role === "ADMIN" && bolehEdit(nama)
     ? `Masukkan dari file Weekly Report: buka <a href="#${(REPORTS.find(r => r.id === "weekly").tabs.find(t => t.proyek === nama && t.label === "Input Data") || {}).id}">Input Data</a> → klik <b>Impor dari Excel</b> → pilih file → <b>Simpan data</b>.` : "Data akan tampil setelah admin mengisi Input Data."}</div>` : ""}
   <section class="gut"><div class="wk-h"><h2>Penjualan per minggu ${th}</h2>
-    <label class="wk-opt no-cap"><input type="checkbox" id="wkHanyaIsi" ${wkHanyaIsi ? "checked" : ""}> Hanya minggu yang ada transaksi</label></div>
-    <div class="desc">Minggu Senin s.d Minggu, sampai minggu berjalan.</div>${mingguTbl("jual")}
+    <div class="wk-opts no-cap">${(() => { /* Pilihan minggu: berlaku untuk tabel Penjualan dan Batal per minggu */
+      const ada = j => thIni(j).map(wkEf), tr = new Set([...ada("jual"), ...ada("batal")]);
+      const opsi = mg.filter(w => (w.dari <= hari && !w.awal) || [...tr].some(t => t >= w.dari && t <= w.sampai));
+      const jml = w => [...thIni("jual"), ...thIni("batal")].filter(x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai).length;
+      const ini = mg.find(x => hari >= x.dari && hari <= x.sampai);
+      return `<label class="wk-opt" for="wkMg">Minggu <select id="wkMg"><option value="">Semua minggu</option>${opsi.slice().reverse().map(w => `<option value="${w.dari}" ${w.dari === wkPilihMg ? "selected" : ""}>${w.n ? `Minggu ke-${w.n}` : "Awal tahun"} (${wkPendek(w.dari, w.sampai)})${ini && w.dari === ini.dari ? " • berjalan" : ""}${jml(w) ? ` • ${jml(w)} transaksi` : ""}</option>`).join("")}</select></label>`; })()}
+      <label class="wk-opt"><input type="checkbox" id="wkHanyaIsi" ${wkHanyaIsi ? "checked" : ""} ${wkPilihMg ? "disabled" : ""}> Hanya minggu yang ada transaksi</label></div></div>
+    <div class="desc">${wkPilihMg ? `Menampilkan ${(() => { const w = mg.find(x => x.dari === wkPilihMg); return w ? `${w.n ? `minggu ke-${w.n}` : "awal tahun"} (${wkPendek(w.dari, w.sampai)})` : "minggu terpilih"; })()} untuk tabel Penjualan dan Batal.` : "Minggu Senin s.d Minggu, sampai minggu berjalan."}</div>${mingguTbl("jual")}
     <h3 class="wk-sub">Rekap penjualan</h3>${rekapTbl("jual", `Grand Total ${aw} s.d ${th}`)}</section>
   <section class="gut"><h2>Batal per minggu ${th}</h2>${mingguTbl("batal")}
     <h3 class="wk-sub">Rekap batal</h3>${rekapTbl("batal", "Grand Total")}</section>
@@ -2085,7 +2093,10 @@ function viewWeekly(nama, id) {
   <div class="notes gut"><p class="desc" style="margin:0">Sumber: Weekly Report ${esc(nama)} • Rp = Rupiah penuh • “–” = nihil</p></div>
   </div>`;
 }
-function bindWeekly() { const c = document.getElementById("wkHanyaIsi"); if (c) c.onchange = () => { wkHanyaIsi = c.checked; render("wkHanyaIsi"); }; }
+function bindWeekly() {
+  const c = document.getElementById("wkHanyaIsi"); if (c) c.onchange = () => { wkHanyaIsi = c.checked; render("wkHanyaIsi"); };
+  const m = document.getElementById("wkMg"); if (m) m.onchange = () => { wkPilihMg = m.value; render("wkMg"); };
+}
 
 /* Input Data Weekly: draf per proyek, disimpan dengan tombol Simpan data */
 let wkDraft = null, wkDraftNama = null;
