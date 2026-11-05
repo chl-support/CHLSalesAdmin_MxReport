@@ -1498,7 +1498,7 @@ if (!S.sales2.batal) { S.sales2.batal = clone(SALES2_SEED.batal); S.sales2.hold 
    Angka "hari ini" dikosongkan otomatis saat hari berganti. */
 function ikutiHariIni() {
   const t = todayISO();
-  if (S.sales2.tanggal === t) return;
+  if (!S || !S.sales2 || S.sales2.tanggal === t) return;
   if (S.sales2.hariTanggal !== t) S.sales2.proyek.forEach(p => p.hari = [0, 0]);
   S.sales2.tanggal = t; S.sales2.hariTanggal = t; save();
 }
@@ -1589,7 +1589,7 @@ function viewSales() {
     <div class="strip gut"><span>Data penjualan ${rows.length} proyek • ${!cur ? `Posisi akhir ${esc(bln)}${pilihSalesTgl && pilihSalesTgl !== tgl ? ` (data dicatat per bulan; dipilih ${ddmmyyyy(pilihSalesTgl)})` : ""}` : T.hari[0] ? `${T.hari[0]} unit terjual pada ${panjang(tgl)}` : `Tidak ada perubahan pada ${panjang(tgl)}`}</span>
       <div class="strip-actions no-cap">
         <label for="salesTgl" style="font-size:13px">Tanggal</label>
-        <input type="date" id="salesTgl" value="${pilihSalesTgl || tgl}" min="${tahunKe()}-01-01" max="${S.sales2.tanggal}" title="Data penjualan dicatat per bulan: tanggal yang dipilih menampilkan data bulannya">
+        <input type="date" id="salesTgl" value="${pilihSalesTgl || tgl}" min="${tahunKe()}-01-01" max="${todayISO()}" title="Data penjualan dicatat per bulan: tanggal yang dipilih menampilkan data bulannya">
         ${salesBulan ? '<button class="btn-ghost" id="salesLatest" type="button">Bulan berjalan</button>' : ""}
         <button class="btn-ghost" id="salesCopy" type="button">Salin teks laporan</button>
         <button class="btn-ghost" id="salesShot" type="button" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button>
@@ -2634,6 +2634,7 @@ function render(focusId) {
   document.getElementById("profAv").textContent = SESI.nama.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
   document.getElementById("resetBtn").hidden = !(SESI.role === "ADMIN" && !SESI.proyek);
   document.getElementById("syncInfo").textContent = SERVER.info;
+  ikutiHariIni(); /* tanggal laporan otomatis = hari ini (juga setelah lewat tengah malam) */
   rendering = true;
   const v = current();
   { const f0 = findTab(v);
@@ -2956,7 +2957,7 @@ async function tarik(tampilkan) {
         /* Form yang belum diubah ikut memuat data terbaru; form yang sedang diubah dibiarkan */
         if (draft !== null && JSON.stringify(draft) === JSON.stringify((S.laporan || {})[draftDate] || [])) draft = null;
         if (sDraft !== null && JSON.stringify(sDraft) === JSON.stringify(S.sales2)) sDraft = null;
-        terapkan(r.data.state, r.data.version); if (migrasiCatatan() | seedWeekly()) save(); if (tampilkan !== false) render();
+        terapkan(r.data.state, r.data.version); if (migrasiCatatan() | seedWeekly()) save(); ikutiHariIni(); if (tampilkan !== false) render();
       }
     } else if (SESI && SESI.role === "ADMIN" && !SESI.proyek) {
       SERVER.versi = 0; SERVER.on = true; await kirim(true);   /* database kosong: isi dengan data saat ini */
