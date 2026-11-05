@@ -1702,10 +1702,12 @@ const REPORTS = [
     ],
     meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
   { id: "weekly", subMenu: true, nama: "Dashboard Weekly Sales Performance", menu: "DASHBOARD WEEKLY SALES PERFORMANCE", desc: "",
-    /* Satu tab per proyek; isi tiap tab kosong (dibangun sendiri) di <div id="weekly-…-view"> */
+    /* Tiap proyek punya tab Dashboard, Input Data, Master, History; isi tiap tab kosong (dibangun sendiri) di <div id="…-view"> */
     tabs: ["Banara Serpong", "Naraya Serpong", "Bio District", "Permai Indah", "Tanglin Parc", "Newton Springs", "Orchard Riviera", "Scotts Vale", "Mazenta Residence", "Marchand"]
-      .map((nama, i) => { const id = i ? "weekly-" + nama.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "weekly";
-        return { id, label: nama, view: () => `<div class="page gut weekly-p" id="${id}-view" data-proyek="${esc(nama)}"></div>`, bind: () => {} }; }),
+      .flatMap((nama, i) => { const base = "weekly-" + nama.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        return [["", "Dashboard", {}], ["-input", "Input Data", { admin: true }], ["-master", "Master", { admin: true, master: true }], ["-history", "History", {}]].map(([suf, label, hak]) => {
+          const id = !i && !suf ? "weekly" : base + suf;
+          return { id, label, proyek: nama, ...hak, view: () => `<div class="page gut weekly-p" id="${id}-view" data-proyek="${esc(nama)}" data-bagian="${label}"></div>`, bind: () => {} }; }); }),
     meta: () => "" },
 ];
 function viewLaporan() {
@@ -1717,8 +1719,10 @@ function viewLaporan() {
 }
 function reportFrame(r, tab, inner) {
   const tabs = r.tabs.filter(t => (!t.admin || S.role === "ADMIN") && !(t.master && userTerbatas()));
-  if (r.subMenu) return `<div class="page gut"><div class="rhead"><div><div class="crumb"><a href="#laporan">Monitoring Laporan</a> / ${esc(r.nama)}</div><h2>${esc(r.nama)}</h2>
-    <div class="desc" style="font-size:15px;font-weight:700;color:var(--ink);margin-top:4px">${esc(tab.label)}</div></div></div></div>${inner}`;
+  if (r.subMenu) { const pt = tabs.filter(t => t.proyek === tab.proyek);
+    return `<div class="page gut"><div class="rhead"><div><div class="crumb"><a href="#laporan">Monitoring Laporan</a> / ${esc(r.nama)}</div><h2>${esc(r.nama)}</h2>
+    <div class="desc" style="font-size:15px;font-weight:700;color:var(--ink);margin-top:4px">${esc(tab.proyek)}</div></div></div>
+    <nav class="rtabs" aria-label="Bagian report">${pt.map(t => `<a href="#${t.id}" class="${t.id === tab.id ? "on" : ""}" ${t.id === tab.id ? 'aria-current="page"' : ""}>${t.label}</a>`).join("")}</nav></div>${inner}`; }
   return `<div class="page gut"><div class="rhead"><div><div class="crumb"><a href="#laporan">Monitoring Laporan</a> / ${esc(r.nama)}</div><h2>${esc(r.nama)}</h2></div></div>
     <nav class="rtabs" aria-label="Bagian report">${tabs.map(t => `<a href="#${t.id}" class="${t.id === tab.id ? "on" : ""}" ${t.id === tab.id ? 'aria-current="page"' : ""}>${t.label}</a>`).join("")}</nav></div>${inner}`;
 }
@@ -1738,7 +1742,8 @@ function renderMenu(v) {
   /* Report dengan subMenu (Weekly): pilihan proyek tampil menurun di bawah menunya saat report itu dibuka */
   document.getElementById("reportMenu").innerHTML = REPORTS.map(r => {
     const buka = ft && ft.r === r;
-    const sub = r.subMenu && buka ? `<div class="sub2">${r.tabs.map(t => `<a href="#${t.id}" class="${t === ft.t ? "cur" : ""}" ${t === ft.t ? 'aria-current="page"' : ""}>${esc(t.label)}</a>`).join("")}</div>` : "";
+    const sub = r.subMenu && buka ? `<div class="sub2">${r.tabs.filter(t => t.label === "Dashboard").map(t => { const on = t.proyek === ft.t.proyek;
+      return `<a href="#${t.id}" class="${on ? "cur" : ""}" ${on ? 'aria-current="page"' : ""}>${esc(t.proyek)}</a>`; }).join("")}</div>` : "";
     return `<a href="#${r.tabs[0].id}" class="${buka ? "cur" : ""}" ${r.subMenu ? `aria-expanded="${!!buka}"` : ""}>${esc(r.menu || r.nama)}${r.subMenu ? `<span class="sub-chev" aria-hidden="true">${buka ? "▾" : "▸"}</span>` : ""}</a>${sub}`;
   }).join("");
   document.querySelectorAll("#menu .grp-b > a").forEach(a => {
