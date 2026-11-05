@@ -2672,6 +2672,11 @@ const REPORTS = [
           const bind = label === "Dashboard" ? bindWeekly : label === "Input Data" ? () => bindWeeklyInput(nama) : () => {};
           return { id, label, proyek: nama, grup, ...hak, view, bind }; }); }),
     meta: () => "" },
+  { id: "monthly", nama: "Dashboard Monthly Sales Performance", menu: "DASHBOARD MONTHLY SALES PERFORMANCE", desc: "",
+    tabs: [
+      { id: "monthly", label: "Dashboard", view: () => `<div class="page gut" id="monthlyView"></div>`, bind: () => {} }, /* isi dibangun sendiri */
+    ],
+    meta: () => "" },
 ];
 function viewLaporan() {
   return `<div class="page gut"><div class="rhead"><div><h2>Monitoring Laporan</h2>
