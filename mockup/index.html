@@ -34,6 +34,8 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+/* Matikan pembesaran teks otomatis di HP (iPhone/Android) supaya tata letak dashboard tidak berantakan */
+html { -webkit-text-size-adjust: 100%; -moz-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.45; }
 .page { max-width: 1240px; margin: 0 auto; padding-bottom: 48px; }
 .gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
