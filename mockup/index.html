@@ -318,13 +318,14 @@ table { width: 100%; border-collapse: collapse; }
 .sub-chev { margin-left: 6px; font-size: 10px; }
 .wk-t { min-width: 0; }
 .wk-t.wk-lebar td, .wk-t.wk-lebar th { font-size: 12px; padding-left: 5px; padding-right: 5px; }
-.wk-t.wk-lebar th { white-space: normal; }
+.wk-t.wk-lebar th { white-space: nowrap; }
 .wk-t.wk-lebar td.acc .ak-rp > span:first-child { display: none; }
 .wk-t.wk-lebar td.acc .ak-rp { min-width: 0; justify-content: flex-end; }
-.wk-t.wk-lebar td.ket { min-width: 140px; }
-.wk-t.wk-lebar td.c-sales { min-width: 150px; }
+.wk-t.wk-lebar td.ket { min-width: 90px; }
+.wk-t.wk-lebar td.c-sales { min-width: 140px; }
 .wk-t.wk-lebar td.c-konsumen { min-width: 120px; }
-.wk-t.wk-lebar td.c-klaster, .wk-t.wk-lebar td.c-tipe, .wk-t.wk-lebar td.c-bayar { white-space: nowrap; }
+.wk-t.wk-lebar td.c-tipe, .wk-t.wk-lebar td.c-bayar { white-space: nowrap; }
+.wk-t.wk-lebar td.c-klaster { min-width: 60px; }
 /* Tabel lebar bisa digeser; kolom pertama (Minggu ke- / tanggal) tetap terlihat */
 .wk-t.wk-lebar thead th:first-child, .wk-t.wk-lebar td.wk { position: sticky; left: 0; z-index: 1; }
 .wk-t.wk-lebar td.wk { background: var(--bg); box-shadow: 1px 0 0 var(--line); }
@@ -1980,6 +1981,9 @@ const WK_BAG = { jual: { judul: "Penjualan", tgl: "Tanggal Pemesanan" }, batal: 
 /* "05 Jan s.d 11 Jan 2026" (tahun ditulis di akhir; ditulis dua kali jika beda tahun) */
 const wkPendek = (a, b) => { const t = iso => `${iso.slice(8, 10)} ${BULAN[+iso.slice(5, 7) - 1].slice(0, 3)}`;
   return a.slice(0, 4) === b.slice(0, 4) ? `${t(a)} s.d ${t(b)} ${b.slice(0, 4)}` : `${t(a)} ${a.slice(0, 4)} s.d ${t(b)} ${b.slice(0, 4)}`; };
+/* "05–11 Jan 2026" / "26 Jan–01 Feb 2026" untuk tabel yang banyak kolom */
+const wkRingkas = (a, b) => { const bl = iso => BULAN[+iso.slice(5, 7) - 1].slice(0, 3);
+  return a.slice(0, 7) === b.slice(0, 7) ? `${a.slice(8, 10)}–${b.slice(8, 10)} ${bl(b)} ${b.slice(0, 4)}` : `${a.slice(8, 10)} ${bl(a)}–${b.slice(8, 10)} ${bl(b)} ${b.slice(0, 4)}`; };
 const wkTgl = iso => `${iso.slice(8, 10)} ${BULAN[+iso.slice(5, 7) - 1]} ${iso.slice(0, 4)}`;
 /* Minggu Senin–Minggu dalam satu tahun, mulai Senin pertama; 1–4 Jan (jika bukan Senin) jadi minggu awal tersendiri */
 function wkMinggu(th) {
@@ -1998,7 +2002,7 @@ function wkKolom(W) {
   if (e.includes("unit")) K.push({ k: "unit", l: "Unit", t: "tx", ph: "A1-16" });
   if (e.includes("konsumen")) K.push({ k: "konsumen", l: "Konsumen", t: "tx" });
   K.push({ k: "tipe", l: "Tipe", t: "tx" }, { k: "bayar", l: "Keterangan<br>Pembayaran", x: "Keterangan Pembayaran", t: "tx", ph: "KPR / Cash" },
-    { k: "rpInc", l: "Rp<br>(Termasuk PPN)", x: "Rp (Termasuk PPN)", t: "rp" }, { k: "rpExc", l: "Rp<br>(Tidak Termasuk PPN)", x: "Rp (Tidak Termasuk PPN)", t: "rp" });
+    { k: "rpInc", l: "Rp<br>(Termasuk PPN)", x: "Rp (Termasuk PPN)", t: "rp" }, { k: "rpExc", l: "Rp<br>(Tidak Termasuk PPN)", ls: "Rp<br>(Tidak Termasuk<br>PPN)", x: "Rp (Tidak Termasuk PPN)", t: "rp" });
   if (e.includes("sbum")) K.push({ k: "sbum", l: "SBUM", t: "rp" });
   K.push({ k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" });
   return K;
@@ -2038,13 +2042,14 @@ function viewWeekly(nama, id) {
   const sel = (c, x) => c.t === "rp" ? `<td class="acc">${wkRp(x[c.k])}</td>` : c.k === "jumlah" ? `<td class="nowrap">${x.jumlah ? x.jumlah + " Unit" : "–"}</td>`
     : c.t === "ket" ? `<td class="ket">${esc(x[c.k] || "")}</td>` : `<td class="c-${c.k}${c.k === "unit" ? " nowrap" : ""}">${esc(x[c.k] || "–")}</td>`;
   const baris = x => `<td class="nowrap">${x.tanggal ? ddmmyyyy(x.tanggal) : "–"}</td>${K.map(c => sel(c, x)).join("")}`;
-  const kepala = (pertama, tgl) => `<thead><tr>${pertama ? `<th>${pertama}</th>` : ""}<th>${tgl.replace(" ", "<br>")}</th>${K.map(c => `<th${c.t === "rp" ? ' class="c"' : ""}>${c.l}</th>`).join("")}</tr></thead>`;
+  const lebar = K.length > 8;
+  const kepala = (pertama, tgl) => `<thead><tr>${pertama ? `<th>${pertama}</th>` : ""}<th>${tgl.replace(" ", "<br>")}</th>${K.map(c => `<th${c.t === "rp" ? ' class="c"' : ""}>${lebar && c.ls ? c.ls : c.l}</th>`).join("")}</tr></thead>`;
   const mingguTbl = j => {
     const list = thIni(j);
     const rows = mg.filter(w => (w.dari <= hari && !w.awal) || list.some(x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai)).map(w => {
       const isi = list.filter(x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai);
       if (!isi.length && wkHanyaIsi) return "";
-      const lbl = `<td class="wk" rowspan="${Math.max(1, isi.length)}"><b>${w.n ? `Minggu ke-${w.n}` : "Awal tahun"}</b><small>(${wkPendek(w.dari, w.sampai)})</small></td>`;
+      const lbl = `<td class="wk" rowspan="${Math.max(1, isi.length)}"><b>${w.n ? `Minggu ke-${w.n}` : "Awal tahun"}</b><small>(${lebar ? wkRingkas(w.dari, w.sampai) : wkPendek(w.dari, w.sampai)})</small></td>`;
       return isi.length ? isi.map((x, i) => `<tr>${i ? "" : lbl}${baris(x)}</tr>`).join("") : `<tr class="kosong">${lbl}<td colspan="${K.length + 1}">–</td></tr>`;
     }).join("");
     return `<div class="tbl-wrap"><table class="hold-t pg-t wk-t ${K.length > 8 ? "wk-lebar" : ""}">${kepala("Minggu ke-", WK_BAG[j].tgl)}
