@@ -316,6 +316,8 @@ table { width: 100%; border-collapse: collapse; }
 .sub2 { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 4px 14px; padding-left: 8px; border-left: 2px solid var(--side-line); }
 .sub2 a { font-size: 12px; font-weight: 600; letter-spacing: 0; padding: 5px 10px; }
 .sub2 a.cur { font-weight: 800; color: var(--gold-ink); }
+.sub2-g { font-size: 11.5px; font-weight: 800; color: var(--side-ink); line-height: 1.3; padding: 8px 10px 3px; }
+.sub2-g:first-child { padding-top: 3px; }
 .side-foot { margin-top: auto; padding: 18px 18px 0 0; font-size: 12.5px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .side-foot p { margin: 0; }
 .side-foot { position: relative; }
@@ -1703,11 +1705,16 @@ const REPORTS = [
     meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
   { id: "weekly", subMenu: true, nama: "Dashboard Weekly Sales Performance", menu: "DASHBOARD WEEKLY SALES PERFORMANCE", desc: "",
     /* Tiap proyek punya tab Dashboard, Input Data, Master, History; isi tiap tab kosong (dibangun sendiri) di <div id="…-view"> */
-    tabs: ["Banara Serpong", "Naraya Serpong", "Bio District", "Permai Indah", "Tanglin Parc", "Newton Springs", "Orchard Riviera", "Scotts Vale", "Mazenta Residence", "Marchand"]
-      .flatMap((nama, i) => { const base = "weekly-" + nama.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    /* Dikelompokkan per PT; judul PT tampil tebal di menu sidebar */
+    tabs: [["PT. Serpong Bangun Cipta", ["Banara Serpong", "Naraya Serpong", "Mazenta Residence", "Marchand"]],
+           ["PT. Serpong Bangun Lestari", ["Bio District"]],
+           ["PT. Bumi Mahardhika Makmur", ["Permai Indah"]],
+           ["PT. Bhakti Bangun Harmoni – The Sanctuary Collection", ["Tanglin Parc", "Newton Springs", "Scotts Vale", "Orchard Riviera"]]]
+      .flatMap(([grup, list]) => list.map(nama => ({ grup, nama })))
+      .flatMap(({ grup, nama }, i) => { const base = "weekly-" + nama.toLowerCase().replace(/[^a-z0-9]+/g, "-");
         return [["", "Dashboard", {}], ["-input", "Input Data", { admin: true }], ["-master", "Master", { admin: true, master: true }], ["-history", "History", {}]].map(([suf, label, hak]) => {
           const id = !i && !suf ? "weekly" : base + suf;
-          return { id, label, proyek: nama, ...hak, view: () => `<div class="page gut weekly-p" id="${id}-view" data-proyek="${esc(nama)}" data-bagian="${label}"></div>`, bind: () => {} }; }); }),
+          return { id, label, proyek: nama, grup, ...hak, view: () => `<div class="page gut weekly-p" id="${id}-view" data-proyek="${esc(nama)}" data-bagian="${label}"></div>`, bind: () => {} }; }); }),
     meta: () => "" },
 ];
 function viewLaporan() {
@@ -1742,8 +1749,9 @@ function renderMenu(v) {
   /* Report dengan subMenu (Weekly): pilihan proyek tampil menurun di bawah menunya saat report itu dibuka */
   document.getElementById("reportMenu").innerHTML = REPORTS.map(r => {
     const buka = ft && ft.r === r;
-    const sub = r.subMenu && buka ? `<div class="sub2">${r.tabs.filter(t => t.label === "Dashboard").map(t => { const on = t.proyek === ft.t.proyek;
-      return `<a href="#${t.id}" class="${on ? "cur" : ""}" ${on ? 'aria-current="page"' : ""}>${esc(t.proyek)}</a>`; }).join("")}</div>` : "";
+    const sub = r.subMenu && buka ? `<div class="sub2">${r.tabs.filter(t => t.label === "Dashboard").map((t, i, a) => { const on = t.proyek === ft.t.proyek;
+      const judul = !i || a[i - 1].grup !== t.grup ? `<div class="sub2-g">${esc(t.grup)}</div>` : "";
+      return `${judul}<a href="#${t.id}" class="${on ? "cur" : ""}" ${on ? 'aria-current="page"' : ""}>${esc(t.proyek)}</a>`; }).join("")}</div>` : "";
     return `<a href="#${r.tabs[0].id}" class="${buka ? "cur" : ""}" ${r.subMenu ? `aria-expanded="${!!buka}"` : ""}>${esc(r.menu || r.nama)}${r.subMenu ? `<span class="sub-chev" aria-hidden="true">${buka ? "▾" : "▸"}</span>` : ""}</a>${sub}`;
   }).join("");
   document.querySelectorAll("#menu .grp-b > a").forEach(a => {
