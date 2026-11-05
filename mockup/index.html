@@ -2084,7 +2084,7 @@ function bindWeekly() { const c = document.getElementById("wkHanyaIsi"); if (c) 
 
 /* Input Data Weekly: draf per proyek, disimpan dengan tombol Simpan data */
 let wkDraft = null, wkDraftNama = null;
-const WK_LIHAT = 10;
+const WK_LIHAT = 5;
 let wkTampil = {};
 const wkT = j => wkTampil[j] = wkTampil[j] || { bulan: "", n: WK_LIHAT };
 const wkLoad = nama => { wkDraft = clone(S.weekly[nama]); wkDraftNama = nama; wkTampil = {}; };
