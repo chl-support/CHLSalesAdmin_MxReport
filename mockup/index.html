@@ -383,9 +383,9 @@ table { width: 100%; border-collapse: collapse; }
 .mn-leg i.mn-j { background: var(--mn-j); } .mn-leg i.mn-b { background: var(--mn-b); }
 .mn-leg .desc { font-weight: 400; color: var(--muted); }
 .mn-ctl { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 16px; align-items: center; }
-.mn-ctl .mn-xls { margin-left: auto; }
+.mn-ctl .mn-act { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
 .mn-cw { border: 1px solid var(--line); border-radius: 10px; padding: 10px 8px 4px; background: var(--bg); }
-.mn-chart { width: 100%; height: auto; display: block; }
+.mn-chart { width: 100%; height: auto; max-height: 320px; display: block; margin: 0 auto; }
 .mn-chart .mn-j { fill: var(--mn-j); } .mn-chart .mn-b { fill: var(--mn-b); }
 .mn-chart .mn-grid { stroke: var(--line); stroke-width: 1; } .mn-chart .mn-base { stroke: var(--muted); stroke-width: 1; }
 .mn-chart .mn-ax { fill: var(--muted); font-size: 11px; } .mn-chart .mn-ax.on { fill: var(--ink); font-weight: 700; }
@@ -541,6 +541,25 @@ a.rcard:hover { border-color: var(--gold); }
 #view.fit .master { grid-template-columns: 1fr 1fr; }
 #view.fit .tab { padding: 8px 22px; }
 @media (prefers-reduced-motion: no-preference) { .fill { transition: width .4s ease; } }
+/* Tampilan komputer: sedikit lebih ringkas (huruf, kartu, tabel, tombol, sidebar) */
+@media (min-width: 1025px) {
+  body { font-size: 14px; }
+  h2 { font-size: 19px; }
+  .hero h1 { font-size: clamp(22px, 2.6vw, 32px); }
+  .hero .sub { font-size: 14px; margin-top: 6px; }
+  .hero-body { padding-block: 12px 14px; }
+  .kpis { margin-top: 14px; }
+  .kpi .lbl { font-size: 11.5px; }
+  .kpi .val { font-size: 28px; margin-top: 6px; }
+  .kpi .val small { font-size: 14px; }
+  .kpi .pct { font-size: 18px; }
+  .kpi .note { font-size: 12px; }
+  .hold-t th { font-size: 12px; padding: 7px 9px; }
+  .hold-t td { font-size: 13px; padding: 6px 9px; }
+  .hold-t td.ket { font-size: 12.5px; }
+  .btn { font-size: 13px; padding: 8px 14px; }
+  .side { width: 248px; flex-basis: 248px; }
+}
 </style>
 </head>
 <body>
@@ -2206,8 +2225,23 @@ function drProyekGambar() {
     drTeks = {}; ta.value = drTeks[drMode] = teksDailyReport(drMode); drTab(edit);
   });
 }
+let drKustom = null;
+function drSetel(kustom) {
+  drKustom = kustom; const w = document.getElementById("drWrap");
+  document.getElementById("drTitle").textContent = kustom ? kustom.judul : "Daily Report";
+  w.querySelectorAll(".dr-mode").forEach(e => e.hidden = !!kustom);
+}
+/* Kirim teks ringkasan dari menu lain lewat dialog yang sama (Salin teks, Bagikan, Kirim ke WhatsApp) */
+function bukaKirimTeks(judul, buat) {
+  const w = document.getElementById("drWrap"), ta = document.getElementById("drText");
+  drSetel({ judul, buat }); ta.value = buat(); ta.hidden = true; drTab(false);
+  document.getElementById("drDesc").textContent = `Dibuat otomatis dari data per ${ddmmyyyy(S.sales2.tanggal)}. Tulisan tebal di WhatsApp ditandai *bintang* saat diedit. Teks bisa diedit dulu lewat tab Edit teks.`;
+  document.getElementById("drShare").hidden = !navigator.share;
+  w.hidden = false; try { terapkanBahasa(w); } catch (e) {}
+}
 function bukaDailyReport() {
   if (!bolehDailyReport()) return;
+  drSetel(null);
   const w = document.getElementById("drWrap"), ta = document.getElementById("drText");
   drProyekGambar();
   drTeks = {}; ta.value = drTeks[drMode] = teksDailyReport(drMode); ta.hidden = true;
@@ -2224,17 +2258,20 @@ document.getElementById("drClose").onclick = tutupDailyReport;
 document.getElementById("drWrap").addEventListener("click", e => { if (e.target.id === "drWrap") tutupDailyReport();
   const dd = document.querySelector("#drProy .dr-dd[open]"); if (dd && !dd.contains(e.target)) dd.open = false; });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !document.getElementById("drWrap").hidden) tutupDailyReport(); });
-document.getElementById("drReset").onclick = () => { document.getElementById("drText").value = drTeks[drMode] = teksDailyReport(drMode); drTab(false); toast("Teks dibuat ulang dari data terbaru"); };
+document.getElementById("drReset").onclick = () => { const ta = document.getElementById("drText");
+  if (drKustom) ta.value = drKustom.buat(); else ta.value = drTeks[drMode] = teksDailyReport(drMode);
+  drTab(false); toast("Teks dibuat ulang dari data terbaru"); };
 document.getElementById("drCopy").onclick = () => { const ta = document.getElementById("drText");
   /* Teks biasa (dengan *bintang*, untuk WhatsApp) + HTML tebal (untuk email/Word) */
   const html = `<div style="white-space:pre-wrap;font-family:Arial,sans-serif">${drHTML(ta.value)}</div>`;
   const tulis = window.ClipboardItem && navigator.clipboard.write
     ? navigator.clipboard.write([new ClipboardItem({ "text/plain": new Blob([ta.value], { type: "text/plain" }), "text/html": new Blob([html], { type: "text/html" }) })]).catch(() => navigator.clipboard.writeText(ta.value))
     : navigator.clipboard.writeText(ta.value);
-  tulis.then(() => toast("Daily Report disalin")).catch(() => { ta.select(); try { document.execCommand("copy"); toast("Daily Report disalin"); } catch (e) { toast("Gagal menyalin. Pilih teks lalu salin manual."); } }); };
+  const ok = `${drKustom ? drKustom.judul : "Daily Report"} disalin`;
+  tulis.then(() => toast(ok)).catch(() => { ta.select(); try { document.execCommand("copy"); toast(ok); } catch (e) { toast("Gagal menyalin. Pilih teks lalu salin manual."); } }); };
 document.getElementById("drWA").onclick = () => { const t = document.getElementById("drText").value;
   window.open("https://wa.me/?text=" + encodeURIComponent(t), "_blank", "noopener"); };
-document.getElementById("drShare").onclick = async () => { try { await navigator.share({ title: "Daily Report", text: document.getElementById("drText").value }); } catch (e) { if (e && e.name !== "AbortError") toast("Gagal membagikan. Coba Salin teks atau Kirim ke WhatsApp."); } };
+document.getElementById("drShare").onclick = async () => { try { await navigator.share({ title: drKustom ? drKustom.judul : "Daily Report", text: document.getElementById("drText").value }); } catch (e) { if (e && e.name !== "AbortError") toast("Gagal membagikan. Coba Salin teks atau Kirim ke WhatsApp."); } };
 
 /* ===================== Weekly Sales Performance (per proyek) ===================== */
 const WK_AWAL = 2019;
@@ -2761,7 +2798,7 @@ function viewMonthly() {
     <div class="hero-body gut"><h1>Monthly Sales Performance</h1><div class="sub">${BULAN[bi]} ${th} • ${esc(namaFilter)} • data per ${ddmmyyyy(hari)} • diambil dari Dashboard Weekly Sales Performance</div></div></div>
   <div class="mn-ctl gut no-cap"><label class="wk-opt" for="mnBln">Bulan <select id="mnBln">${opsiBln}</select></label>
     <label class="wk-opt" for="mnPr">Proyek <select id="mnPr">${opsiPr}</select></label>
-    <button type="button" class="btn sec mn-xls" id="mnXls">Ekspor Excel</button></div>
+    <span class="mn-act"><button type="button" class="btn sec" id="mnKirim">Kirim ringkasan</button><button type="button" class="btn sec" id="mnShot" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button><button type="button" class="btn sec" id="mnXls">Ekspor Excel</button></span></div>
   <div class="kpis wk-kpis gut">${kpi("var(--blue)", `Penjualan ${BULAN[bi]}`, J[0], J[1], dLalu)}${kpi("var(--red)", `Batal ${BULAN[bi]}`, Bt[0], Bt[1], Bt[0] ? `${P.filter(p => p.batal[bi].u).length} proyek` : "Tidak ada pembatalan")}${kpi("var(--green)", `Bersih ${BULAN[bi]}`, J[0] - Bt[0], J[1] - Bt[1], "Penjualan dikurangi batal")}${kpi("var(--gold)", `YTD ${th}`, Y[0], Y[1], `Januari s.d ${BULAN[bi]} • batal ${YB[0]} unit`)}${kpi("var(--purple)", "Hold Reserved", H[0], H[1], "Posisi saat ini")}</div>
   <section class="gut"><h2>Penjualan & batal per bulan ${th}</h2>
     <div class="mn-leg"><span><i class="mn-j"></i>Penjualan (unit)</span><span><i class="mn-b"></i>Batal (unit)</span><span class="desc">Klik bulan pada grafik untuk melihat rinciannya.</span></div>
@@ -2816,9 +2853,35 @@ function exportMonthlyExcel() {
   XLSX.writeFile(wb, `Monthly_Sales_Performance_${th}-${String(b).padStart(2, "0")}${mnProyek ? "_" + namaFilter.replace(/[^A-Za-z0-9]+/g, "_") : ""}.xlsx`);
   toast("File Excel diunduh");
 }
+function teksMonthly() {
+  return denganID(() => {
+    const th = tahunKe(), b = Math.min(mnBulan || bulanKe(), 12), bi = b - 1, { P } = mnData(th), bln = BULAN[bi];
+    const namaFilter = !mnProyek ? "Semua proyek" : mnProyek.startsWith("pt:") ? mnProyek.slice(3) : mnProyek;
+    const baris = (j, ba, y, yb, h) => { const L = [];
+      L.push(`Penjualan ${bln} : ${fU(j[0])} Unit (${fM(j[1])} M)`);
+      L.push(`Batal ${bln} : ${fU(ba[0])} Unit (${fM(ba[1])} M)`);
+      L.push(`Bersih ${bln} : ${j[0] - ba[0] === 0 ? "-" : (j[0] - ba[0]).toLocaleString("id-ID")} Unit`);
+      L.push(`YTD Jan s.d ${bln.slice(0, 3)} : ${fU(y[0])} Unit (${fM(y[1])} M) • batal ${fU(yb[0])} Unit`);
+      if (h) L.push(`Hold Reserved : ${fU(h[0])} Unit (${fM(h[1])} M)`);
+      return L.join("\n"); };
+    const ytd = (p, k) => p[k].slice(0, b).reduce((a, m) => [a[0] + m.u, a[1] + m.v], [0, 0]);
+    const T = { j: [0, 0], b: [0, 0], y: [0, 0], yb: [0, 0], h: [0, 0] }, out = [];
+    [...new Set(P.map(p => p.grup))].forEach(g => {
+      const blok = P.filter(p => p.grup === g).map(p => { const j = [p.jual[bi].u, p.jual[bi].v], ba = [p.batal[bi].u, p.batal[bi].v], y = ytd(p, "jual"), yb = ytd(p, "batal"), h = [mnU(p.hold), wkNilai(p.hold)];
+        [["j", j], ["b", ba], ["y", y], ["yb", yb], ["h", h]].forEach(([k, v]) => { T[k][0] += v[0]; T[k][1] += v[1]; });
+        return `*${p.nama} :*\n${baris(j, ba, y, yb, h[0] ? h : null)}`; });
+      out.push(`*${g}*\n${blok.join("\n\n")}`);
+    });
+    if (P.length > 1) out.push(`*Total${mnProyek ? "" : " CHL"} :*\n${baris(T.j, T.b, T.y, T.yb, T.h)}`);
+    return `Monthly Sales Report\n${bln} ${th} • ${namaFilter}\nData per ${ddmmyyyy(S.sales2.tanggal)}\n\n${out.join("\n\n")}`;
+  });
+}
 function bindMonthly() {
   const bl = document.getElementById("mnBln"), pr = document.getElementById("mnPr"), xb = document.getElementById("mnXls");
   if (xb) xb.onclick = () => denganID(() => exportMonthlyExcel());
+  const sh = document.getElementById("mnShot"), kt = document.getElementById("mnKirim");
+  if (sh) sh.onclick = e => menuGambar(e.currentTarget, "capMonthly", `Monthly_Sales_${BULAN[Math.min(mnBulan || bulanKe(), 12) - 1]}_${tahunKe()}.png`);
+  if (kt) kt.onclick = () => bukaKirimTeks("Monthly Sales Report", teksMonthly);
   if (bl) bl.onchange = () => { mnBulan = +bl.value; render(); };
   if (pr) pr.onchange = () => { mnProyek = pr.value; render(); };
   document.querySelectorAll("[data-mnb]").forEach(g => g.addEventListener("click", () => { mnBulan = +g.dataset.mnb; render(); }));
