@@ -402,6 +402,14 @@ table { width: 100%; border-collapse: collapse; }
 .mn-t td.tot { font-weight: 700; }
 .mn-t td.up { color: var(--green); font-weight: 700; } .mn-t td.down { color: var(--red); font-weight: 700; }
 .mn-t tr.mn-na td { color: var(--muted); font-style: italic; }
+.mn-skema { margin-bottom: 18px; }
+.mn-kh { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.mn-kc { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.mn-kc button { font: inherit; font-size: 12.5px; font-weight: 700; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.mn-kc button.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+.mn-t tr.mn-kat td { background: var(--blue-soft); font-weight: 800; color: var(--ink); }
+.mn-t tr.mn-kat td small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+.mn-t td.mn-det { padding-left: 26px; }
 .mn-dua { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
 .mn-dua > * { min-width: 0; }
 .mn-dua .tbl-wrap table { width: 100%; }
@@ -2759,9 +2767,13 @@ function mnLabel(semua) {
   return `${L.length} proyek dipilih`;
 }
 const mnU = l => l.reduce((a, x) => a + (+x.jumlah || 0), 0);
-const mnSkema = v => { const t = String(v || "").toUpperCase().replace(/\s+/g, " ").trim();
-  if (!t) return "(Belum diisi)"; if (/KPR|KPA/.test(t)) return "KPR"; if (/BERTAHAP|INSTAL|CICIL|ANGSUR/.test(t)) return "Tunai Bertahap";
-  if (/TUNAI|CASH|KERAS/.test(t)) return "Tunai Keras"; return t.charAt(0) + t.slice(1).toLowerCase(); };
+/* Skema bayar: kategori (KPR / Cash Keras / Cicilan Bertahap / Lainnya) dan nama rinciannya */
+const MN_KAT = ["KPR", "Cash Keras", "Cicilan Bertahap", "Lainnya", "(Belum diisi)"];
+const mnSkemaDetail = v => String(v || "").toUpperCase().replace(/\s+/g, " ").trim();
+const mnSkema = v => { const t = mnSkemaDetail(v);
+  if (!t) return "(Belum diisi)"; if (/KPR|KPA/.test(t)) return "KPR"; if (/BERTAHAP|INSTAL|CICIL|ANGSUR/.test(t)) return "Cicilan Bertahap";
+  if (/TUNAI|CASH|KERAS/.test(t)) return "Cash Keras"; return "Lainnya"; };
+let mnKat = "";
 const mnSumber = v => { const t = String(v || "").replace(/\s+/g, " ").trim(); if (!t) return "(Belum diisi)";
   return t.toLowerCase().replace(/(^|[\s/(-])\S/g, c => c.toUpperCase()); };
 function mnData(th) {
@@ -2844,6 +2856,28 @@ function viewMonthly() {
         <td class="num">${tY ? idn(e.y / tY * 100, 0) + "%" : "–"}</td></tr>`).join("") || `<tr><td colspan="4" style="text-align:center;color:var(--muted)">Belum ada penjualan.</td></tr>`}
       <tr class="t"><td class="mn-pn">Total</td><td class="num">${n(mnU(bln))}</td><td class="num">${n(tY)}</td><td class="num">${tY ? "100%" : "–"}</td></tr></tbody></table></div></div>`;
   };
+  const skemaTbl = (() => {
+    const bln = P.flatMap(p => p.jual[bi].l), ytd = P.flatMap(p => p.jual.slice(0, b).flatMap(m => m.l)), m = new Map();
+    const tambah = (x, k) => { const kat = mnSkema(x.bayar), d = mnSkemaDetail(x.bayar) || "(Belum diisi)", key = kat + "|" + d;
+      const e = m.get(key) || { kat, d, b: 0, bv: 0, y: 0, yv: 0 }; const u = +x.jumlah || 0, v = x.rpInc || x.rpExc || 0;
+      if (k === "b") { e.b += u; e.bv += v; } else { e.y += u; e.yv += v; } m.set(key, e); };
+    ytd.forEach(x => tambah(x, "y")); bln.forEach(x => tambah(x, "b"));
+    const semuaR = [...m.values()], tY = semuaR.reduce((a, e) => a + e.y, 0);
+    const katAda = MN_KAT.filter(k => semuaR.some(e => e.kat === k));
+    const pilih = katAda.includes(mnKat) ? mnKat : "";
+    const R = semuaR.filter(e => !pilih || e.kat === pilih);
+    const sel = e => `<td class="num">${n(e.b)}</td><td class="acc">${nM(e.bv)}</td><td class="num">${n(e.y)}</td><td class="acc">${nM(e.yv)}</td><td class="num">${tY ? idn(e.y / tY * 100, 1) + "%" : "–"}</td>`;
+    const jum = L => L.reduce((a, e) => ({ b: a.b + e.b, bv: a.bv + e.bv, y: a.y + e.y, yv: a.yv + e.yv }), { b: 0, bv: 0, y: 0, yv: 0 });
+    const body = katAda.filter(k => !pilih || k === pilih).map(k => { const L = R.filter(e => e.kat === k).sort((a, c) => c.y - a.y || c.b - a.b || a.d.localeCompare(c.d));
+      return `<tr class="mn-kat"><td class="mn-pn">${esc(k)} <small>${L.length} skema</small></td>${sel(jum(L))}</tr>` +
+        (k === "(Belum diisi)" ? "" : L.map(e => `<tr><td class="mn-pn mn-det">${esc(e.d)}</td>${sel(e)}</tr>`).join("")); }).join("");
+    const chips = `<div class="mn-kc no-cap" role="group" aria-label="Kategori skema bayar"><button type="button" data-mnkat="" class="${pilih ? "" : "on"}">Semua</button>${katAda.filter(k => k !== "(Belum diisi)").map(k => `<button type="button" data-mnkat="${esc(k)}" class="${pilih === k ? "on" : ""}">${esc(k)}</button>`).join("")}</div>`;
+    return `<div class="mn-kom mn-skema"><div class="mn-kh"><h3 class="wk-sub">Skema bayar</h3>${chips}</div><div class="tbl-wrap"><table class="hold-t pg-t mn-t mn-k"><thead>
+      <tr><th rowspan="2" class="mn-pn">Kategori / skema bayar</th><th colspan="2">${BULAN[bi]}</th><th colspan="2">YTD Jan s.d ${BULAN[bi].slice(0, 3)}</th><th rowspan="2">% YTD<br>(unit)</th></tr>
+      <tr><th>Unit</th><th>Rp M</th><th>Unit</th><th>Rp M</th></tr></thead><tbody>
+      ${body || `<tr><td colspan="6" style="text-align:center;color:var(--muted)">Belum ada penjualan.</td></tr>`}
+      <tr class="t"><td class="mn-pn">${pilih ? `Total ${esc(pilih)}` : "Total"}</td>${sel(jum(R))}</tr></tbody></table></div></div>`;
+  })();
   const opsiBln = BULAN.slice(0, Math.max(bk, b)).map((x, i) => `<option value="${i + 1}" ${i === bi ? "selected" : ""}>${x} ${th}</option>`).reverse().join("");
   const cek = n => !mnProyek || mnProyek.has(n);
   const opsiPr = `<label class="dr-all"><input type="checkbox" data-mnp="*" ${mnProyek ? "" : "checked"}> Semua proyek</label>` +
@@ -2864,7 +2898,7 @@ function viewMonthly() {
   <section class="gut"><h2>Ringkasan ${BULAN[bi]} ${th} per proyek</h2><div class="desc">Nilai = Nilai Kontrak Include PPN (Exclude PPN jika kosong), dalam miliar rupiah.</div>${ringkas}</section>
   <section class="gut"><h2>Unit terjual per bulan ${th}</h2>${tblBulan((p, i) => p.jual[i].u, n, "unit")}</section>
   <section class="gut"><h2>Nilai penjualan per bulan ${th} (Rp M)</h2>${tblBulan((p, i) => p.jual[i].v, nM, "Rp M")}</section>
-  <section class="gut"><h2>Komposisi penjualan</h2><div class="mn-dua">${komposisi("Skema bayar", x => mnSkema(x.bayar))}${komposisi("Sumber informasi", x => mnSumber(x.sumber))}</div></section>
+  <section class="gut"><h2>Komposisi penjualan</h2>${skemaTbl}<div class="mn-dua">${komposisi("Sumber informasi", x => mnSumber(x.sumber))}</div></section>
 </div>`;
 }
 /* Ekspor Excel: isi sama dengan tampilan (bulan & proyek terpilih); angka 0 ditulis "-" */
@@ -2903,7 +2937,17 @@ function exportMonthlyExcel() {
     [...m.entries()].sort((a, c) => c[1][1] - a[1][1]).forEach(([k, e]) => aoa.push([k, e[0], e[1], { v: tY ? e[1] / tY : 0, t: "n", z: "0%" }]));
     aoa.push(["TOTAL", mnU(bln), tY, { v: tY ? 1 : 0, t: "n", z: "0%" }], [], []);
   };
-  kom("Skema bayar", x => mnSkema(x.bayar));
+  { const bln = P.flatMap(p => p.jual[bi].l), yl = P.flatMap(p => p.jual.slice(0, b).flatMap(m => m.l)), m = new Map();
+    const tb = (x, k) => { const kat = mnSkema(x.bayar), d = mnSkemaDetail(x.bayar) || "(Belum diisi)", key = kat + "|" + d, e = m.get(key) || { kat, d, b: 0, bv: 0, y: 0, yv: 0 };
+      const u = +x.jumlah || 0, v = x.rpInc || x.rpExc || 0; if (k === "b") { e.b += u; e.bv += v; } else { e.y += u; e.yv += v; } m.set(key, e); };
+    yl.forEach(x => tb(x, "y")); bln.forEach(x => tb(x, "b"));
+    const R = [...m.values()], tY = R.reduce((a, e) => a + e.y, 0), pc = v => ({ v: tY ? v / tY : 0, t: "n", z: "0.0%" });
+    const jm = L => L.reduce((a, e) => [a[0] + e.b, a[1] + e.bv, a[2] + e.y, a[3] + e.yv], [0, 0, 0, 0]);
+    aoa.push(["SKEMA BAYAR (PER KATEGORI)"], ["Kategori / skema bayar", `${BULAN[bi]} (unit)`, `${BULAN[bi]} (Rp)`, "YTD (unit)", "YTD (Rp)", "% YTD"]);
+    MN_KAT.filter(k => R.some(e => e.kat === k)).forEach(k => { const L = R.filter(e => e.kat === k).sort((a, c) => c.y - a.y), t = jm(L);
+      aoa.push([k.toUpperCase(), t[0], rpC(t[1]), t[2], rpC(t[3]), pc(t[2])]);
+      if (k !== "(Belum diisi)") L.forEach(e => aoa.push(["   " + e.d, e.b, rpC(e.bv), e.y, rpC(e.yv), pc(e.y)])); });
+    const t = jm(R); aoa.push(["TOTAL", t[0], rpC(t[1]), t[2], rpC(t[3]), pc(t[2])], [], []); }
   kom("Sumber informasi", x => mnSumber(x.sumber));
   const ws = aoaSheet(aoa);
   ws["!cols"] = [34, ...Array(13).fill(15)].map(w => ({ wch: w }));
@@ -2958,6 +3002,7 @@ function bindMonthly() {
     document.addEventListener("click", e => { const d = document.getElementById("mnPr"); if (d && d.open && !d.contains(e.target)) { d.open = false; mnBukaPr = false; } }); }
   document.querySelectorAll("[data-mnb]").forEach(g => g.addEventListener("click", () => { mnBulan = +g.dataset.mnb; render(); }));
   document.querySelectorAll("[data-mnuk]").forEach(x => x.onclick = () => { mnUkur = x.dataset.mnuk; render(); });
+  document.querySelectorAll("[data-mnkat]").forEach(x => x.onclick = () => { mnKat = x.dataset.mnkat; render(); });
 }
 const REPORTS = [
   { id: "penjualan", nama: "Daily Sales Dashboard", menu: "DAILY SALES DASHBOARD", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan laporan, YTD, dan akumulasi terjual. Mengikuti format Excel Daily Report.",
