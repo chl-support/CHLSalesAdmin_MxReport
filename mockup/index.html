@@ -364,6 +364,12 @@ a.rcard:hover { border-color: var(--gold); }
   .topbar .mtop-t { display: block; }
   .prof-btn { min-width: 0; }
   .prof-btn .pp-who { display: none; }
+  .topbar { padding-top: 6px; padding-bottom: 6px; gap: 10px; }
+  .topbar .mtop-t { font-size: 14px; line-height: 1.25; }
+  .topbar .burger { padding: 6px 6px; }
+  .topbar .burger span { width: 16px; }
+  .prof-btn { padding: 4px 8px; gap: 6px; border-radius: 8px; }
+  .prof-btn .pp-av { width: 26px; height: 26px; font-size: 11px; }
   .prof-pop { width: min(300px, calc(100vw - 32px)); }
   .mtop-t { font-weight: 800; color: var(--side-ink); }
   .burger { background: none; border: 1px solid var(--side-line); border-radius: 6px; padding: 8px 7px; cursor: pointer; display: flex; flex-direction: column; gap: 3px; }
@@ -379,6 +385,12 @@ a.rcard:hover { border-color: var(--gold); }
   .master { grid-template-columns: 1fr; }
 }
 @media (max-width: 400px) { .kpis { grid-template-columns: 1fr; } .tab { padding: 8px 14px; } }
+/* HP: dashboard tampil seperti layar laptop (1240px) yang diperkecil agar pas layar */
+.cap.fit, .page.fit { width: 1240px; max-width: none; margin: 0; }
+.cap.fit .kpis { grid-template-columns: repeat(4, 1fr); row-gap: 0; }
+.cap.fit .bar-row { grid-template-columns: minmax(120px, 28%) 1fr auto auto; }
+.cap.fit .bar-row .track { grid-column: auto; grid-row: auto; height: auto; }
+.cap.fit .tbl-wrap { overflow: visible; }
 @media (prefers-reduced-motion: no-preference) { .fill { transition: width .4s ease; } }
 </style>
 </head>
@@ -729,7 +741,7 @@ async function buatGambar(id) {
     ignoreElements: n => n.classList && n.classList.contains("no-cap"),
     onclone: doc => {
       const c = doc.getElementById(id); if (!c) return;
-      c.style.width = LEBAR + "px"; c.style.maxWidth = LEBAR + "px"; c.style.margin = "0";
+      c.style.width = LEBAR + "px"; c.style.maxWidth = LEBAR + "px"; c.style.margin = "0"; c.style.zoom = "1";
       c.querySelectorAll(".tbl-wrap").forEach(w => { w.style.overflow = "visible"; });
       const sd = doc.getElementById("side"); if (sd) sd.style.display = "none";
       const mt = doc.querySelector(".topbar"); if (mt) mt.style.display = "none";
@@ -1634,8 +1646,23 @@ function render(focusId) {
     renderMenu(v);
     terapkanBahasa();
   } finally { rendering = false; }
+  pasHP();
   if (focusId) { const el = document.getElementById(focusId); if (el) el.focus(); }
 }
+/* Di layar HP (< 900px) dashboard ditampilkan dengan tata letak laptop lalu diperkecil agar pas lebar layar */
+const LEBAR_DASH = 1240;
+function pasHP() {
+  const view = document.getElementById("view");
+  /* Judul report + tab di atas dashboard ikut diperkecil supaya serasi */
+  const cap = view.querySelector(".cap"), head = cap && view.querySelector(":scope > .page.gut");
+  const daftar = [...view.querySelectorAll(".cap")]; if (head) daftar.push(head);
+  daftar.forEach(c => {
+    if (window.innerWidth >= 900) { c.classList.remove("fit"); c.style.zoom = ""; return; }
+    c.classList.add("fit");
+    c.style.zoom = String(Math.min(1, view.clientWidth / LEBAR_DASH));
+  });
+}
+window.addEventListener("resize", () => { clearTimeout(pasHP.t); pasHP.t = setTimeout(pasHP, 120); });
 
 /* ===================== Menu profil + bahasa ===================== */
 const profBtn = document.getElementById("profBtn"), profPop = document.getElementById("profPop");
