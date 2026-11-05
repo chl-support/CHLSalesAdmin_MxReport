@@ -2006,7 +2006,7 @@ function wkKolom(W) {
   const e = W.ekstra || [], K = [{ k: "klaster", l: "Klaster", t: "tx" }, { k: "jumlah", l: "Jumlah", t: "n" }];
   if (e.includes("unit")) K.push({ k: "unit", l: "Unit", t: "tx", ph: "A1-16" });
   if (e.includes("konsumen")) K.push({ k: "konsumen", l: "Konsumen", t: "tx" });
-  K.push({ k: "tipe", l: "Tipe", t: "tx" }, { k: "bayar", l: "Keterangan<br>Pembayaran", x: "Keterangan Pembayaran", t: "tx", ph: "KPR / Cash" },
+  K.push({ k: "tipe", l: "Tipe", t: "tx" }, { k: "bayar", l: "Keterangan&nbsp;Pembayaran", x: "Keterangan Pembayaran", t: "tx", ph: "KPR / Cash" },
     { k: "rpInc", l: "Rp<br>(Termasuk PPN)", x: "Rp (Termasuk PPN)", t: "rp" }, { k: "rpExc", l: "Rp<br>(Tidak Termasuk PPN)", ls: "Rp<br>(Tidak Termasuk<br>PPN)", x: "Rp (Tidak Termasuk PPN)", t: "rp" });
   if (e.includes("sbum")) K.push({ k: "sbum", l: "SBUM", t: "rp" });
   K.push({ k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" });
@@ -2091,7 +2091,7 @@ function bindWeekly() { const c = document.getElementById("wkHanyaIsi"); if (c) 
 let wkDraft = null, wkDraftNama = null;
 const WK_LIHAT = 5;
 /* Lebar kolom tetap di tabel Input Data; kolom tanpa lebar (Klaster, Konsumen, Keterangan Pembayaran, Sales, Keterangan) berbagi sisa lebar */
-const WK_COLW = { jumlah: "54px", unit: "66px", tipe: "62px", rpInc: "102px", rpExc: "106px", sbum: "88px" };
+const WK_COLW = { jumlah: "54px", unit: "66px", tipe: "62px", bayar: "148px", rpInc: "102px", rpExc: "106px", sbum: "88px" };
 let wkTampil = {};
 const wkT = j => wkTampil[j] = wkTampil[j] || { bulan: "", n: WK_LIHAT };
 const wkLoad = nama => { wkDraft = clone(S.weekly[nama]); wkDraftNama = nama; wkTampil = {}; };
