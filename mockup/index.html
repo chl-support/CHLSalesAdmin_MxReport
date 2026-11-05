@@ -260,6 +260,7 @@ table { width: 100%; border-collapse: collapse; }
 .hold-t td.ket { color: var(--muted); font-size: 13px; }
 .hold-t th:nth-child(3), .hold-t th:nth-child(4) { text-align: right; }
 .hold-t td.acc { width: 1%; white-space: nowrap; }
+.hold-t.pg-t th { text-align: left; }
 .ak-rp { display: flex; justify-content: space-between; gap: 14px; min-width: 150px; font-variant-numeric: tabular-nums; }
 .hold-t tr.t td { background: var(--blue-soft); font-weight: 800; color: var(--ink); }
 .bh { display: flex; flex-direction: column; gap: 22px; margin-top: 28px; }
@@ -1160,9 +1161,27 @@ function viewSales() {
       <tr class="t"><td class="proj">Total</td><td>${hold.length} unit</td><td class="acc">${hold.some(x => x.harga) ? akRp(rpDot(hold.reduce((a, x) => a + (x.harga || 0), 0))) : "–"}</td><td class="acc">${akRp(rpDot(holdTj))}</td><td></td></tr></tbody></table></div>`
       : `<div class="empty" style="margin-top:12px">Tidak ada unit hold saat ini.</div>`}
   </section>
+  ${daftarPindahGanti(m, tgl, bln)}
   <div class="notes gut"><h2>Catatan Penting</h2><ul>${notes.map(n => `<li>${n}</li>`).join("")}</ul>
     <p class="desc" style="margin:10px 0 0">Sumber: Daily Report per ${panjang(tgl)} • M = Rp miliar • “–” = nihil</p></div>
   </div>`;
+}
+/* Pindah Unit & Ganti Bayar di dashboard: data bulan laporan s.d. tanggal tampil; bagian disembunyikan jika kosong */
+function daftarPindahGanti(m, tgl, bln) {
+  const awal = `${tahunKe()}-${String(m).padStart(2, "0")}-01`, urut = x => ((S.sales2.proyek.find(p => p.id === x.proyekId) || {}).urutan || 99);
+  const ambil = j => (S.sales2[j] || []).filter(x => x.tanggal >= awal && x.tanggal <= tgl).sort((a, b) => a.tanggal.localeCompare(b.tanggal) || urut(a) - urut(b));
+  const tglC = x => `<td class="nowrap">${ddmmyyyy(x.tanggal)}${x.tanggal === tgl ? ' <span class="bag">Hari ini</span>' : ""}</td>`;
+  const pd = ambil("pindah"), gb = ambil("ganti");
+  return (pd.length ? `<section class="gut"><h2>Pindah Unit</h2>
+    <div class="desc">Unit yang pindah ke unit lain selama ${esc(bln)} (s.d. ${ddmmyyyy(tgl)}).</div>
+    <div class="tbl-wrap"><table class="hold-t pg-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit lama</th><th>Kode unit baru</th><th>Keterangan</th></tr></thead><tbody>
+    ${pd.map(x => `<tr>${tglC(x)}<td class="proj">${esc(namaProyekSales(x.proyekId))}</td><td>${esc(x.kodeLama || "–")}</td><td>${esc(x.kode || "–")}</td><td class="ket">${esc(x.ket || "")}</td></tr>`).join("")}
+    <tr class="t"><td></td><td class="proj">Total</td><td>${pd.length} unit</td><td></td><td></td></tr></tbody></table></div></section>` : "")
+  + (gb.length ? `<section class="gut"><h2>Ganti Bayar</h2>
+    <div class="desc">Unit yang ganti cara bayar selama ${esc(bln)} (s.d. ${ddmmyyyy(tgl)}).</div>
+    <div class="tbl-wrap"><table class="hold-t pg-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Cara bayar lama</th><th>Cara bayar baru</th><th>Keterangan</th></tr></thead><tbody>
+    ${gb.map(x => `<tr>${tglC(x)}<td class="proj">${esc(namaProyekSales(x.proyekId))}</td><td>${esc(x.kode || "–")}</td><td>${esc(x.bayarLama || "–")}</td><td>${esc(x.bayarBaru || "–")}</td><td class="ket">${esc(x.ket || "")}</td></tr>`).join("")}
+    <tr class="t"><td></td><td class="proj">Total</td><td>${gb.length} unit</td><td></td><td></td><td></td></tr></tbody></table></div></section>` : "");
 }
 function salesText() {
   const m = bulanAktif(), tgl = tanggalTampil(m), bln = `${BULAN[m - 1]} ${tahunKe()}`, { rows, tot: T } = hitungSales();
@@ -1173,6 +1192,10 @@ function salesText() {
   const bt = (S.sales2.batal || []).filter(x => +x.tanggal.slice(0, 4) === tahunKe() && +x.tanggal.slice(5, 7) === m), hd = S.sales2.hold || [];
   if (bt.length) t += `\nBatal ${bln}: ${bt.length} unit — ${ringkasProyek(bt)}\n`;
   if (hd.length) t += `Hold Reserved: ${hd.length} unit — ${ringkasProyek(hd)}\n`;
+  const bulanIniSd = x => x.tanggal.slice(0, 7) === tgl.slice(0, 7) && x.tanggal <= tgl;
+  const pd = (S.sales2.pindah || []).filter(bulanIniSd), gb = (S.sales2.ganti || []).filter(bulanIniSd);
+  if (pd.length) t += `Pindah Unit ${bln}: ${pd.length} unit — ${pd.map(x => `${namaProyekSales(x.proyekId)} (${x.kodeLama || "?"} → ${x.kode || "?"})`).join("; ")}\n`;
+  if (gb.length) t += `Ganti Bayar ${bln}: ${gb.length} unit — ${gb.map(x => `${namaProyekSales(x.proyekId)} (${x.kode || "?"}: ${x.bayarLama || "?"} → ${x.bayarBaru || "?"})`).join("; ")}\n`;
   return t;
 }
 
@@ -1497,10 +1520,15 @@ function teksDailyReport() {
     const tgl = S.sales2.tanggal, m = bulanKe(tgl), bln = BULAN[m - 1];
     const { rows, tot: T } = hitungSales(undefined, m);
     const batalHari = (S.sales2.batal || []).filter(x => x.tanggal === tgl);
+    const pindahHari = (S.sales2.pindah || []).filter(x => x.tanggal === tgl), gantiHari = (S.sales2.ganti || []).filter(x => x.tanggal === tgl);
+    const teksPindah = l => `*Pindah Unit : ${l.length} Unit (${l.map(b => `${b.kodeLama || "?"} → ${b.kode || "?"}`).join(" & ")})*`;
+    const teksGanti = l => `*Ganti Bayar : ${l.length} Unit (${l.map(b => `${b.kode || "?"} : ${b.bayarLama || "?"} → ${b.bayarBaru || "?"}`).join(" & ")})*`;
     const blok = x => {
-      const bt = batalHari.filter(b => b.proyekId === x.p.id), L = [];
+      const bt = batalHari.filter(b => b.proyekId === x.p.id), pd = pindahHari.filter(b => b.proyekId === x.p.id), gb = gantiHari.filter(b => b.proyekId === x.p.id), L = [];
       if (x.hari[0] || x.hari[1]) L.push(`*Terjual hari ini : ${x.hari[0]} Unit (${fM(x.hari[1])} M)*`);
       if (bt.length) L.push(`*Batal : ${bt.length} Unit (${bt.map(b => b.kode || "?").join(" & ")})*`);
+      if (pd.length) L.push(teksPindah(pd));
+      if (gb.length) L.push(teksGanti(gb));
       if (!L.length) L.push("Tidak ada perubahan");
       L.push(`${bln} / YTD : ${fU(x.bln[0])}/${fU(x.ytd[0])} Unit (${fM(x.bln[1])}/${fM(x.ytd[1])} M)`);
       L.push(`Total Terjual : ${fU(x.akum[0])}/${fU(x.stok[0])} Unit (${fM(x.akum[1])}/${fM(x.stok[1])} M)`);
@@ -1523,6 +1551,8 @@ function teksDailyReport() {
     const L = [];
     if (T.hari[0] || T.hari[1]) L.push(`*Terjual hari ini : ${T.hari[0]} Unit (${fM(T.hari[1])} M)*`);
     if (batalHari.length) L.push(`*Batal : ${batalHari.length} Unit (${batalHari.map(b => b.kode || "?").join(" & ")})*`);
+    if (pindahHari.length) L.push(teksPindah(pindahHari));
+    if (gantiHari.length) L.push(teksGanti(gantiHari));
     if (!L.length) L.push("Tidak ada perubahan");
     L.push(`${bln} / YTD : ${fU(T.bln[0])}/${fU(T.ytd[0])} Unit (${fM(T.bln[1])}/${fM(T.ytd[1])} M)`);
     L.push(`Total Terjual : ${fU(T.akum[0])}/${fU(T.stok[0])} Unit (${fM(T.akum[1])}/${fM(T.stok[1])} M)`);
