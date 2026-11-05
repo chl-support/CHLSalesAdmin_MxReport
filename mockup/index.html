@@ -1490,6 +1490,15 @@ function seedWeekly() {
   });
   /* Usia tanpa angka di belakang koma */
   Object.keys(S.weekly).forEach(nm => ["jual", "batal", "hold", "pindah", "ganti"].forEach(j => (S.weekly[nm][j] || []).forEach(x => { if (x.usia && wkUsia(x.usia) !== x.usia) { x.usia = wkUsia(x.usia); ubah = true; } if (wkUsiaIsi(x)) ubah = true; })));
+  /* Bersihkan baris yang bukan data: baris judul kolom yang terbaca sebagai data, dan baris total tanpa tanggal & teks */
+  { const J = new Set(["unit", "konsumen", "usia", "tgl. lahir", "domisili", "kelurahan/desa", "kecamatan", "kota", "sumber informasi", "skema bayar baru", "skema bayar lama", "harga unit (rp)", "harga unit (r", "kode unit", "kode unit lama", "kode unit baru", "sales", "keterangan", "tipe", "klaster", "jumlah"]);
+    const F = ["unit", "konsumen", "tipe", "bayar", "sales", "ket", "ppjb", "sumber", "usia", "kel", "kec", "kota"];
+    Object.keys(S.weekly).forEach(nm => ["jual", "batal", "hold"].forEach(j => { const l = S.weekly[nm][j]; if (!Array.isArray(l)) return;
+      const k = l.filter(x => { const v = F.map(f => String(x[f] || "").trim().toLowerCase()).filter(t => /[0-9a-z]/.test(t));
+        if (!x.tanggal && !v.length && !x.lahir) return false;
+        if (!x.tanggal && v.every(t => J.has(t))) return false;
+        return v.filter(t => J.has(t)).length < 2; });
+      if (k.length !== l.length) { S.weekly[nm][j] = k; ubah = true; } })); }
   /* Klaster selalu sama dengan nama proyek (judul di menu) */
   Object.keys(S.weekly).forEach(nm => ["jual", "batal", "hold"].forEach(j => (S.weekly[nm][j] || []).forEach(x => { if (x.klaster !== nm) { x.klaster = nm; ubah = true; } })));
   return ubah;
@@ -2430,7 +2439,11 @@ function wkBacaExcel(rows, W, th) {
     const m = teks(v).match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/); return m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` : null;
   };
   const angka = v => typeof v === "number" ? Math.round(v) : (Number(teks(v).replace(/[^0-9]/g, "")) || 0);
-  const ada = new Set(wkKolom(W).map(c => c.k)), out = { jual: [], batal: [], hold: [], rekap: { jual: {}, batal: {} }, lewat: 0 };
+  const ada = new Set(wkKolom(W).map(c => c.k)), out = { jual: [], batal: [], hold: [], pindah: [], ganti: [], rekap: { jual: {}, batal: {} }, lewat: 0 };
+  const nLbl = v => low(String(v == null ? "" : v).replace(/<br>/g, " "));
+  /* Judul kolom bawaan: baris yang isinya judul kolom (bukan data) diabaikan */
+  const JUDUL = new Set(["unit", "konsumen", "tipe", "sales", "nama sales", "keterangan", "klaster", "jumlah", "usia", "tgl. lahir", "domisili", "kelurahan/desa", "kecamatan", "kota", "sumber informasi", "skema bayar", "keterangan pembayaran", "sbum", "ppjb",
+    ...Object.values(WK_PG).flatMap(g => g.kol(W).map(c => nLbl(c.x || c.l)))]);
   const BLN = BULAN.map(b => b.toLowerCase());
   /* "(05 Januari 2026 s.d 11 Januari 2026)", "( 17 Agustus s.d  23 Agustus '26)" -> tanggal awal blok */
   const blok = v => { const m = low(v).match(/(\d{1,2})\s+([a-z]+)\s*(\d{4})?\s*s\.?\s*d\.?\s*(\d{1,2})\s+([a-z]+)\s*(?:(\d{4})|'(\d{2}))?/);
@@ -2442,9 +2455,28 @@ function wkBacaExcel(rows, W, th) {
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r] || [];
     const iT = row.findIndex(v => /^(tanggal|tgl)/.test(low(v)));
-    const li = iT > 0 ? row.slice(0, iT).findIndex(v => /^(minggu ke|batal$|hold|rsvp)/.test(low(v))) : -1;
+    const li = iT > 0 ? row.slice(0, iT).findIndex(v => /^(minggu ke|batal$|hold|rsvp|pindah unit|ganti (cara )?bayar)/.test(low(v))) : -1;
     if (li >= 0) lc = li;
     const a = low(row[lc]);
+    if (li >= 0 && /^(pindah unit|ganti (cara )?bayar)/.test(a)) {
+      bag = a.startsWith("pindah") ? "pindah" : "ganti"; map = { tanggal: iT };
+      const C = WK_PG[bag].kol(W), pakai = new Set();
+      row.forEach((v, i) => { if (i <= iT) return; const h = nLbl(v); if (!h) return;
+        const c = C.find(c => !pakai.has(c.k) && (nLbl(c.x || c.l) === h || (c.k === "sales" && h.includes("sales")) || (c.k === "lahir" && h.startsWith("tgl. lahir"))));
+        if (c) { pakai.add(c.k); map[c.k] = i; } });
+      continue;
+    }
+    if (bag && WK_PG[bag]) {
+      if (/^(grand|total)\b/.test(a)) continue;
+      const C = WK_PG[bag].kol(W), t = tgl(row[map.tanggal]);
+      const x = { id: out[bag].length + 1, tanggal: t || "" };
+      C.forEach(c => { const i = map[c.k], v = i == null ? null : row[i]; x[c.k] = c.t === "rp" ? angka(v) : c.t === "date" ? (tgl(v) || "") : teks(v); });
+      if (!t && !C.some(c => c.t !== "rp" && x[c.k])) continue; /* baris kosong / "(belum ada data)" */
+      if (C.filter(c => x[c.k] && JUDUL.has(low(x[c.k]))).length >= 2) continue;
+      if (x.usia) x.usia = wkUsia(x.usia);
+      wkUsiaIsi(x);
+      out[bag].push(x); continue;
+    }
     if (li >= 0) {
       bag = a.startsWith("hold") || a.startsWith("rsvp") ? "hold" : (urutan++ === 0 && a !== "batal") ? "jual" : "batal";
       if (a === "batal") bag = "batal";
@@ -2474,6 +2506,10 @@ function wkBacaExcel(rows, W, th) {
     const isiLain = Object.entries(map).some(([k, i]) => k !== "tanggal" && (ada.has(k) || k === "unit") && i != null && (kolRp.has(k) ? angka(row[i]) > 0 : teks(row[i]) !== ""));
     if (!t && !isiLain) continue;
     if (!t && map.unit != null && low(row[map.unit]) === "unit") continue; /* baris total (teks "Unit") */
+    const TXT = ["unit", "konsumen", "tipe", "bayar", "sales", "ket", "ppjb"];
+    if (!t && !TXT.some(k => map[k] != null && /[0-9a-z]/i.test(teks(row[map[k]])))) continue; /* baris total tanpa tanggal & teks */
+    { const v = Object.entries(map).filter(([k, i]) => k !== "tanggal" && i != null && teks(row[i]) && typeof row[i] !== "number").map(([, i]) => low(row[i]));
+      if (v.filter(h => JUDUL.has(h)).length >= 2 || (!t && v.length && v.every(h => JUDUL.has(h)))) continue; } /* baris judul kolom */
     const x = { id: out[bag].length + 1, tanggal: t || "" };
     if (bag !== "hold" && cur) x.minggu = cur;
     wkKolom(W).forEach(c => { const i = map[c.k]; const v = i == null ? null : row[i];
@@ -2507,11 +2543,11 @@ function bindWeeklyInput(nama) {
       const wb = XLSX.read(await file.arrayBuffer(), { type: "array" }), th = tahunKe();
       const nm = wb.SheetNames.find(n => n.includes(String(th))) || wb.SheetNames[0];
       const hasil = wkBacaExcel(XLSX.utils.sheet_to_json(wb.Sheets[nm], { header: 1, raw: true, defval: null }), W, th);
-      const n = hasil.jual.length + hasil.batal.length + hasil.hold.length;
+      const n = hasil.jual.length + hasil.batal.length + hasil.hold.length + hasil.pindah.length + hasil.ganti.length;
       if (!n && !Object.keys(hasil.rekap.jual).length) { toast("Tidak ada data Weekly Report yang terbaca di file ini."); return; }
-      if (!confirm(`Terbaca dari sheet "${nm}": ${hasil.jual.length} penjualan, ${hasil.batal.length} batal, ${hasil.hold.length} hold.\n\nIsi tabel Penjualan, Batal, Hold Reserved, dan rekap tahun sebelumnya akan diganti dengan isi file. Lanjutkan?`)) return;
+      if (!confirm(`Terbaca dari sheet "${nm}": ${hasil.jual.length} penjualan, ${hasil.batal.length} batal, ${hasil.hold.length} hold, ${hasil.pindah.length} pindah unit, ${hasil.ganti.length} ganti cara bayar.\n\nIsi tabel Penjualan, Batal, Hold Reserved, Pindah Unit, Ganti Cara Bayar, dan rekap tahun sebelumnya akan diganti dengan isi file. Lanjutkan?`)) return;
       [hasil.jual, hasil.batal, hasil.hold].forEach(l => l.forEach(x => x.klaster = nama));
-      d.jual = hasil.jual; d.batal = hasil.batal; d.hold = hasil.hold; wkTampil = {};
+      d.jual = hasil.jual; d.batal = hasil.batal; d.hold = hasil.hold; d.pindah = hasil.pindah; d.ganti = hasil.ganti; wkTampil = {};
       ["jual", "batal"].forEach(j => { d.rekap[j] = d.rekap[j] || {}; Object.entries(hasil.rekap[j]).forEach(([y, val]) => d.rekap[j][y] = val); });
       render(); toast(`${n} baris diimpor${hasil.lewat ? ` (${hasil.lewat} tanpa tanggal, ditaruh di minggunya)` : ""}. Periksa lalu klik Simpan data.`);
     } catch (e) { toast("Gagal membaca file Excel. Pastikan formatnya Weekly Report (.xlsx)."); }
