@@ -1489,7 +1489,7 @@ function seedWeekly() {
     }
   });
   /* Usia tanpa angka di belakang koma */
-  Object.keys(S.weekly).forEach(nm => ["jual", "batal", "hold", "pindah", "ganti"].forEach(j => (S.weekly[nm][j] || []).forEach(x => { if (x.usia && wkUsia(x.usia) !== x.usia) { x.usia = wkUsia(x.usia); ubah = true; } })));
+  Object.keys(S.weekly).forEach(nm => ["jual", "batal", "hold", "pindah", "ganti"].forEach(j => (S.weekly[nm][j] || []).forEach(x => { if (x.usia && wkUsia(x.usia) !== x.usia) { x.usia = wkUsia(x.usia); ubah = true; } if (wkUsiaIsi(x)) ubah = true; })));
   /* Klaster selalu sama dengan nama proyek (judul di menu) */
   Object.keys(S.weekly).forEach(nm => ["jual", "batal", "hold"].forEach(j => (S.weekly[nm][j] || []).forEach(x => { if (x.klaster !== nm) { x.klaster = nm; ubah = true; } })));
   return ubah;
@@ -2171,6 +2171,11 @@ function wkMinggu(th) {
    Kolom tambahan per proyek (W.ekstra): "unit" (kode unit), "konsumen", "sbum" (Rp). */
 const WK_TAMBAHAN = ["sumber", "usia", "lahir", "kel", "kec", "kota"];
 /* Usia ditulis bilangan bulat (Excel menyimpan usia sebagai pecahan tahun, mis. 54.0739...) */
+/* Usia kosong: hitung dari Tgl. Lahir pada Tgl Kontrak (tahun penuh, tanpa pembulatan) */
+function wkUsiaIsi(x) { if (!x || String(x.usia || "").trim() || !/^\d{4}-\d{2}-\d{2}$/.test(x.lahir || "")) return false;
+  const a = String(x.tanggal || "").match(/^\d{4}-\d{2}-\d{2}$/) ? x.tanggal : new Date().toISOString().slice(0, 10);
+  let u = +a.slice(0, 4) - +x.lahir.slice(0, 4); if (a.slice(5) < x.lahir.slice(5)) u--;
+  if (u < 0 || u > 120) return false; x.usia = String(u); return true; }
 function wkUsia(v) { const t = String(v == null ? "" : v).trim().replace(",", "."); return /^\d+(\.\d+)?$/.test(t) ? String(Math.floor(+t)) : String(v || "").trim(); }
 const WK_KOL_TMB = () => [{ k: "sumber", l: "Sumber<br>Informasi", x: "Sumber Informasi", t: "tx" }, { k: "usia", l: "Usia", t: "tx" }, { k: "lahir", l: "Tgl. Lahir", t: "date" },
   { k: "kel", l: "Domisili<br>Kelurahan/Desa", x: "Domisili - Kelurahan/Desa", t: "tx" }, { k: "kec", l: "Domisili<br>Kecamatan", x: "Domisili - Kecamatan", t: "tx" },
@@ -2309,7 +2314,7 @@ function bindWeekly() {
 let wkDraft = null, wkDraftNama = null;
 const WK_LIHAT = 5;
 /* Lebar kolom tetap di tabel Input Data; kolom tanpa lebar (Klaster, Konsumen, Skema Bayar, Sales, Keterangan) berbagi sisa lebar */
-const WK_COLW = { bayarLama: "13%", bayarBaru: "13%", sumber: "110px", usia: "52px", kel: "112px", kec: "104px", kota: "104px", hargaLama: "112px", harga: "112px", kodeLama: "104px", kode: "104px", jumlah: "50px", unit: "96px", tipe: "72px", bayar: "13%", rpInc: "110px", rpExc: "110px", sbum: "86px", ppjb: "110px", usia: "48px", lahir: "118px", sales: "11%", klaster: "100px", konsumen: "130px", ket: "11%" };
+const WK_COLW = { bayarLama: "13%", bayarBaru: "13%", sumber: "110px", usia: "52px", kel: "124px", kec: "124px", kota: "124px", hargaLama: "112px", harga: "112px", kodeLama: "104px", kode: "104px", jumlah: "50px", unit: "96px", tipe: "72px", bayar: "13%", rpInc: "110px", rpExc: "110px", sbum: "86px", ppjb: "110px", usia: "48px", lahir: "118px", sales: "11%", klaster: "100px", konsumen: "130px", ket: "11%" };
 let wkTampil = {};
 const wkT = j => wkTampil[j] = wkTampil[j] || { bulan: "", n: WK_LIHAT };
 const wkLoad = nama => { wkDraft = clone(S.weekly[nama]); wkDraftNama = nama; wkTampil = {}; };
@@ -2475,6 +2480,7 @@ function wkBacaExcel(rows, W, th) {
       x[c.k] = c.t === "rp" ? angka(v) : c.t === "date" ? (tgl(v) || "") : c.k === "jumlah" ? Math.max(0, angka(v)) : teks(v); });
     if (low(x.unit) === "unit") x.unit = "";
     if (x.usia) x.usia = wkUsia(x.usia);
+    wkUsiaIsi(x);
     if (!ada.has("unit")) delete x.unit;
     if (!t) out.lewat++;
     out[bag].push(x);
@@ -2526,6 +2532,7 @@ function bindWeeklyInput(nama) {
     else if (el.type === "date") r[k] = el.value || "";
     else if (k === "usia") r[k] = wkUsia(el.value);
     else r[k] = el.value.trim();
+    if (k === "lahir" || k === "tanggal") wkUsiaIsi(r);
     render(el.id);
   });
   v.querySelectorAll("[data-rk]").forEach(el => el.onchange = () => {
