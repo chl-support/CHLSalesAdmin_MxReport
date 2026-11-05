@@ -2015,7 +2015,7 @@ document.getElementById("drShare").onclick = async () => { try { await navigator
 
 /* ===================== Weekly Sales Performance (per proyek) ===================== */
 const WK_AWAL = 2019;
-const WK_BAG = { jual: { judul: "Penjualan", tgl: "Tanggal Pemesanan" }, batal: { judul: "Batal", tgl: "Tanggal Batal" }, hold: { judul: "Hold Reserved", tgl: "Tanggal Transaksi" } };
+const WK_BAG = { jual: { judul: "Penjualan", tgl: "Tgl Kontrak" }, batal: { judul: "Batal", tgl: "Tanggal Batal" }, hold: { judul: "Hold Reserved", tgl: "Tanggal Transaksi" } };
 /* "05 Jan s.d 11 Jan 2026" (tahun ditulis di akhir; ditulis dua kali jika beda tahun) */
 const wkPendek = (a, b) => { const t = iso => `${iso.slice(8, 10)} ${BULAN[+iso.slice(5, 7) - 1].slice(0, 3)}`;
   return a.slice(0, 4) === b.slice(0, 4) ? `${t(a)} s.d ${t(b)} ${b.slice(0, 4)}` : `${t(a)} ${a.slice(0, 4)} s.d ${t(b)} ${b.slice(0, 4)}`; };
@@ -2041,7 +2041,7 @@ function wkKolom(W) {
   if (e.includes("konsumen")) K.push({ k: "konsumen", l: "Konsumen", t: "tx" });
   if (e.includes("ppjb")) K.push({ k: "ppjb", l: "Penandatanganan<br>PPJB", x: "Penandatanganan PPJB", t: "date" });
   K.push({ k: "tipe", l: "Tipe", t: "tx" }, { k: "bayar", l: "Skema Bayar", x: "Skema Bayar", t: "tx", ph: "KPR / Cash" },
-    { k: "rpInc", l: "Rp<br>(Termasuk PPN)", x: "Rp (Termasuk PPN)", t: "rp" }, { k: "rpExc", l: "Rp<br>(Tidak Termasuk PPN)", ls: "Rp<br>(Tidak Termasuk<br>PPN)", x: "Rp (Tidak Termasuk PPN)", t: "rp" });
+    { k: "rpInc", l: "Nilai Kontrak<br>(Include PPN)", x: "Nilai Kontrak (Include PPN)", t: "rp" }, { k: "rpExc", l: "Nilai Kontrak<br>(Exclude PPN)", x: "Nilai Kontrak (Exclude PPN)", t: "rp" });
   if (e.includes("sbum")) K.push({ k: "sbum", l: "SBUM", t: "rp" });
   K.push({ k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" });
   if (e.includes("sumber")) K.push({ k: "sumber", l: "Sumber<br>Informasi", x: "Sumber Informasi", t: "tx" });
@@ -2114,7 +2114,7 @@ function viewWeekly(nama, id) {
   const totU = l => l.reduce((a, x) => a + (+x.jumlah || 0), 0);
   return `<div class="page cap" id="capWeekly">
   <div class="hero"><div class="tabs"><span class="tab">Weekly Sales Performance</span><span class="tab">${panjang(hari)}</span></div>
-    <div class="hero-body gut"><h1>${esc(W.judul || "Weekly Report " + nama)}</h1><div class="sub">Tahun ${th} • data per ${ddmmyyyy(hari)} • Rp pada kartu termasuk PPN (tidak termasuk PPN jika kosong)</div></div></div>
+    <div class="hero-body gut"><h1>${esc(W.judul || "Weekly Report " + nama)}</h1><div class="sub">Tahun ${th} • data per ${ddmmyyyy(hari)} • nilai pada kartu: Nilai Kontrak Include PPN (Exclude PPN jika kosong)</div></div></div>
   <div class="kpis wk-kpis gut">${(() => { /* Minggu berjalan: minggu (Senin–Minggu) yang memuat tanggal laporan */
       const w = mg.find(x => hari >= x.dari && hari <= x.sampai) || mg[mg.length - 1], dlm = x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai;
       const l = jL.filter(dlm), bt = totU(bL.filter(dlm));
@@ -2179,7 +2179,7 @@ function viewWeeklyInput(nama, id) {
     const bar = semua.length ? `<div class="bh-filter wk-bar"><label for="wkb-${j}">Bulan <select id="wkb-${j}" data-wkbln="${j}"><option value="">Semua bulan</option>${blnAda.map(b => `<option value="${b}" ${b === T.bulan ? "selected" : ""}>${BULAN[+b.slice(5, 7) - 1]} ${b.slice(0, 4)}</option>`).join("")}</select></label>
       <span class="bh-count">Menampilkan ${list.length} dari ${cocok.length} baris${T.bulan ? "" : " (terbaru di atas)"}</span></div>` : "";
     const more = cocok.length > WK_LIHAT ? `<div class="wk-more">${list.length < cocok.length ? `<button type="button" class="btn sec" data-wkmore="${j}">Tampilkan ${Math.min(WK_LIHAT, cocok.length - list.length)} lagi</button><button type="button" class="btn sec" data-wkall="${j}">Tampilkan semua (${cocok.length})</button>` : ""}${list.length > WK_LIHAT ? `<button type="button" class="btn sec" data-wkless="${j}">Ringkas</button>` : ""}</div>` : "";
-    return `<div class="bh-box"><div class="bh-head"><div><h3>${B.judul}</h3><div class="desc">${WK_PG[j] ? B.desc : j === "hold" ? "Unit yang ditahan, belum dihitung sebagai penjualan." : `Satu baris per transaksi, masuk ke minggu dan bulan sesuai tanggalnya.`}${oto && !WK_PG[j] ? " Rp tanpa PPN otomatis ÷ 1,11 jika kosong." : ""}</div></div>
+    return `<div class="bh-box"><div class="bh-head"><div><h3>${B.judul}</h3><div class="desc">${WK_PG[j] ? B.desc : j === "hold" ? "Unit yang ditahan, belum dihitung sebagai penjualan." : `Satu baris per transaksi, masuk ke minggu dan bulan sesuai tanggalnya.`}${oto && !WK_PG[j] ? " Nilai Kontrak (Exclude PPN) otomatis ÷ 1,11 jika kosong." : ""}</div></div>
       ${lk ? "" : `<button class="btn sec" data-wkadd="${j}" type="button">Tambah baris</button>`}</div>
       ${bar}<div class="tbl-wrap"><table class="edit bh-t wk-in wk-fit"><colgroup><col style="width:124px">${K.map(c => `<col${WK_COLW[c.k] ? ` style="width:${WK_COLW[c.k]}"` : ""}>`).join("")}<col style="width:28px"></colgroup><thead><tr><th>${B.tgl}</th>${K.map(c => `<th class="${c.t === "rp" ? "c" : ""}${c.k === "sbum" ? " c-sbum" : ""}">${c.k === "jumlah" ? "Jumlah (unit)" : c.l}</th>`).join("")}<th></th></tr></thead><tbody>
       ${list.map(x => `<tr><td><input type="date" id="wk-${j}-${x.id}-tanggal" data-wk="${j}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal || ""}" ${ro} ${x.minggu && wkEf(x) !== x.tanggal ? `title="Di Excel ada di minggu ${wkTgl(x.minggu)}"` : ""}></td>${K.map(c => `<td${c.k === "sbum" ? ' class="c-sbum"' : ""}>${inp(j, x, c)}</td>`).join("")}
@@ -2280,7 +2280,7 @@ function wkBacaExcel(rows, W, th) {
   let urutan = 0, bag = null, map = null, cur = null, lc = 0;
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r] || [];
-    const iT = row.findIndex(v => /^tanggal/.test(low(v)));
+    const iT = row.findIndex(v => /^(tanggal|tgl)/.test(low(v)));
     const li = iT > 0 ? row.slice(0, iT).findIndex(v => /^(minggu ke|batal$|hold)/.test(low(v))) : -1;
     if (li >= 0) lc = li;
     const a = low(row[lc]);
@@ -2292,8 +2292,10 @@ function wkBacaExcel(rows, W, th) {
         if (h === "klaster") map.klaster = i; else if (h === "jumlah") map.jumlah = i; else if (h === "unit") map.unit = i; else if (h === "konsumen") map.konsumen = i;
         else if (h === "tipe") map.tipe = i; else if (h.startsWith("keterangan pembayaran") || h.startsWith("cara bayar") || h.startsWith("skema bayar")) map.bayar = i; else if (h.includes("sales")) map.sales = i; else if (h === "keterangan") map.ket = i;
         else if (h.includes("ppjb")) map.ppjb = i; else if (h.startsWith("sumber")) map.sumber = i; else if (h === "usia") map.usia = i; else if (h.startsWith("tgl. lahir") || h.startsWith("tanggal lahir")) map.lahir = i; });
-      sub.forEach((v, i) => { const h = low(v); if (h.includes("tidak termasuk")) map.rpExc = i; else if (h.includes("termasuk")) map.rpInc = i; else if (h === "sbum") map.sbum = i; });
-      if (sub.some(v => /termasuk|sbum/.test(low(v)))) r++; /* baris sub-judul Rp bukan data */
+      sub.forEach((v, i) => { const h = low(v); if (h.includes("tidak termasuk") || h.includes("exclude")) map.rpExc = i; else if (h.includes("termasuk") || h.includes("include")) map.rpInc = i; else if (h === "sbum") map.sbum = i; });
+      /* judul Rp bisa juga satu baris: "Nilai Kontrak (Include PPN)" / "(Exclude PPN)" */
+      row.forEach((v, i) => { const h = low(v); if (h.includes("exclude") || h.includes("tidak termasuk ppn")) map.rpExc = i; else if (h.includes("include") || (h.includes("termasuk ppn") && !h.includes("tidak"))) map.rpInc = i; });
+      if (sub.some(v => /termasuk|sbum|include|exclude/.test(low(v)))) r++; /* baris sub-judul Rp bukan data */
       continue;
     }
     if (!bag) continue;
