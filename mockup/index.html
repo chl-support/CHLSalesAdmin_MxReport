@@ -235,6 +235,7 @@ table { width: 100%; border-collapse: collapse; }
 .cat-tg.on { background: var(--green-soft); color: var(--green); border-color: var(--green-soft); }
 .cat-tg:disabled { cursor: not-allowed; opacity: .7; }
 .cat-t input[type="text"] { text-align: left !important; text-align-last: left !important; }
+[data-dr][hidden] { display: none !important; }
 .dr-side { margin: 10px 0 0 12px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--side-ink); background: var(--bg); border: 1.5px solid var(--gold); border-radius: 6px; padding: 7px 10px; cursor: pointer; text-align: left; }
 .dr-side:hover { background: var(--side-hover); }
 .rhead .btn[data-dr] { align-self: center; }
@@ -608,6 +609,8 @@ let SESI = null;
 /* Batasan per user: proyek yang boleh diedit (tanpa daftar = semua proyek) */
 const akunIni = () => SESI || null;
 const userTerbatas = () => !!(akunIni() && akunIni().proyek);
+/* Menu Daily Report Message Template hanya untuk akun admin.chl */
+const bolehDailyReport = () => !!(akunIni() && String(akunIni().u || "").toLowerCase() === "admin.chl");
 /* Label total: akun terbatas hanya melihat proyeknya sendiri, jadi bukan total CHL */
 const lblTotal = (huruf) => userTerbatas() ? (huruf ? "TOTAL" : "Total") : (huruf ? "TOTAL CHL" : "Total CHL");
 /* Proyek Weekly yang boleh dibuka akun ini (akun tanpa daftar proyek, mis. Admin CHL / Viewer CHL, boleh semua) */
@@ -2029,6 +2032,7 @@ function drPilih(mode) {
 }
 document.querySelectorAll("[data-drm]").forEach(b => b.onclick = () => drPilih(b.dataset.drm));
 function bukaDailyReport() {
+  if (!bolehDailyReport()) return;
   const w = document.getElementById("drWrap"), ta = document.getElementById("drText");
   drTeks = {}; ta.value = drTeks[drMode] = teksDailyReport(drMode); ta.hidden = true;
   document.querySelectorAll("[data-drm]").forEach(b => { const on = b.dataset.drm === drMode; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
@@ -2543,6 +2547,7 @@ function render(focusId) {
     renderMenu(v);
     terapkanBahasa();
   } finally { rendering = false; }
+  document.querySelectorAll("[data-dr]").forEach(el => { el.hidden = !bolehDailyReport(); });
   nolStrip(); pasHP(); pasTabel();
   if (focusId) { const el = document.getElementById(focusId); if (el) el.focus(); }
 }
