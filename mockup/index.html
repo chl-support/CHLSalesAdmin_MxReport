@@ -1331,6 +1331,18 @@ const WK_SEED = {
       {"id":2,"tanggal":"2026-07-31","minggu":"2026-07-27","klaster":"MAZENTA","jumlah":1,"unit":"MR-M6-11","konsumen":"","ppjb":"2022-06-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":2797270000,"rpExc":2520063063,"sales":"YOSIA - WINFIELD","ket":"Batal - Unit Buyback"}],
     hold: [
       ] },
+  /* Naraya Serpong: mulai 2023; kolom tambahan Unit dan Konsumen. Transaksi 2026 dari Weekly Report Naraya Serpong (Excel);
+     Konsumen dikosongkan di sini karena kode halaman publik (isi lewat Input Data / Impor dari Excel). */
+  "Naraya Serpong": { judul: "Weekly Report Naraya Serpong", awal: 2023, ekstra: ["unit", "konsumen"], cfgV: 1, dataV: 1,
+    rekap: {"jual": {"2023": [8, 11103240000, 10002918919], "2024": [13, 18465000000, 16635135135], "2025": [2, 3366000000, 3032432431]}, "batal": {"2023": [0, 0, 0], "2024": [34, 48627800000, 43808828819], "2025": [0, 0, 0]}},
+    jual: [
+      {"id":1,"tanggal":"2026-05-07","minggu":"2026-05-04","klaster":"Naraya","jumlah":1,"unit":"NS-NR2-07","konsumen":"","tipe":"7","bayar":"KPR 10% - 1x","rpInc":1365240000,"rpExc":1229945946,"sales":"Kevin Sean Keefe Louhenapessy (Inhouse)"},
+      {"id":2,"tanggal":"2026-09-30","minggu":"2026-09-21","klaster":"Naraya","jumlah":1,"unit":"NS-NRB-07","konsumen":"","tipe":"7","bayar":"Special Payment Cash Keras","rpInc":1443000000,"rpExc":1300000000,"sales":"Yokky Amandita (Jendela Properti123)"}],
+    batal: [
+      {"id":1,"tanggal":"2026-04-13","minggu":"2026-04-13","klaster":"Naraya","jumlah":1,"unit":"NS-NR2-08","konsumen":"","tipe":"6","bayar":"KPR 10% - 1x","rpInc":1254705882,"rpExc":1130365660,"sales":"Oki Arnol Sunjaya (Jendela Property)","ket":"Pengajuan KPR ditolak oleh Bank Mandiri"},
+      {"id":2,"tanggal":"2026-07-28","minggu":"2026-07-27","klaster":"Naraya","jumlah":1,"unit":"NS-NR1-09","konsumen":"","tipe":"7","bayar":"KPR 10% - 1x","rpInc":1461000000,"rpExc":1316216217,"sales":"Imamul Faizin (Tuku Realty)","ket":"Batal karena konsumen sudah beli unit di tempat lain"}],
+    hold: [
+      {"id":1,"tanggal":"2026-10-06","klaster":"Naraya","jumlah":1,"unit":"NS-NR1-06","konsumen":"","tipe":"7","bayar":"Cash Keras","rpInc":1208000000,"rpExc":1088288288,"sales":"Tania (Cari Properti)"}] },
 };
 /* Daftar proyek Weekly per PT (menu sidebar) */
 const WK_GRUP = [["PT. Serpong Bangun Cipta", ["Banara Serpong", "Naraya Serpong", "Mazenta Residence", "Marchand"]],
@@ -1347,6 +1359,7 @@ function seedWeekly() {
     const sd = WK_SEED[k], w = S.weekly[k];
     if (!w) { S.weekly[k] = clone(sd); ubah = true; return; }
     if ((w.cfgV || 0) < (sd.cfgV || 0)) { ["judul", "awal", "ekstra", "ppnOto"].forEach(f => { if (sd[f] !== undefined) w[f] = clone(sd[f]); }); w.cfgV = sd.cfgV; ubah = true;
+      if (sd.rekap && !["jual", "batal"].some(j => Object.keys((w.rekap || {})[j] || {}).length)) w.rekap = clone(sd.rekap);
       /* kolom tambahan yang tidak dipakai lagi ikut dibuang dari data */
       const pakai = new Set(w.ekstra || []); ["sumber", "usia", "lahir"].filter(c => !pakai.has(c)).forEach(c => ["jual", "batal", "hold"].forEach(j => (w[j] || []).forEach(x => delete x[c]))); }
     if ((w.dataV || 0) < (sd.dataV || 0)) {
