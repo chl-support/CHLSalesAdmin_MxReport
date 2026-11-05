@@ -1119,7 +1119,6 @@ function viewSales() {
         <input type="date" id="salesTgl" value="${pilihSalesTgl || tgl}" min="${tahunKe()}-01-01" max="${S.sales2.tanggal}" title="Data penjualan dicatat per bulan: tanggal yang dipilih menampilkan data bulannya">
         ${salesBulan ? '<button class="btn-ghost" id="salesLatest" type="button">Bulan berjalan</button>' : ""}
         <button class="btn-ghost" id="salesCopy" type="button">Salin teks laporan</button>
-        <button class="btn-ghost" id="salesXls" type="button">Ekspor Excel</button>
         <button class="btn-ghost" id="salesShot" type="button" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button>
       </div></div>
   </div>
@@ -1202,8 +1201,8 @@ function salesText() {
 }
 
 /* Ekspor Excel dengan rumus yang saling terhubung, seperti file aslinya */
-/* hanyaInput = true: dari tab Input Data, file hanya berisi sheet data input (tanpa sheet Dashboard) */
-function exportSalesExcel(hanyaInput = false) {
+/* Ekspor Excel dari tab Input Data: hanya sheet data input (tanpa sheet Dashboard) */
+function exportSalesExcel() {
   if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
   const m = bulanAktif(), tgl = tanggalTampil(m), th = tahunKe(), cur = bulanIni(m), list = S.sales2.proyek.filter(p => p.aktif).sort(byUrut);
   const col = n => { let s = ""; n++; while (n) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; };
@@ -1241,12 +1240,6 @@ function exportSalesExcel(hanyaInput = false) {
   const wb = XLSX.utils.book_new();
   const ws1 = XLSX.utils.aoa_to_sheet(dash); ws1["!cols"] = [{ wch: 24 }, { wch: 34 }, ...Array(8).fill({ wch: 15 })];
   const ws2 = XLSX.utils.aoa_to_sheet(inp); ws2["!cols"] = [{ wch: 22 }, { wch: 34 }, ...Array(34).fill({ wch: 15 })];
-  if (!hanyaInput) {
-    XLSX.utils.book_append_sheet(wb, ws1, "Dashboard");
-    XLSX.utils.book_append_sheet(wb, ws2, "input data");
-    XLSX.writeFile(wb, `Dashboard_Penjualan_Properti_${tgl}.xlsx`);
-    toast("File Excel diunduh"); return;
-  }
   XLSX.utils.book_append_sheet(wb, ws2, "input data");
   /* Tabel lain di Input Data, masing-masing satu sheet (Rp = Rupiah penuh, ada baris total dengan rumus) */
   const rpC = v => ({ v: v || 0, t: "n", z: "#,##0" });
@@ -1282,7 +1275,6 @@ function bindSales() {
   const c = document.getElementById("salesCopy");
   if (!c) return;
   c.onclick = () => navigator.clipboard.writeText(denganID(() => salesText())).then(() => toast("Teks laporan disalin")).catch(() => toast("Gagal menyalin. Coba lagi."));
-  document.getElementById("salesXls").onclick = () => denganID(exportSalesExcel);
   document.getElementById("salesShot").onclick = e => menuGambar(e.currentTarget, "capSales", `Dashboard_Penjualan_${BULAN[bulanAktif() - 1]}_${tahunKe()}.png`);
   document.getElementById("salesTgl").onchange = e => {
     const v = e.target.value; if (!v) return;
@@ -1414,7 +1406,7 @@ function bindSalesInput() {
   /* Ekspor memakai data yang sudah disimpan */
   document.getElementById("sXls").onclick = () => {
     const belum = JSON.stringify(sDraft) !== JSON.stringify(S.sales2);
-    denganID(() => exportSalesExcel(true));
+    denganID(exportSalesExcel);
     if (belum && window.XLSX) setTimeout(() => toast("File Excel diunduh. Perubahan yang belum disimpan tidak ikut. Klik Simpan data dulu."), 2500);
   };
   const bhList = j => sDraft[j] = sDraft[j] || [];
