@@ -111,7 +111,7 @@ function merge(old, inc, user) {
       return Object.assign({}, o, { base: n.base, bulan: n.bulan, hari: n.hari, stok: user.kunciStok ? o.stok : n.stok, catatan: n.catatan, catatanTampil: n.catatanTampil });
     });
     const salesNama = id => ((old.sales2.proyek || []).find(p => p.id === id) || {}).nama;
-    ["batal", "hold"].forEach(j => {
+    ["batal", "hold", "pindah", "ganti"].forEach(j => {
       const keep = (old.sales2[j] || []).filter(x => !ok(salesNama(x.proyekId)));
       const mine = (inc.sales2[j] || []).filter(x => ok(salesNama(x.proyekId)));
       out.sales2[j] = [...keep, ...mine];

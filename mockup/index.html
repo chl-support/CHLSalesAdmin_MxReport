@@ -1298,7 +1298,7 @@ function viewSalesInput() {
   <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan. " : ""}Proyek dan grup diatur di tab Master.${userTerbatas() ? ` Akun Anda hanya bisa mengubah proyek: ${esc(S.sales2.proyek.filter(p => bolehEdit(p.nama)).map(p => p.nama).join(", ") || "–")}. Proyek lain dan kolom total stok dikunci.` : ""}</p></div>`;
 }
 /* Filter tanggal untuk tabel Batal & Hold (hanya tampilan, tidak tersimpan) */
-const fBH = { batal: { dari: "", sampai: "" }, hold: { dari: "", sampai: "" } };
+const fBH = { batal: { dari: "", sampai: "" }, hold: { dari: "", sampai: "" }, pindah: { dari: "", sampai: "" }, ganti: { dari: "", sampai: "" } };
 /* Tabel Batal, Hold Reserved, dan Catatan tambahan di Input Data */
 function daftarBatalHold(d) {
   const optP = sel => d.proyek.slice().sort(byUrut).filter(p => (p.aktif && bolehEdit(p.nama)) || p.id === sel)
@@ -1318,6 +1318,8 @@ function daftarBatalHold(d) {
       <span class="bh-count">${aktif ? `Menampilkan ${n} dari ${list.length} ${satuan}` : `${list.length} ${satuan}`}</span></div>`; };
   const batal = (d.batal || []).filter(x => lolos("batal", x)).map(x => row("batal", x, `<td>${txt("batal", x, "kode", "OR-OD3-012")}</td><td>${rpIn("batal", x, "rp")}</td><td>${txt("batal", x, "ket")}</td>`)).join("");
   const hold = (d.hold || []).filter(x => lolos("hold", x)).map(x => row("hold", x, `<td>${txt("hold", x, "kode", "NS-NR1-06")}</td><td>${rpIn("hold", x, "harga")}</td><td>${rpIn("hold", x, "tandaJadi")}</td><td>${txt("hold", x, "ket")}</td>`)).join("");
+  const pindah = (d.pindah || []).filter(x => lolos("pindah", x)).map(x => row("pindah", x, `<td>${txt("pindah", x, "kodeLama", "A5-02")}</td><td>${txt("pindah", x, "kode", "A5-06")}</td><td>${txt("pindah", x, "ket")}</td>`)).join("");
+  const ganti = (d.ganti || []).filter(x => lolos("ganti", x)).map(x => row("ganti", x, `<td>${txt("ganti", x, "kode", "B4-10")}</td><td>${txt("ganti", x, "bayarLama", "KPR")}</td><td>${txt("ganti", x, "bayarBaru", "Cash Bertahap")}</td><td>${txt("ganti", x, "ket")}</td>`)).join("");
   const kosong = (n, t) => `<tr><td colspan="${n}" style="color:var(--muted);text-align:center;padding:12px">${t}</td></tr>`;
   const catRows = d.proyek.slice().sort(byUrut).filter(p => p.aktif).map(p => { const lk = !bolehEdit(p.nama);
     const tampil = p.catatanTampil !== false;
@@ -1326,7 +1328,7 @@ function daftarBatalHold(d) {
   return `<div class="bh">
     <div class="bh-box"><h3>Catatan proyek</h3><div class="desc">Tampil di dashboard di bawah baris proyeknya (tabel Penjualan per Proyek). Klik tombol di kolom “Di dashboard” untuk menyembunyikan atau menampilkan catatan tanpa menghapus teksnya. Tombol ini langsung tersimpan. Perubahan teks catatan tetap perlu Simpan data.</div>
       <div class="tbl-wrap"><table class="edit cat-t"><thead><tr><th style="width:220px">Proyek</th><th>Catatan</th><th style="width:150px">Di dashboard</th></tr></thead><tbody>${catRows}</tbody></table></div></div>
-    <div class="bh-box"><div class="bh-head"><div><h3>Unit Batal</h3><div class="desc">Satu baris per unit yang batal. Tampil di kartu “Batal bulan …” sesuai bulan tanggalnya. Angka penjualan di tabel atas tidak berubah otomatis.</div></div>
+    <div class="bh-box"><div class="bh-head"><div><h3>Batal</h3><div class="desc">Satu baris per unit yang batal. Tampil di kartu “Batal bulan …” sesuai bulan tanggalnya. Angka penjualan di tabel atas tidak berubah otomatis.</div></div>
       <button class="btn sec" id="addBatal" type="button">Tambah unit batal</button></div>
       ${bar("batal", d.batal || [], "unit")}
       <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Nilai (Rp)</th><th>Keterangan</th><th></th></tr></thead>
@@ -1336,6 +1338,16 @@ function daftarBatalHold(d) {
       ${bar("hold", d.hold || [], "unit")}
       <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Harga unit (Rp)</th><th>Tanda jadi (Rp)</th><th>Keterangan</th><th></th></tr></thead>
       <tbody>${hold || kosong(7, (d.hold || []).length ? "Tidak ada unit hold pada rentang tanggal ini." : "Belum ada unit hold.")}</tbody></table></div></div>
+    <div class="bh-box"><div class="bh-head"><div><h3>Pindah Unit</h3><div class="desc">Satu baris per unit yang pindah ke unit lain. Isi kode unit lama dan kode unit baru. Angka penjualan di tabel atas tidak berubah otomatis.</div></div>
+      <button class="btn sec" id="addPindah" type="button">Tambah pindah unit</button></div>
+      ${bar("pindah", d.pindah || [], "unit")}
+      <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit lama</th><th>Kode unit baru</th><th>Keterangan</th><th></th></tr></thead>
+      <tbody>${pindah || kosong(6, (d.pindah || []).length ? "Tidak ada pindah unit pada rentang tanggal ini." : "Belum ada pindah unit.")}</tbody></table></div></div>
+    <div class="bh-box"><div class="bh-head"><div><h3>Ganti Bayar</h3><div class="desc">Satu baris per unit yang ganti cara bayar (lama → baru). Angka penjualan di tabel atas tidak berubah otomatis.</div></div>
+      <button class="btn sec" id="addGanti" type="button">Tambah ganti bayar</button></div>
+      ${bar("ganti", d.ganti || [], "unit")}
+      <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Cara bayar lama</th><th>Cara bayar baru</th><th>Keterangan</th><th></th></tr></thead>
+      <tbody>${ganti || kosong(7, (d.ganti || []).length ? "Tidak ada ganti bayar pada rentang tanggal ini." : "Belum ada ganti bayar.")}</tbody></table></div></div>
   </div>`;
 }
 function bindSalesInput() {
@@ -1351,6 +1363,10 @@ function bindSalesInput() {
     bhList("batal").push({ id: nextId("batal"), tanggal: todayISO(), proyekId: pid, kode: "", rp: 0, ket: "" }); render(); };
   document.getElementById("addHold").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; } bukaFilter("hold");
     bhList("hold").push({ id: nextId("hold"), tanggal: todayISO(), proyekId: pid, kode: "", harga: 0, tandaJadi: 0, ket: "Belum di-create ke sistem" }); render(); };
+  document.getElementById("addPindah").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; } bukaFilter("pindah");
+    bhList("pindah").push({ id: nextId("pindah"), tanggal: todayISO(), proyekId: pid, kodeLama: "", kode: "", ket: "" }); render(); };
+  document.getElementById("addGanti").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; } bukaFilter("ganti");
+    bhList("ganti").push({ id: nextId("ganti"), tanggal: todayISO(), proyekId: pid, kode: "", bayarLama: "", bayarBaru: "", ket: "" }); render(); };
   const v0 = document.getElementById("view");
   /* Tombol Tampil/Disembunyikan langsung tersimpan, tanpa perlu klik Simpan data */
   v0.querySelectorAll("[data-cathide]").forEach(b => b.onclick = () => {
@@ -1392,7 +1408,7 @@ function bindSalesInput() {
       for (let i = pre; i < items.length; i++) items[i] = `${p.nama} · ${items[i]}`;
     });
     const lbl = x => `${namaProyekSales(x.proyekId)} ${x.kode || "(tanpa kode)"}`;
-    ["batal", "hold"].forEach(j => { const nmJ = j === "batal" ? "Batal" : "Hold";
+    ["batal", "hold", "pindah", "ganti"].forEach(j => { const nmJ = { batal: "Batal", hold: "Hold", pindah: "Pindah unit", ganti: "Ganti bayar" }[j];
       const lama = S.sales2[j] || [], baru = sDraft[j] || [];
       /* Data proyek yang bukan wewenang user dipertahankan dari data tersimpan */
       if (userTerbatas()) sDraft[j] = [...baru.filter(x => bolehEdit(namaProyekSales(x.proyekId))), ...lama.filter(x => !bolehEdit(namaProyekSales(x.proyekId)))];
@@ -1690,7 +1706,9 @@ const EN = {
   "Penjualan per Proyek": "Sales by project", "Proyek": "Project", "Status": "Status", "Selesai": "Done", "Total": "Total",
   "Unit": "Unit", "Keterangan": "Notes", "Simpan data": "Save data", "Simpan laporan": "Save report", "Tambah baris": "Add row",
   "Batalkan perubahan": "Discard changes", "Kode unit": "Unit code", "Harga unit": "Unit price", "Tanda jadi": "Booking fee",
-  "Tanggal laporan": "Report date", "Akumulasi terjual": "Total sold", "Unit Batal": "Cancelled units", "Catatan proyek": "Project notes",
+  "Tanggal laporan": "Report date", "Akumulasi terjual": "Total sold", "Unit Batal": "Cancelled units", "Batal": "Cancelled", "Pindah Unit": "Unit transfer", "Ganti Bayar": "Payment change",
+  "Tambah pindah unit": "Add unit transfer", "Tambah ganti bayar": "Add payment change", "Kode unit lama": "Old unit code", "Kode unit baru": "New unit code",
+  "Cara bayar lama": "Old payment method", "Cara bayar baru": "New payment method", "Belum ada pindah unit.": "No unit transfers yet.", "Belum ada ganti bayar.": "No payment changes yet.", "Catatan proyek": "Project notes",
   "Tambah unit batal": "Add cancelled unit", "Tambah unit hold": "Add held unit", "Semua tanggal": "All dates", "Filter tanggal": "Date filter",
   "Dari": "From", "Sampai": "To", "Waktu": "Time", "Bagian": "Section", "Perubahan": "Change", "Oleh": "By",
   "History Perubahan": "Change history", "Input Data BAST": "BAST data entry", "Input Data Penjualan": "Sales data entry",
