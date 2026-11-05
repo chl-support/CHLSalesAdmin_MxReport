@@ -1315,16 +1315,16 @@ const WK_SEED = {
     hold: [
       {"id":1,"tanggal":"2026-10-25","klaster":"PERMAI INDAH","jumlah":1,"unit":"B4-10","konsumen":"","tipe":"22,50/60","bayar":"KPR DP 1%/1x","rpExc":185000000,"sales":"Elisabeth Maria Ratuela / Multi Property","ket":"Menunggu pembatalan dari unit yang di Hold"},
       {"id":2,"tanggal":"","jumlah":1,"konsumen":"","rpExc":185000000}] },
-  /* Mazenta Residence: mulai 2022; kolom tambahan Unit, Konsumen, Penandatanganan PPJB, Sumber Informasi, Usia, Tgl. Lahir.
-     Transaksi 2026 dari Weekly Report Mazenta Residence (Excel). Konsumen, Usia, Tgl. Lahir dikosongkan di sini karena kode halaman publik. */
-  "Mazenta Residence": { judul: "Weekly Report Mazenta Residence", awal: 2022, ekstra: ["unit", "konsumen", "ppjb", "sumber", "usia", "lahir"], cfgV: 1, dataV: 1,
+  /* Mazenta Residence: mulai 2022; kolom tambahan Unit, Konsumen, Penandatanganan PPJB (kolom Sumber Informasi, Usia, Tgl. Lahir,
+     Domisili di Excel tidak dipakai). Transaksi 2026 dari Weekly Report Mazenta Residence (Excel); Konsumen dikosongkan di sini karena kode halaman publik. */
+  "Mazenta Residence": { judul: "Weekly Report Mazenta Residence", awal: 2022, ekstra: ["unit", "konsumen", "ppjb"], cfgV: 2, dataV: 1,
     rekap: {"jual": {"2022": [66, 177826470000, 160395945618], "2023": [17, 51689330000, 46566963965], "2024": [2, 7525000000, 6779279279], "2025": [1, 2520000000, 2270270270]}, "batal": {"2022": [22, 53959400000, 48612072071], "2023": [19, 56898280000, 51276312861], "2024": [2, 6858000000, 6178378379], "2025": [3, 7313000000, 6588288288]}},
     jual: [
-      {"id":1,"tanggal":"2026-04-20","minggu":"2026-04-20","klaster":"MAZENTA","jumlah":1,"unit":"MR-M5-19","konsumen":"","ppjb":"2026-04-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":2053500000,"rpExc":1850000000,"sales":"HENDRA KOMARA","ket":"BUYBACK","usia":"","lahir":""},
-      {"id":2,"tanggal":"2026-07-31","minggu":"2026-07-27","klaster":"MAZENTA","jumlah":1,"unit":"MR-M6-11","konsumen":"","ppjb":"2026-07-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":3010000000,"rpExc":2711711712,"sales":"RISKY CARDO (CARI RUMAH 88)","ket":"BUYBACK","usia":"","lahir":""}],
+      {"id":1,"tanggal":"2026-04-20","minggu":"2026-04-20","klaster":"MAZENTA","jumlah":1,"unit":"MR-M5-19","konsumen":"","ppjb":"2026-04-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":2053500000,"rpExc":1850000000,"sales":"HENDRA KOMARA","ket":"BUYBACK"},
+      {"id":2,"tanggal":"2026-07-31","minggu":"2026-07-27","klaster":"MAZENTA","jumlah":1,"unit":"MR-M6-11","konsumen":"","ppjb":"2026-07-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":3010000000,"rpExc":2711711712,"sales":"RISKY CARDO (CARI RUMAH 88)","ket":"BUYBACK"}],
     batal: [
-      {"id":1,"tanggal":"2026-04-20","minggu":"2026-04-20","klaster":"MAZENTA","jumlah":1,"unit":"MR-M5-19","konsumen":"","ppjb":"2023-04-05","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":1950000000,"rpExc":1756756757,"sales":"SURYO ADI NAGORO","ket":"Batal - Unit Buyback","sumber":"Instragram","usia":"","lahir":""},
-      {"id":2,"tanggal":"2026-07-31","minggu":"2026-07-27","klaster":"MAZENTA","jumlah":1,"unit":"MR-M6-11","konsumen":"","ppjb":"2022-06-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":2797270000,"rpExc":2520063063,"sales":"YOSIA - WINFIELD","ket":"Batal - Unit Buyback","usia":"","lahir":""}],
+      {"id":1,"tanggal":"2026-04-20","minggu":"2026-04-20","klaster":"MAZENTA","jumlah":1,"unit":"MR-M5-19","konsumen":"","ppjb":"2023-04-05","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":1950000000,"rpExc":1756756757,"sales":"SURYO ADI NAGORO","ket":"Batal - Unit Buyback"},
+      {"id":2,"tanggal":"2026-07-31","minggu":"2026-07-27","klaster":"MAZENTA","jumlah":1,"unit":"MR-M6-11","konsumen":"","ppjb":"2022-06-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":2797270000,"rpExc":2520063063,"sales":"YOSIA - WINFIELD","ket":"Batal - Unit Buyback"}],
     hold: [
       ] },
 };
@@ -1334,7 +1334,9 @@ function seedWeekly() {
   Object.keys(WK_SEED).forEach(k => {
     const sd = WK_SEED[k], w = S.weekly[k];
     if (!w) { S.weekly[k] = clone(sd); ubah = true; return; }
-    if ((w.cfgV || 0) < (sd.cfgV || 0)) { ["judul", "awal", "ekstra", "ppnOto"].forEach(f => { if (sd[f] !== undefined) w[f] = clone(sd[f]); }); w.cfgV = sd.cfgV; ubah = true; }
+    if ((w.cfgV || 0) < (sd.cfgV || 0)) { ["judul", "awal", "ekstra", "ppnOto"].forEach(f => { if (sd[f] !== undefined) w[f] = clone(sd[f]); }); w.cfgV = sd.cfgV; ubah = true;
+      /* kolom tambahan yang tidak dipakai lagi ikut dibuang dari data */
+      const pakai = new Set(w.ekstra || []); ["sumber", "usia", "lahir"].filter(c => !pakai.has(c)).forEach(c => ["jual", "batal", "hold"].forEach(j => (w[j] || []).forEach(x => delete x[c]))); }
     if ((w.dataV || 0) < (sd.dataV || 0)) {
       /* Muat ulang dari Excel terbaru. Nama konsumen yang sudah diisi dipertahankan (dicocokkan dari tanggal + kode unit). */
       const kunci = x => `${x.tanggal || ""}|${(x.unit || "").toUpperCase()}`;
