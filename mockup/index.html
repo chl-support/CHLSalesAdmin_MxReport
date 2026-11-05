@@ -2509,7 +2509,7 @@ function render(focusId) {
     renderMenu(v);
     terapkanBahasa();
   } finally { rendering = false; }
-  pasHP();
+  pasHP(); pasTabel();
   if (focusId) { const el = document.getElementById(focusId); if (el) el.focus(); }
 }
 /* Di layar HP (< 900px) semua tab report (Dashboard, Input Data, Master, History) ditampilkan
@@ -2524,7 +2524,16 @@ function pasHP() {
   view.style.zoom = "0.1"; /* kecilkan dulu supaya lebar area terbaca tanpa terdorong isi halaman */
   view.style.zoom = String(Math.min(1, view.parentElement.clientWidth / LEBAR_DASH));
 }
-window.addEventListener("resize", () => { clearTimeout(pasHP.t); pasHP.t = setTimeout(pasHP, 120); });
+/* Tabel yang sedikit lebih lebar dari layar diperkecil otomatis supaya pas (tanpa geser).
+   Tabel yang jauh lebih lebar (mis. input 12 bulan) tetap bisa digeser agar angkanya tidak terlalu kecil. */
+function pasTabel() {
+  document.querySelectorAll("#view .tbl-wrap > table").forEach(t => {
+    t.style.zoom = "";
+    const w = t.parentElement.clientWidth, n = t.scrollWidth;
+    if (w && n > w + 2) { const z = w / n; if (z >= 0.72) t.style.zoom = String(Math.floor(z * 1000) / 1000); }
+  });
+}
+window.addEventListener("resize", () => { clearTimeout(pasHP.t); pasHP.t = setTimeout(() => { pasHP(); pasTabel(); }, 120); });
 
 /* ===================== Menu profil + bahasa ===================== */
 const profBtn = document.getElementById("profBtn"), profPop = document.getElementById("profPop");
