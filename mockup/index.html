@@ -261,6 +261,9 @@ table { width: 100%; border-collapse: collapse; }
 .dr-ml { font-size: 12.5px; font-weight: 700; color: var(--muted); margin-right: 4px; }
 .dr-mode button { font: inherit; font-size: 13px; font-weight: 700; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
 .dr-mode button.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+.dr-proy button { font-weight: 600; font-size: 12.5px; padding: 5px 10px; }
+.dr-proy button.on { background: var(--gold); border-color: var(--gold); color: var(--navy); }
+.dr-proy button.dr-all { font-weight: 700; }
 .dr-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
 .dr-tabs button { font: inherit; font-size: 13px; font-weight: 600; background: none; border: none; border-bottom: 2.5px solid transparent; padding: 6px 12px; cursor: pointer; color: var(--muted); margin-bottom: -1px; }
 .dr-tabs button.on { color: var(--ink); border-bottom-color: var(--gold); }
@@ -563,6 +566,7 @@ a.rcard:hover { border-color: var(--gold); }
     <p class="desc" id="drDesc"></p>
     <div class="dr-mode" role="group" aria-label="Isi report"><span class="dr-ml">Isi report</span>
       <button type="button" data-drm="semua" class="on">Gabungan</button><button type="button" data-drm="jual">Daily Report Penjualan</button><button type="button" data-drm="bast">Report BAST</button></div>
+    <div class="dr-mode dr-proy" id="drProy" role="group" aria-label="Proyek yang dikirim"></div>
     <div class="dr-tabs" role="tablist"><button type="button" class="on" id="drTabPrev">Pratinjau</button><button type="button" id="drTabEdit">Edit teks</button></div>
     <div class="dr-prev" id="drPrev" aria-label="Pratinjau Daily Report"></div>
     <textarea id="drText" spellcheck="false" aria-label="Teks Daily Report" hidden></textarea>
@@ -2047,9 +2051,10 @@ const singkat = nama => nama.split(/\s+/).map(w => w[0]).join("").toUpperCase();
 function teksDailyReport(bagian = "semua") {
   return denganID(() => {
     const tgl = S.sales2.tanggal, m = bulanKe(tgl), bln = BULAN[m - 1];
-    const { rows, tot: T } = hitungSales(undefined, m);
-    const batalHari = (S.sales2.batal || []).filter(x => x.tanggal === tgl);
-    const pindahHari = (S.sales2.pindah || []).filter(x => x.tanggal === tgl), gantiHari = (S.sales2.ganti || []).filter(x => x.tanggal === tgl);
+    const pil = drProyekPilih(), dipilih = x => !pil || pil.has(x.proyekId);
+    const { rows, tot: T } = hitungSales(S.sales2.proyek.filter(p => p.aktif && (!pil || pil.has(p.id))), m);
+    const batalHari = (S.sales2.batal || []).filter(x => x.tanggal === tgl && dipilih(x));
+    const pindahHari = (S.sales2.pindah || []).filter(x => x.tanggal === tgl && dipilih(x)), gantiHari = (S.sales2.ganti || []).filter(x => x.tanggal === tgl && dipilih(x));
     const teksPindah = l => `*Pindah Unit : ${l.length} Unit (${l.map(b => `${b.kodeLama || "?"} → ${b.kode || "?"}`).join(" & ")})*`;
     const teksGanti = l => `*Ganti Bayar : ${l.length} Unit (${l.map(b => `${b.kode || "?"} : ${b.bayarLama || "?"} → ${b.bayarBaru || "?"}`).join(" & ")})*`;
     const blok = x => {
@@ -2085,10 +2090,10 @@ function teksDailyReport(bagian = "semua") {
     if (!L.length) L.push("Tidak ada perubahan");
     L.push(`${bln} / YTD : ${fU(T.bln[0])}/${fU(T.ytd[0])} Unit (${fM(T.bln[1])}/${fM(T.ytd[1])} M)`);
     L.push(`Total Terjual : ${fU(T.akum[0])}/${fU(T.stok[0])} Unit (${fM(T.akum[1])}/${fM(T.stok[1])} M)`);
-    out.push(`*${userTerbatas() ? "Total" : "CHL"} :*\n${L.join("\n")}`);
+    if (rows.length > 1 || !pil) out.push(`*${userTerbatas() || pil ? "Total" : "CHL"} :*\n${L.join("\n")}`);
     let t = `Daily Report\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n\n` + out.join("\n\n");
     /* Hold Reserved */
-    const hold = S.sales2.hold || [];
+    const hold = (S.sales2.hold || []).filter(dipilih);
     if (hold.length) {
       const g = [];
       hold.forEach(h => { const p = S.sales2.proyek.find(x => x.id === h.proyekId) || {}; const mk = merek(p.grup); const lbl = mk ? singkat(mk) : (p.nama || "?");
@@ -2105,16 +2110,20 @@ function teksDailyReport(bagian = "semua") {
     if (dBast) {
       const H = hitung(dBast), g = n => n === 0 ? "-" : n;
       tb = `Report BAST Program PPN DTP\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n`;
+      const namaPil = pil ? new Set(S.sales2.proyek.filter(p => pil.has(p.id)).map(p => p.nama.trim().toLowerCase())) : null;
       H.periodes.forEach(({ p, rincian }) => {
+        const rc = namaPil ? rincian.filter(({ j }) => namaPil.has(String(j.nama || "").trim().toLowerCase())) : rincian;
+        if (!rc.length) return;
         tb += `\n*Periode PPN DTP (${p.nama})*\n`;
-        rincian.forEach(({ j, r }) => {
+        rc.forEach(({ j, r }) => {
           tb += `*${j.nama.toUpperCase()}*\nBAST PPN DTP\n    Total ${g(r.d[0])} unit dari ${g(r.d[1])} unit\nBAST Non PPN DTP\n    Total ${g(r.d[2])} unit dari ${g(r.d[3])} unit\n`;
         });
       });
       tb = tb.replace(/\n+$/, "");
+      if (!tb.includes("*Periode")) tb = "";
     }
     if (bagian === "jual") return t;
-    if (bagian === "bast") return tb || "Belum ada laporan BAST.";
+    if (bagian === "bast") return tb || (pil ? "Belum ada laporan BAST untuk proyek yang dipilih." : "Belum ada laporan BAST.");
     return tb ? `${t}\n\n${tb}` : t;
   });
 }
@@ -2139,9 +2148,27 @@ function drPilih(mode) {
   drTab(edit); if (!edit) document.getElementById("drPrev").scrollTop = 0;
 }
 document.querySelectorAll("[data-drm]").forEach(b => b.onclick = () => drPilih(b.dataset.drm));
+/* Pilih proyek yang dikirim: null = semua proyek. Pilihan diingat selama halaman terbuka */
+let drProyek = null;
+const drProyekList = () => { const L = hitungSales().rows.map(x => x.p), nm = p => p.nama.toLowerCase(), iO = L.findIndex(p => nm(p) === "orchard riviera"), iS = L.findIndex(p => nm(p) === "scotts vale");
+  if (iO > iS && iS >= 0) L.splice(iS, 0, L.splice(iO, 1)[0]); return L; };
+function drProyekPilih() { if (!drProyek) return null; const ids = new Set(drProyekList().map(p => p.id)), s = new Set([...drProyek].filter(id => ids.has(id))); return s.size && s.size < ids.size ? s : null; }
+function drProyekGambar() {
+  const el = document.getElementById("drProy"), pil = drProyekPilih(), L = drProyekList();
+  el.innerHTML = `<span class="dr-ml">Proyek</span><button type="button" class="dr-all${pil ? "" : " on"}" data-drp="" aria-pressed="${!pil}">Semua proyek</button>` +
+    L.map(p => { const on = !!pil && pil.has(p.id); return `<button type="button" data-drp="${p.id}" class="${on ? "on" : ""}" aria-pressed="${on}">${esc(p.nama)}</button>`; }).join("");
+  el.querySelectorAll("[data-drp]").forEach(b => b.onclick = () => {
+    const id = b.dataset.drp; let s = drProyekPilih() ? new Set(drProyekPilih()) : new Set();
+    if (!id) s = null; else { const v = isNaN(+id) ? id : (L.some(p => p.id === +id) ? +id : id); s.has(v) ? s.delete(v) : s.add(v); if (!s.size) s = null; }
+    drProyek = s; drProyekGambar();
+    const ta = document.getElementById("drText"), edit = !ta.hidden;
+    drTeks = {}; ta.value = drTeks[drMode] = teksDailyReport(drMode); drTab(edit);
+  });
+}
 function bukaDailyReport() {
   if (!bolehDailyReport()) return;
   const w = document.getElementById("drWrap"), ta = document.getElementById("drText");
+  drProyekGambar();
   drTeks = {}; ta.value = drTeks[drMode] = teksDailyReport(drMode); ta.hidden = true;
   document.querySelectorAll("[data-drm]").forEach(b => { const on = b.dataset.drm === drMode; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
   drTab(false);
