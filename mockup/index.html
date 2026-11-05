@@ -345,6 +345,9 @@ table { width: 100%; border-collapse: collapse; }
 .wk-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .wk-opt { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
 .wk-sub { font-size: 15px; margin: 18px 0 0; }
+.wk-bar { margin-top: 12px; }
+.wk-bar select { margin-left: 6px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); font: inherit; font-size: 13px; }
+.wk-more { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
 .wk-imp { margin-top: 16px; padding: 12px 16px; border: 1px solid var(--gold); border-left-width: 4px; border-radius: 6px; background: var(--gold-soft); color: var(--ink); font-size: 14px; }
 .wk-imp a { color: var(--blue); font-weight: 700; }
 .kpis.wk-kpis, #view.fit .kpis.wk-kpis { grid-template-columns: repeat(5, 1fr); }
@@ -2075,7 +2078,10 @@ function bindWeekly() { const c = document.getElementById("wkHanyaIsi"); if (c) 
 
 /* Input Data Weekly: draf per proyek, disimpan dengan tombol Simpan data */
 let wkDraft = null, wkDraftNama = null;
-const wkLoad = nama => { wkDraft = clone(S.weekly[nama]); wkDraftNama = nama; };
+const WK_LIHAT = 10;
+let wkTampil = {};
+const wkT = j => wkTampil[j] = wkTampil[j] || { bulan: "", n: WK_LIHAT };
+const wkLoad = nama => { wkDraft = clone(S.weekly[nama]); wkDraftNama = nama; wkTampil = {}; };
 function viewWeeklyInput(nama, id) {
   const W = S.weekly && S.weekly[nama];
   if (!W) return wkKosong(nama, "Input Data", id);
@@ -2086,13 +2092,18 @@ function viewWeeklyInput(nama, id) {
     if (c.t === "rp") return `<input type="text" inputmode="numeric" ${at} value="${x[c.k] ? rpDot(x[c.k]) : ""}" placeholder="0" ${ro}>`;
     if (c.t === "n") return `<input type="number" min="0" step="1" ${at} value="${x[c.k] || 0}" ${ro}>`;
     return `<input type="text" ${at} value="${esc(x[c.k] || "")}" placeholder="${c.ph || ""}" ${ro}>`; };
-  const tabel = j => { const list = (d[j] || []).slice().sort(wkUrut);
+  const tabel = j => { const semua = (d[j] || []).slice().sort((a, b) => wkUrut(b, a)), T = wkT(j); /* terbaru di atas */
+    const cocok = semua.filter(x => !T.bulan || wkEf(x).slice(0, 7) === T.bulan), list = cocok.slice(0, T.n);
+    const blnAda = [...new Set(semua.map(x => wkEf(x).slice(0, 7)).filter(Boolean))].sort().reverse();
+    const bar = semua.length ? `<div class="bh-filter wk-bar"><label for="wkb-${j}">Bulan <select id="wkb-${j}" data-wkbln="${j}"><option value="">Semua bulan</option>${blnAda.map(b => `<option value="${b}" ${b === T.bulan ? "selected" : ""}>${BULAN[+b.slice(5, 7) - 1]} ${b.slice(0, 4)}</option>`).join("")}</select></label>
+      <span class="bh-count">Menampilkan ${list.length} dari ${cocok.length} baris${T.bulan ? "" : " (terbaru di atas)"}</span></div>` : "";
+    const more = cocok.length > WK_LIHAT ? `<div class="wk-more">${list.length < cocok.length ? `<button type="button" class="btn sec" data-wkmore="${j}">Tampilkan ${Math.min(WK_LIHAT, cocok.length - list.length)} lagi</button><button type="button" class="btn sec" data-wkall="${j}">Tampilkan semua (${cocok.length})</button>` : ""}${list.length > WK_LIHAT ? `<button type="button" class="btn sec" data-wkless="${j}">Ringkas</button>` : ""}</div>` : "";
     return `<div class="bh-box"><div class="bh-head"><div><h3>${WK_BAG[j].judul}</h3><div class="desc">${j === "hold" ? "Unit yang ditahan, belum dihitung sebagai penjualan." : `Satu baris per transaksi, masuk ke minggu dan bulan sesuai tanggalnya.`}${oto ? " Rp tanpa PPN otomatis ÷ 1,11 jika kosong." : ""}</div></div>
       ${lk ? "" : `<button class="btn sec" data-wkadd="${j}" type="button">Tambah baris</button>`}</div>
-      <div class="tbl-wrap"><table class="edit bh-t wk-in"><thead><tr><th>${WK_BAG[j].tgl}</th>${K.map(c => `<th${c.t === "rp" ? ' class="c"' : ""}>${c.k === "jumlah" ? "Jumlah (unit)" : c.l}</th>`).join("")}<th></th></tr></thead><tbody>
+      ${bar}<div class="tbl-wrap"><table class="edit bh-t wk-in"><thead><tr><th>${WK_BAG[j].tgl}</th>${K.map(c => `<th${c.t === "rp" ? ' class="c"' : ""}>${c.k === "jumlah" ? "Jumlah (unit)" : c.l}</th>`).join("")}<th></th></tr></thead><tbody>
       ${list.map(x => `<tr><td><input type="date" id="wk-${j}-${x.id}-tanggal" data-wk="${j}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal || ""}" ${ro} ${x.minggu && wkEf(x) !== x.tanggal ? `title="Di Excel ada di minggu ${wkTgl(x.minggu)}"` : ""}></td>${K.map(c => `<td>${inp(j, x, c)}</td>`).join("")}
         <td>${lk ? ikonKunci : `<button class="del" data-wkdel="${j}:${x.id}" type="button" aria-label="Hapus">×</button>`}</td></tr>`).join("")
-        || `<tr><td colspan="${K.length + 2}" style="color:var(--muted);text-align:center;padding:12px">Belum ada data.</td></tr>`}</tbody></table></div></div>`; };
+        || `<tr><td colspan="${K.length + 2}" style="color:var(--muted);text-align:center;padding:12px">${semua.length ? "Tidak ada baris pada bulan ini." : "Belum ada data."}</td></tr>`}</tbody></table></div>${more}</div>`; };
   const tahunLalu = []; for (let y = aw; y < th; y++) tahunLalu.push(y);
   const nk = rk.length + 1, nol = () => Array(nk).fill(0);
   const rkI = (j, y, k) => { const v = ((d.rekap[j] || {})[y] || nol())[k];
@@ -2231,12 +2242,16 @@ function bindWeeklyInput(nama) {
       const n = hasil.jual.length + hasil.batal.length + hasil.hold.length;
       if (!n && !Object.keys(hasil.rekap.jual).length) { toast("Tidak ada data Weekly Report yang terbaca di file ini."); return; }
       if (!confirm(`Terbaca dari sheet "${nm}": ${hasil.jual.length} penjualan, ${hasil.batal.length} batal, ${hasil.hold.length} hold.\n\nIsi tabel Penjualan, Batal, Hold Reserved, dan rekap tahun sebelumnya akan diganti dengan isi file. Lanjutkan?`)) return;
-      d.jual = hasil.jual; d.batal = hasil.batal; d.hold = hasil.hold;
+      d.jual = hasil.jual; d.batal = hasil.batal; d.hold = hasil.hold; wkTampil = {};
       ["jual", "batal"].forEach(j => { d.rekap[j] = d.rekap[j] || {}; Object.entries(hasil.rekap[j]).forEach(([y, val]) => d.rekap[j][y] = val); });
       render(); toast(`${n} baris diimpor${hasil.lewat ? ` (${hasil.lewat} tanpa tanggal, ditaruh di minggunya)` : ""}. Periksa lalu klik Simpan data.`);
     } catch (e) { toast("Gagal membaca file Excel. Pastikan formatnya Weekly Report (.xlsx)."); }
   };
-  v.querySelectorAll("[data-wkadd]").forEach(b => b.onclick = () => { const j = b.dataset.wkadd; d[j] = d[j] || [];
+  v.querySelectorAll("[data-wkbln]").forEach(el => el.onchange = () => { const T = wkT(el.dataset.wkbln); T.bulan = el.value; T.n = WK_LIHAT; render(el.id); });
+  v.querySelectorAll("[data-wkmore]").forEach(b => b.onclick = () => { wkT(b.dataset.wkmore).n += WK_LIHAT; render(); });
+  v.querySelectorAll("[data-wkall]").forEach(b => b.onclick = () => { wkT(b.dataset.wkall).n = 1e9; render(); });
+  v.querySelectorAll("[data-wkless]").forEach(b => b.onclick = () => { wkT(b.dataset.wkless).n = WK_LIHAT; render(); });
+  v.querySelectorAll("[data-wkadd]").forEach(b => b.onclick = () => { const j = b.dataset.wkadd; d[j] = d[j] || []; wkT(j).bulan = "";
     d[j].push(wkBaru(W, Math.max(0, ...d[j].map(x => x.id)) + 1)); render(); });
   v.querySelectorAll("[data-wkdel]").forEach(b => b.onclick = () => { const [j, id] = b.dataset.wkdel.split(":"); d[j] = d[j].filter(x => x.id !== +id); render(); });
   const rpKeys = new Set(wkRpK(W));
