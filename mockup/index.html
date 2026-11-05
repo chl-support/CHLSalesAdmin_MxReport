@@ -330,6 +330,8 @@ table { width: 100%; border-collapse: collapse; }
 .wk-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .wk-opt { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
 .wk-sub { font-size: 15px; margin: 18px 0 0; }
+.kpis.wk-kpis, #view.fit .kpis.wk-kpis { grid-template-columns: repeat(5, 1fr); }
+@media (max-width: 760px) { #view:not(.fit) .kpis.wk-kpis { grid-template-columns: 1fr 1fr; } }
 .wk-in td.proj-c { white-space: nowrap; font-weight: 700; }
 .wk-in tr.wk-ini td { background: var(--blue-soft); }
 .wk-in tr.wk-ini td.proj-c small { display: block; font-weight: 600; font-size: 11px; color: var(--muted); }
@@ -1781,7 +1783,10 @@ function viewWeekly(nama, id) {
   return `<div class="page cap" id="capWeekly">
   <div class="hero"><div class="tabs"><span class="tab">Weekly Sales Performance</span><span class="tab">${panjang(hari)}</span></div>
     <div class="hero-body gut"><h1>${esc(W.judul || "Weekly Report " + nama)}</h1><div class="sub">Tahun ${th} • data per ${ddmmyyyy(hari)} • Rp termasuk PPN pada kartu</div></div></div>
-  <div class="kpis gut">${kpi("var(--blue)", `Penjualan ${th}`, [jTh[0], jTh[1]], `Januari s.d ${BULAN[bulanKe() - 1]} ${th}`)}${kpi("var(--gold)", `Akumulasi ${WK_AWAL} s.d ${th}`, [akum[0], akum[1]], "Grand total penjualan")}${kpi("var(--red)", `Batal ${th}`, [bTh[0], bTh[1]], `Januari s.d ${BULAN[bulanKe() - 1]} ${th}`)}${kpi("var(--purple)", "Hold Reserved", [hTot[0], hTot[1]], hold.length ? `${hold.length} transaksi` : "Tidak ada unit hold")}</div>
+  <div class="kpis wk-kpis gut">${(() => { /* Minggu berjalan: minggu (Senin–Minggu) yang memuat tanggal laporan */
+      const w = mg.find(x => hari >= x.dari && hari <= x.sampai) || mg[mg.length - 1];
+      const v = wkSum(thIni("jual").filter(x => x.tanggal >= w.dari && x.tanggal <= w.sampai)), bt = wkSum(thIni("batal").filter(x => x.tanggal >= w.dari && x.tanggal <= w.sampai));
+      return kpi("var(--green)", "Minggu berjalan", [v[0], v[1]], `${w.n ? `Minggu ke-${w.n}` : "Awal tahun"} • ${wkPendek(w.dari, w.sampai)}${bt[0] ? ` • batal ${bt[0]} unit` : ""}`); })()}${kpi("var(--blue)", `Penjualan ${th}`, [jTh[0], jTh[1]], `Januari s.d ${BULAN[bulanKe() - 1]} ${th}`)}${kpi("var(--gold)", `Akumulasi ${WK_AWAL}–${th}`, [akum[0], akum[1]], "Grand total penjualan")}${kpi("var(--red)", `Batal ${th}`, [bTh[0], bTh[1]], `Januari s.d ${BULAN[bulanKe() - 1]} ${th}`)}${kpi("var(--purple)", "Hold Reserved", [hTot[0], hTot[1]], hold.length ? `${hold.length} transaksi` : "Tidak ada unit hold")}</div>
   <section class="gut"><div class="wk-h"><h2>Penjualan per minggu ${th}</h2>
     <label class="wk-opt no-cap"><input type="checkbox" id="wkHanyaIsi" ${wkHanyaIsi ? "checked" : ""}> Hanya minggu yang ada transaksi</label></div>
     <div class="desc">Minggu Senin s.d Minggu, sampai minggu berjalan.</div>${mingguTbl("jual")}
