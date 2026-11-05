@@ -374,6 +374,7 @@ table { width: 100%; border-collapse: collapse; }
 .kpis.wk-kpis, #view.fit .kpis.wk-kpis { grid-template-columns: repeat(5, 1fr); }
 @media (max-width: 760px) { #view:not(.fit) .kpis.wk-kpis { grid-template-columns: 1fr 1fr; } }
 .wk-in td.proj-c { white-space: nowrap; font-weight: 700; }
+.wk-rkin td.proj-c { white-space: normal; line-height: 1.25; }
 .wk-in tr.wk-ini td { background: var(--blue-soft); }
 .wk-in tr.wk-ini td.proj-c small { display: block; font-weight: 600; font-size: 11px; color: var(--muted); }
 .wk-in input[type="text"], .wk-in input[type="number"] { min-width: 110px; }
@@ -906,8 +907,8 @@ function exportExcel(tgl) {
   const data = [["Tanggal", "Periode PPN DTP", "Proyek", "BAST PPN DTP", "Total Unit PPN DTP", "BAST Non PPN DTP", "Total Unit Non PPN DTP", "Keterangan"]];
   H.rows.forEach(r => data.push([ddmmyyyy(tgl), perById(r.periodeId).nama, prjById(r.proyekId).nama, ...r.d, r.ket || ""]));
   const wb = XLSX.utils.book_new();
-  const ws1 = XLSX.utils.aoa_to_sheet(rep); ws1["!cols"] = [{ wch: 40 }, ...Array(7).fill({ wch: 16 })];
-  const ws2 = XLSX.utils.aoa_to_sheet(data); ws2["!cols"] = [{ wch: 12 }, { wch: 24 }, { wch: 22 }, ...Array(5).fill({ wch: 18 })];
+  const ws1 = aoaSheet(rep); ws1["!cols"] = [{ wch: 40 }, ...Array(7).fill({ wch: 16 })];
+  const ws2 = aoaSheet(data); ws2["!cols"] = [{ wch: 12 }, { wch: 24 }, { wch: 22 }, ...Array(5).fill({ wch: 18 })];
   XLSX.utils.book_append_sheet(wb, ws1, "Report");
   XLSX.utils.book_append_sheet(wb, ws2, "Data");
   XLSX.writeFile(wb, `Monitoring_BAST_${tt}.xlsx`);
@@ -1610,8 +1611,8 @@ function exportSalesExcel() {
     [{ f: `"Total nilai proyek CHL: Rp"&TEXT(J${dt},"#,##0.00")&" M | Total terjual: Rp"&TEXT(H${dt},"#,##0.00")&" M ("&TEXT(H${dt}/J${dt},"0.0%")&")"` }],
     [`Sumber: Daily Report per ${panjang(tgl)} • M = Rp miliar`]);
   const wb = XLSX.utils.book_new();
-  const ws1 = XLSX.utils.aoa_to_sheet(dash); ws1["!cols"] = [{ wch: 24 }, { wch: 34 }, ...Array(8).fill({ wch: 15 })];
-  const ws2 = XLSX.utils.aoa_to_sheet(inp); ws2["!cols"] = [{ wch: 22 }, { wch: 34 }, ...Array(34).fill({ wch: 15 })];
+  const ws1 = aoaSheet(dash); ws1["!cols"] = [{ wch: 24 }, { wch: 34 }, ...Array(8).fill({ wch: 15 })];
+  const ws2 = aoaSheet(inp); ws2["!cols"] = [{ wch: 22 }, { wch: 34 }, ...Array(34).fill({ wch: 15 })];
   XLSX.utils.book_append_sheet(wb, ws2, "input data");
   /* Tabel lain di Input Data, masing-masing satu sheet (Rp = Rupiah penuh, ada baris total dengan rumus) */
   const rpC = v => ({ v: v || 0, t: "n", z: "#,##0" });
@@ -1626,7 +1627,7 @@ function exportSalesExcel() {
       aoa.push(tot);
     }
     if (!rows.length) aoa.push(["(belum ada data)"]);
-    const ws = XLSX.utils.aoa_to_sheet(aoa); ws["!cols"] = lebar.map(w => ({ wch: w }));
+    const ws = aoaSheet(aoa); ws["!cols"] = lebar.map(w => ({ wch: w }));
     XLSX.utils.book_append_sheet(wb, ws, nama);
   };
   const nmP = x => namaProyekSales(x.proyekId);
@@ -2244,7 +2245,7 @@ function viewWeeklyInput(nama, id) {
         ${tahunLalu.map(({ y, l }) => `<tr><td class="proj-c">${esc(l)}</td>${idx.map(k => `<td>${rkI("jual", y, k)}</td>`).join("")}${idx.map(k => `<td>${rkI("batal", y, k)}</td>`).join("")}</tr>`).join("")}
         ${(() => { /* Tahun berjalan: dihitung otomatis dari tabel Penjualan & Batal di atas (tidak bisa diketik) */
           const ini = j => wkSum((d[j] || []).filter(x => +wkEf(x).slice(0, 4) === th), W);
-          const sel = v => v.map((n, k) => `<td><input type="text" readonly class="locked wk-auto" value="${k ? (n ? rpDot(n) : "0") : n}" title="Dihitung otomatis dari tabel di atas" aria-label="TOTAL ${th} otomatis"></td>`).join("");
+          const sel = v => v.map((n, k) => `<td><input type="text" readonly class="locked wk-auto" value="${n ? (k ? rpDot(n) : n) : "–"}" title="Dihitung otomatis dari tabel di atas" aria-label="TOTAL ${th} otomatis"></td>`).join("");
           return `<tr class="wk-ini"><td class="proj-c">TOTAL (${th})<small>otomatis</small></td>${sel(ini("jual"))}${sel(ini("batal"))}</tr>`; })()}</tbody></table></div></div>
     </div></div>`;
 }
@@ -2293,7 +2294,7 @@ function exportWeeklyExcel(nama) {
     const r1 = aoa.length, tot = ["TOTAL", "", `${l.length} unit`];
     C.slice(1).forEach((c, i) => { const col = huruf(3 + i); tot.push(c.t === "rp" ? fm(`SUM(${col}${r0}:${col}${r1})`, RP) : ""); });
     aoa.push(tot); });
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const ws = aoaSheet(aoa);
   const lebar = { klaster: 14, jumlah: 8, _unit: 6, unit: 12, konsumen: 26, ppjb: 14, tipe: 12, bayar: 24, rpInc: 20, rpExc: 22, sbum: 14, sales: 34, ket: 40, sumber: 18, usia: 6, lahir: 12 };
   ws["!cols"] = [37, 18, ...kol.map(c => lebar[c.k] || 14)].map(w => ({ wch: w }));
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, String(th));
@@ -2528,7 +2529,7 @@ function render(focusId) {
     renderMenu(v);
     terapkanBahasa();
   } finally { rendering = false; }
-  pasHP(); pasTabel();
+  nolStrip(); pasHP(); pasTabel();
   if (focusId) { const el = document.getElementById(focusId); if (el) el.focus(); }
 }
 /* Di layar HP (< 900px) semua tab report (Dashboard, Input Data, Master, History) ditampilkan
@@ -2542,6 +2543,23 @@ function pasHP() {
   if (!pas) { view.style.zoom = ""; return; }
   view.style.zoom = "0.1"; /* kecilkan dulu supaya lebar area terbaca tanpa terdorong isi halaman */
   view.style.zoom = String(Math.min(1, view.parentElement.clientWidth / LEBAR_DASH));
+}
+/* Excel: angka 0 ditampilkan "-" (nilainya tetap 0, jadi rumus SUM tetap benar) */
+function aoaSheet(aoa) {
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  Object.keys(ws).forEach(a => { if (a[0] === "!") return; const c = ws[a];
+    if (c.t !== "n" && !c.f) return;
+    const z = c.z || "";
+    c.z = /#,##0\.0+|0\.0+/.test(z) ? '#,##0.00;-#,##0.00;"-"' : /#,##0/.test(z) ? '#,##0;-#,##0;"-"' : (z && z !== "General" ? z : '#,##0;-#,##0;"-"');
+  });
+  return ws;
+}
+/* Kotak isian berisi 0 ditampilkan kosong dengan tanda "–" (kosong = 0 saat disimpan) */
+function nolStrip() {
+  document.querySelectorAll("#view input:not([type=date]):not([type=checkbox]):not([type=radio]):not([type=file])").forEach(i => {
+    if (/^0([.,]0+)?$/.test(i.value.trim())) { i.value = ""; i.placeholder = "–"; }
+    else if (!i.value && /^0([.,]0+)?$/.test(i.placeholder || "")) i.placeholder = "–";
+  });
 }
 /* Tabel yang sedikit lebih lebar dari layar diperkecil otomatis supaya pas (tanpa geser).
    Tabel yang jauh lebih lebar (mis. input 12 bulan) tetap bisa digeser agar angkanya tidak terlalu kecil. */
