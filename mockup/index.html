@@ -261,7 +261,8 @@ table { width: 100%; border-collapse: collapse; }
 .hold-t th:nth-child(3), .hold-t th:nth-child(4) { text-align: right; }
 .hold-t td.acc { width: 1%; white-space: nowrap; }
 .hold-t.pg-t th { text-align: left; }
-.bh-t input[data-bh="pindah"][data-f="harga"], .bh-t input[data-bh="pindah"][data-f="hargaLama"] { min-width: 140px; }
+.bh-t input[data-bh="pindah"][data-f="harga"], .bh-t input[data-bh="pindah"][data-f="hargaLama"],
+.bh-t input[data-bh="ganti"][data-f="harga"], .bh-t input[data-bh="ganti"][data-f="hargaLama"] { min-width: 140px; }
 .ak-rp { display: flex; justify-content: space-between; gap: 14px; min-width: 150px; font-variant-numeric: tabular-nums; }
 .hold-t tr.t td { background: var(--blue-soft); font-weight: 800; color: var(--ink); }
 .bh { display: flex; flex-direction: column; gap: 22px; margin-top: 28px; }
@@ -1180,9 +1181,9 @@ function daftarPindahGanti(m, tgl, bln) {
     <tr class="t"><td></td><td class="proj">Total</td><td>${pd.length} unit</td>${["hargaLama", "harga"].map(k => `<td class="nowrap">${pd.some(x => x[k]) ? "Rp " + rpDot(pd.reduce((a, x) => a + (x[k] || 0), 0)) : "–"}</td>`).join("<td></td>")}<td></td></tr></tbody></table></div></section>` : "")
   + (gb.length ? `<section class="gut"><h2>Ganti Bayar</h2>
     <div class="desc">Unit yang ganti cara bayar selama ${esc(bln)} (s.d. ${ddmmyyyy(tgl)}).</div>
-    <div class="tbl-wrap"><table class="hold-t pg-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Cara bayar lama</th><th>Cara bayar baru</th><th>Keterangan</th></tr></thead><tbody>
-    ${gb.map(x => `<tr>${tglC(x)}<td class="proj">${esc(namaProyekSales(x.proyekId))}</td><td>${esc(x.kode || "–")}</td><td>${esc(x.bayarLama || "–")}</td><td>${esc(x.bayarBaru || "–")}</td><td class="ket">${esc(x.ket || "")}</td></tr>`).join("")}
-    <tr class="t"><td></td><td class="proj">Total</td><td>${gb.length} unit</td><td></td><td></td><td></td></tr></tbody></table></div></section>` : "");
+    <div class="tbl-wrap"><table class="hold-t pg-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Cara bayar lama</th><th>Harga unit</th><th>Cara bayar baru</th><th>Harga unit</th><th>Keterangan</th></tr></thead><tbody>
+    ${gb.map(x => `<tr>${tglC(x)}<td class="proj">${esc(namaProyekSales(x.proyekId))}</td><td>${esc(x.kode || "–")}</td><td>${esc(x.bayarLama || "–")}</td><td class="nowrap">${x.hargaLama ? "Rp " + rpDot(x.hargaLama) : "–"}</td><td>${esc(x.bayarBaru || "–")}</td><td class="nowrap">${x.harga ? "Rp " + rpDot(x.harga) : "–"}</td><td class="ket">${esc(x.ket || "")}</td></tr>`).join("")}
+    <tr class="t"><td></td><td class="proj">Total</td><td>${gb.length} unit</td><td></td>${["hargaLama", "harga"].map(k => `<td class="nowrap">${gb.some(x => x[k]) ? "Rp " + rpDot(gb.reduce((a, x) => a + (x[k] || 0), 0)) : "–"}</td>`).join("<td></td>")}<td></td></tr></tbody></table></div></section>` : "");
 }
 function salesText() {
   const m = bulanAktif(), tgl = tanggalTampil(m), bln = `${BULAN[m - 1]} ${tahunKe()}`, { rows, tot: T } = hitungSales();
@@ -1343,7 +1344,7 @@ function daftarBatalHold(d) {
   const batal = (d.batal || []).filter(x => lolos("batal", x)).map(x => row("batal", x, `<td>${txt("batal", x, "kode", "OR-OD3-012")}</td><td>${rpIn("batal", x, "rp")}</td><td>${txt("batal", x, "ket")}</td>`)).join("");
   const hold = (d.hold || []).filter(x => lolos("hold", x)).map(x => row("hold", x, `<td>${txt("hold", x, "kode", "NS-NR1-06")}</td><td>${rpIn("hold", x, "harga")}</td><td>${rpIn("hold", x, "tandaJadi")}</td><td>${txt("hold", x, "ket")}</td>`)).join("");
   const pindah = (d.pindah || []).filter(x => lolos("pindah", x)).map(x => row("pindah", x, `<td>${txt("pindah", x, "kodeLama", "A5-02")}</td><td>${rpIn("pindah", x, "hargaLama")}</td><td>${txt("pindah", x, "kode", "A5-06")}</td><td>${rpIn("pindah", x, "harga")}</td><td>${txt("pindah", x, "ket")}</td>`)).join("");
-  const ganti = (d.ganti || []).filter(x => lolos("ganti", x)).map(x => row("ganti", x, `<td>${txt("ganti", x, "kode", "B4-10")}</td><td>${txt("ganti", x, "bayarLama", "KPR")}</td><td>${txt("ganti", x, "bayarBaru", "Cash Bertahap")}</td><td>${txt("ganti", x, "ket")}</td>`)).join("");
+  const ganti = (d.ganti || []).filter(x => lolos("ganti", x)).map(x => row("ganti", x, `<td>${txt("ganti", x, "kode", "B4-10")}</td><td>${txt("ganti", x, "bayarLama", "KPR")}</td><td>${rpIn("ganti", x, "hargaLama")}</td><td>${txt("ganti", x, "bayarBaru", "Cash Bertahap")}</td><td>${rpIn("ganti", x, "harga")}</td><td>${txt("ganti", x, "ket")}</td>`)).join("");
   const kosong = (n, t) => `<tr><td colspan="${n}" style="color:var(--muted);text-align:center;padding:12px">${t}</td></tr>`;
   const catRows = d.proyek.slice().sort(byUrut).filter(p => p.aktif).map(p => { const lk = !bolehEdit(p.nama);
     const tampil = p.catatanTampil !== false;
@@ -1370,8 +1371,8 @@ function daftarBatalHold(d) {
     <div class="bh-box"><div class="bh-head"><div><h3>Ganti Bayar</h3><div class="desc">Satu baris per unit yang ganti cara bayar (lama → baru). Angka penjualan di tabel atas tidak berubah otomatis.</div></div>
       <button class="btn sec" id="addGanti" type="button">Tambah ganti bayar</button></div>
       ${bar("ganti", d.ganti || [], "unit")}
-      <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Cara bayar lama</th><th>Cara bayar baru</th><th>Keterangan</th><th></th></tr></thead>
-      <tbody>${ganti || kosong(7, (d.ganti || []).length ? "Tidak ada ganti bayar pada rentang tanggal ini." : "Belum ada ganti bayar.")}</tbody></table></div></div>
+      <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Cara bayar lama</th><th>Harga unit (Rp)</th><th>Cara bayar baru</th><th>Harga unit (Rp)</th><th>Keterangan</th><th></th></tr></thead>
+      <tbody>${ganti || kosong(9, (d.ganti || []).length ? "Tidak ada ganti bayar pada rentang tanggal ini." : "Belum ada ganti bayar.")}</tbody></table></div></div>
   </div>`;
 }
 function bindSalesInput() {
@@ -1390,7 +1391,7 @@ function bindSalesInput() {
   document.getElementById("addPindah").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; } bukaFilter("pindah");
     bhList("pindah").push({ id: nextId("pindah"), tanggal: todayISO(), proyekId: pid, kodeLama: "", hargaLama: 0, kode: "", harga: 0, ket: "" }); render(); };
   document.getElementById("addGanti").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; } bukaFilter("ganti");
-    bhList("ganti").push({ id: nextId("ganti"), tanggal: todayISO(), proyekId: pid, kode: "", bayarLama: "", bayarBaru: "", ket: "" }); render(); };
+    bhList("ganti").push({ id: nextId("ganti"), tanggal: todayISO(), proyekId: pid, kode: "", bayarLama: "", hargaLama: 0, bayarBaru: "", harga: 0, ket: "" }); render(); };
   const v0 = document.getElementById("view");
   /* Tombol Tampil/Disembunyikan langsung tersimpan, tanpa perlu klik Simpan data */
   v0.querySelectorAll("[data-cathide]").forEach(b => b.onclick = () => {
