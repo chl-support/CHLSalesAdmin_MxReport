@@ -383,6 +383,9 @@ table { width: 100%; border-collapse: collapse; }
 .mn-leg i.mn-j { background: var(--mn-j); } .mn-leg i.mn-b { background: var(--mn-b); }
 .mn-leg .desc { font-weight: 400; color: var(--muted); }
 .mn-ctl { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 16px; align-items: center; }
+.mn-dd .dr-dd-list { min-width: 280px; max-height: 340px; }
+.mn-dd .mn-ptc { font-weight: 700; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .02em; margin-top: 4px; white-space: normal; }
+.mn-dd .mn-pc2 { padding-left: 26px; }
 .mn-ctl .mn-act { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
 .mn-cw { border: 1px solid var(--line); border-radius: 10px; padding: 10px 8px 4px; background: var(--bg); }
 .mn-chart { width: 100%; height: auto; max-height: 320px; display: block; margin: 0 auto; }
@@ -2746,7 +2749,15 @@ function bindWeeklyInput(nama) {
 
 /* ===================== Daftar report (tambah report baru di sini) ===================== */
 /* ===== Dashboard Monthly Sales Performance: diambil dari data Weekly Sales Performance (per transaksi), dirangkum per bulan ===== */
-let mnBulan = 0, mnProyek = "", mnUkur = "unit";
+let mnBulan = 0, mnProyek = null, mnUkur = "unit", mnBukaPr = false;
+/* Nama pilihan proyek: semua / satu proyek / satu PT penuh / "n proyek" */
+function mnLabel(semua) {
+  if (!mnProyek) return "Semua proyek";
+  const L = semua.filter(x => mnProyek.has(x.nama)); if (L.length === 1) return L[0].nama;
+  const g = [...new Set(L.map(x => x.grup))];
+  if (g.length === 1 && semua.filter(x => x.grup === g[0]).length === L.length) return g[0];
+  return `${L.length} proyek dipilih`;
+}
 const mnU = l => l.reduce((a, x) => a + (+x.jumlah || 0), 0);
 const mnSkema = v => { const t = String(v || "").toUpperCase().replace(/\s+/g, " ").trim();
   if (!t) return "(Belum diisi)"; if (/KPR|KPA/.test(t)) return "KPR"; if (/BERTAHAP|INSTAL|CICIL|ANGSUR/.test(t)) return "Tunai Bertahap";
@@ -2755,7 +2766,8 @@ const mnSumber = v => { const t = String(v || "").replace(/\s+/g, " ").trim(); i
   return t.toLowerCase().replace(/(^|[\s/(-])\S/g, c => c.toUpperCase()); };
 function mnData(th) {
   const semua = WK_GRUP.flatMap(([grup, l]) => l.map(nama => ({ grup, nama }))).filter(x => bolehLihat(x.nama) && S.weekly && S.weekly[x.nama]);
-  const P = semua.filter(x => !mnProyek || mnProyek === x.nama || mnProyek === "pt:" + x.grup);
+  if (mnProyek) { const ada = new Set(semua.map(x => x.nama)); [...mnProyek].forEach(n => { if (!ada.has(n)) mnProyek.delete(n); }); if (!mnProyek.size || mnProyek.size === semua.length) mnProyek = null; }
+  const P = semua.filter(x => !mnProyek || mnProyek.has(x.nama));
   return { semua, P: P.map(x => { const W = S.weekly[x.nama], ini = j => (W[j] || []).filter(r => +wkEf(r).slice(0, 4) === th);
     const per = j => BULAN.map((_, i) => { const l = ini(j).filter(r => +wkEf(r).slice(5, 7) === i + 1); return { u: mnU(l), v: wkNilai(l), l }; });
     return { ...x, jual: per("jual"), batal: per("batal"), hold: W.hold || [] }; }) };
@@ -2771,7 +2783,7 @@ function viewMonthly() {
   const n = v => v ? v.toLocaleString(LOC()) : "–", nM = v => v ? idn(M(v)) : "–";
   const kpi = (c, lbl, u, v, note) => `<div class="kpi" style="--c:${c}"><div class="lbl">${lbl}</div><div class="val num">${u.toLocaleString(LOC())} <small>unit</small></div><div class="pct num">${rp(v)}</div><div class="note">${note}</div></div>`;
   const dLalu = Jl ? (() => { const d = J[0] - Jl[0]; return d ? `${d > 0 ? "▲ +" : "▼ "}${d} unit vs ${BULAN[bi - 1]}` : `sama dengan ${BULAN[bi - 1]}`; })() : "Bulan pertama tahun ini";
-  const namaFilter = !mnProyek ? "Semua proyek" : mnProyek.startsWith("pt:") ? mnProyek.slice(3) : mnProyek;
+  const namaFilter = mnLabel(mnData(tahunKe()).semua);
   /* Grafik: unit penjualan & batal per bulan (batang berdampingan) */
   const grafik = (() => {
     /* Grafik batang HTML: lebar penuh, skala rapi, keterangan saat kursor/sentuh; Unit atau Nilai (Rp M) */
@@ -2833,13 +2845,16 @@ function viewMonthly() {
       <tr class="t"><td class="mn-pn">Total</td><td class="num">${n(mnU(bln))}</td><td class="num">${n(tY)}</td><td class="num">${tY ? "100%" : "–"}</td></tr></tbody></table></div></div>`;
   };
   const opsiBln = BULAN.slice(0, Math.max(bk, b)).map((x, i) => `<option value="${i + 1}" ${i === bi ? "selected" : ""}>${x} ${th}</option>`).reverse().join("");
-  const opsiPr = `<option value="">Semua proyek</option>` + WK_GRUP.map(([g]) => g).filter(g => semua.some(x => x.grup === g)).map(g => { const L = semua.filter(x => x.grup === g);
-    return `<optgroup label="${esc(g)}">${L.length > 1 ? `<option value="pt:${esc(g)}" ${mnProyek === "pt:" + g ? "selected" : ""}>Semua proyek ${esc(g.replace(/^PT\. [^–]+– /, ""))}</option>` : ""}${L.map(x => `<option value="${esc(x.nama)}" ${mnProyek === x.nama ? "selected" : ""}>${esc(x.nama)}</option>`).join("")}</optgroup>`; }).join("");
+  const cek = n => !mnProyek || mnProyek.has(n);
+  const opsiPr = `<label class="dr-all"><input type="checkbox" data-mnp="*" ${mnProyek ? "" : "checked"}> Semua proyek</label>` +
+    WK_GRUP.map(([g]) => g).filter(g => semua.some(x => x.grup === g)).map(g => { const L = semua.filter(x => x.grup === g), semuaG = L.every(x => cek(x.nama)), sebagian = !semuaG && L.some(x => cek(x.nama));
+      return `<label class="mn-ptc"><input type="checkbox" data-mnpt="${esc(g)}" ${semuaG ? "checked" : ""} ${sebagian ? "data-sebagian" : ""}> ${esc(g)}</label>` +
+        L.map(x => `<label class="mn-pc2"><input type="checkbox" data-mnp="${esc(x.nama)}" ${mnProyek && mnProyek.has(x.nama) ? "checked" : ""}> ${esc(x.nama)}</label>`).join(""); }).join("");
   return `<div class="page cap" id="capMonthly">
   <div class="hero"><div class="tabs"><span class="tab">Monthly Sales Performance</span><span class="tab">${panjang(hari)}</span></div>
     <div class="hero-body gut"><h1>Monthly Sales Performance</h1><div class="sub">${BULAN[bi]} ${th} • ${esc(namaFilter)} • data per ${ddmmyyyy(hari)} • diambil dari Dashboard Weekly Sales Performance</div></div></div>
   <div class="mn-ctl gut no-cap"><label class="wk-opt" for="mnBln">Bulan <select id="mnBln">${opsiBln}</select></label>
-    <label class="wk-opt" for="mnPr">Proyek <select id="mnPr">${opsiPr}</select></label>
+    <span class="wk-opt">Proyek <details class="dr-dd mn-dd" id="mnPr"${mnBukaPr ? " open" : ""}><summary>${esc(namaFilter)}</summary><div class="dr-dd-list">${opsiPr}</div></details></span>
     <span class="mn-act"><button type="button" class="btn sec" id="mnKirim">Kirim ringkasan</button><button type="button" class="btn sec" id="mnShot" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button><button type="button" class="btn sec" id="mnXls">Ekspor Excel</button></span></div>
   <div class="kpis wk-kpis gut">${kpi("var(--blue)", `Penjualan ${BULAN[bi]}`, J[0], J[1], dLalu)}${kpi("var(--red)", `Batal ${BULAN[bi]}`, Bt[0], Bt[1], Bt[0] ? `${P.filter(p => p.batal[bi].u).length} proyek` : "Tidak ada pembatalan")}${kpi("var(--green)", `Bersih ${BULAN[bi]}`, J[0] - Bt[0], J[1] - Bt[1], "Penjualan dikurangi batal")}${kpi("var(--gold)", `YTD ${th}`, Y[0], Y[1], `Januari s.d ${BULAN[bi]} • batal ${YB[0]} unit`)}${kpi("var(--purple)", "Hold Reserved", H[0], H[1], "Posisi saat ini")}</div>
   <section class="gut"><h2>Penjualan & batal per bulan ${th}</h2>
@@ -2857,7 +2872,7 @@ function exportMonthlyExcel() {
   if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
   const th = tahunKe(), b = Math.min(mnBulan || bulanKe(), 12), bi = b - 1, { P } = mnData(th), RP = "#,##0", aoa = [];
   const rpC = v => ({ v: v || 0, t: "n", z: RP }), grup = [...new Set(P.map(p => p.grup))];
-  const namaFilter = !mnProyek ? "Semua proyek" : mnProyek.startsWith("pt:") ? mnProyek.slice(3) : mnProyek;
+  const namaFilter = mnLabel(mnData(tahunKe()).semua);
   const ytd = (p, j) => p[j].slice(0, b).reduce((a, m) => [a[0] + m.u, a[1] + m.v], [0, 0]);
   aoa.push(["MONTHLY SALES PERFORMANCE"], [`${BULAN[bi]} ${th} • ${namaFilter} • data per ${ddmmyyyy(S.sales2.tanggal)} • Rp = Rupiah penuh, Nilai Kontrak Include PPN (Exclude PPN jika kosong)`], []);
   /* 1. Ringkasan bulan terpilih */
@@ -2899,7 +2914,7 @@ function exportMonthlyExcel() {
 function teksMonthly() {
   return denganID(() => {
     const th = tahunKe(), b = Math.min(mnBulan || bulanKe(), 12), bi = b - 1, { P } = mnData(th), bln = BULAN[bi];
-    const namaFilter = !mnProyek ? "Semua proyek" : mnProyek.startsWith("pt:") ? mnProyek.slice(3) : mnProyek;
+    const namaFilter = mnLabel(mnData(tahunKe()).semua);
     const baris = (j, ba, y, yb, h) => { const L = [];
       L.push(`Penjualan ${bln} : ${fU(j[0])} Unit (${fM(j[1])} M)`);
       L.push(`Batal ${bln} : ${fU(ba[0])} Unit (${fM(ba[1])} M)`);
@@ -2926,7 +2941,21 @@ function bindMonthly() {
   if (sh) sh.onclick = e => menuGambar(e.currentTarget, "capMonthly", `Monthly_Sales_${BULAN[Math.min(mnBulan || bulanKe(), 12) - 1]}_${tahunKe()}.png`);
   if (kt) kt.onclick = () => bukaKirimTeks("Monthly Sales Report", teksMonthly);
   if (bl) bl.onchange = () => { mnBulan = +bl.value; render(); };
-  if (pr) pr.onchange = () => { mnProyek = pr.value; render(); };
+  if (pr) {
+    pr.querySelectorAll("[data-sebagian]").forEach(x => x.indeterminate = true);
+    pr.addEventListener("toggle", () => { mnBukaPr = pr.open; });
+    const semua = mnData(tahunKe()).semua, set = () => new Set(mnProyek || semua.map(x => x.nama));
+    const terap = s => { mnProyek = !s || !s.size || s.size === semua.length ? null : s; mnBukaPr = true; render(); };
+    pr.querySelectorAll("[data-mnp]").forEach(x => x.onchange = () => { const n = x.dataset.mnp;
+      if (n === "*") return terap(null);
+      /* dari "Semua proyek": centang satu proyek = hanya proyek itu */
+      if (!mnProyek) return terap(new Set([n]));
+      const s = set(); x.checked ? s.add(n) : s.delete(n); terap(s); });
+    pr.querySelectorAll("[data-mnpt]").forEach(x => x.onchange = () => { const L = semua.filter(y => y.grup === x.dataset.mnpt).map(y => y.nama);
+      let s = mnProyek ? set() : new Set(); if (x.checked) L.forEach(n => s.add(n)); else L.forEach(n => s.delete(n)); terap(s); });
+  }
+  if (!document.body.dataset.mnPrTutup) { document.body.dataset.mnPrTutup = "1";
+    document.addEventListener("click", e => { const d = document.getElementById("mnPr"); if (d && d.open && !d.contains(e.target)) { d.open = false; mnBukaPr = false; } }); }
   document.querySelectorAll("[data-mnb]").forEach(g => g.addEventListener("click", () => { mnBulan = +g.dataset.mnb; render(); }));
   document.querySelectorAll("[data-mnuk]").forEach(x => x.onclick = () => { mnUkur = x.dataset.mnuk; render(); });
 }
