@@ -348,6 +348,7 @@ table { width: 100%; border-collapse: collapse; }
 .wk-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .wk-opt { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
 .wk-opts { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.btn.wk-tgl { font-size: 12.5px; padding: 6px 10px; }
 .wk-opt select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); font: inherit; font-size: 13px; max-width: 340px; }
 .wk-sub { font-size: 15px; margin: 18px 0 0; }
 /* Semua judul kolom tabel di seluruh sistem rata tengah */
@@ -361,6 +362,7 @@ table { width: 100%; border-collapse: collapse; }
 .edit.wk-fit { min-width: 0; width: 100%; table-layout: fixed; }
 /* Proyek dengan kolom tambahan: lebar minimum supaya teks tetap terbaca (layar kecil bisa digeser) */
 .edit.wk-fit.wk-banyak { min-width: 1240px; }
+.edit.wk-fit.wk-sgt { min-width: 1820px; }
 @media (max-width: 1500px) { .edit.wk-fit td textarea.wk-ta, .edit.wk-fit td input { font-size: 12px; } }
 .edit.wk-fit th { white-space: normal; font-size: 12px; padding: 6px 4px; }
 .edit.wk-fit td { padding: 4px 3px; }
@@ -1339,14 +1341,14 @@ const WK_SEED = {
       {"id":2,"tanggal":"","jumlah":1,"konsumen":"","rpExc":185000000}] },
   /* Mazenta Residence: mulai 2022; kolom tambahan Unit, Konsumen, Penandatanganan PPJB (kolom Sumber Informasi, Usia, Tgl. Lahir,
      Domisili di Excel tidak dipakai). Transaksi 2026 dari Weekly Report Mazenta Residence (Excel); Konsumen dikosongkan di sini karena kode halaman publik. */
-  "Mazenta Residence": { judul: "Weekly Report Mazenta Residence", awal: 2022, ekstra: ["unit", "konsumen", "ppjb"], cfgV: 2, dataV: 1,
+  "Mazenta Residence": { judul: "Weekly Report Mazenta Residence", awal: 2022, ekstra: ["unit", "konsumen", "ppjb"], cfgV: 2, dataV: 2,
     rekap: {"jual": {"2022": [66, 177826470000, 160395945618], "2023": [17, 51689330000, 46566963965], "2024": [2, 7525000000, 6779279279], "2025": [1, 2520000000, 2270270270]}, "batal": {"2022": [22, 53959400000, 48612072071], "2023": [19, 56898280000, 51276312861], "2024": [2, 6858000000, 6178378379], "2025": [3, 7313000000, 6588288288]}},
     jual: [
-      {"id":1,"tanggal":"2026-04-20","minggu":"2026-04-20","klaster":"MAZENTA","jumlah":1,"unit":"MR-M5-19","konsumen":"","ppjb":"2026-04-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":2053500000,"rpExc":1850000000,"sales":"HENDRA KOMARA","ket":"BUYBACK"},
-      {"id":2,"tanggal":"2026-07-31","minggu":"2026-07-27","klaster":"MAZENTA","jumlah":1,"unit":"MR-M6-11","konsumen":"","ppjb":"2026-07-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":3010000000,"rpExc":2711711712,"sales":"RISKY CARDO (CARI RUMAH 88)","ket":"BUYBACK"}],
+      {"id":1,"tanggal":"2026-04-20","minggu":"2026-04-20","klaster":"MAZENTA","jumlah":1,"unit":"MR-M5-19","konsumen":"","ppjb":"2026-04-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":2053500000,"rpExc":1850000000,"sales":"HENDRA KOMARA","ket":"BUYBACK","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":2,"tanggal":"2026-07-31","minggu":"2026-07-27","klaster":"MAZENTA","jumlah":1,"unit":"MR-M6-11","konsumen":"","ppjb":"2026-07-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":3010000000,"rpExc":2711711712,"sales":"RISKY CARDO (CARI RUMAH 88)","ket":"BUYBACK","usia":"","lahir":"","kel":"","kec":"","kota":""}],
     batal: [
-      {"id":1,"tanggal":"2026-04-20","minggu":"2026-04-20","klaster":"MAZENTA","jumlah":1,"unit":"MR-M5-19","konsumen":"","ppjb":"2023-04-05","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":1950000000,"rpExc":1756756757,"sales":"SURYO ADI NAGORO","ket":"Batal - Unit Buyback"},
-      {"id":2,"tanggal":"2026-07-31","minggu":"2026-07-27","klaster":"MAZENTA","jumlah":1,"unit":"MR-M6-11","konsumen":"","ppjb":"2022-06-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":2797270000,"rpExc":2520063063,"sales":"YOSIA - WINFIELD","ket":"Batal - Unit Buyback"}],
+      {"id":1,"tanggal":"2026-04-20","minggu":"2026-04-20","klaster":"MAZENTA","jumlah":1,"unit":"MR-M5-19","konsumen":"","ppjb":"2023-04-05","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":1950000000,"rpExc":1756756757,"sales":"SURYO ADI NAGORO","ket":"Batal - Unit Buyback","sumber":"Instragram","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":2,"tanggal":"2026-07-31","minggu":"2026-07-27","klaster":"MAZENTA","jumlah":1,"unit":"MR-M6-11","konsumen":"","ppjb":"2022-06-22","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":2797270000,"rpExc":2520063063,"sales":"YOSIA - WINFIELD","ket":"Batal - Unit Buyback","usia":"","lahir":"","kel":"","kec":"","kota":""}],
     hold: [
       ] },
   /* Naraya Serpong: mulai 2023; kolom tambahan Unit dan Konsumen. Transaksi 2026 dari Weekly Report Naraya Serpong (Excel);
@@ -1372,85 +1374,85 @@ const WK_SEED = {
     hold: [
       ] },
   /* Tanglin Parc: Weekly Report Tanglin Parc (Excel), kolom standar; Konsumen dikosongkan di sini karena kode halaman publik. */
-  "Tanglin Parc": { judul: "Weekly Report Tanglin Parc", awal: 2020, gabung: {"2020": {label: "TOTAL (Juli s.d Desember 2020)", sampai: 2020}}, ekstra: [], cfgV: 1, dataV: 1,
+  "Tanglin Parc": { judul: "Weekly Report Tanglin Parc", awal: 2020, gabung: {"2020": {label: "TOTAL (Juli s.d Desember 2020)", sampai: 2020}}, ekstra: [], cfgV: 1, dataV: 2,
     rekap: {"jual": {"2020": [96, 312066396548, 283210253521], "2021": [39, 139943172461, 126698878847], "2022": [9, 32258331572, 29087616003], "2023": [6, 23962601600, 21587929369], "2024": [5, 17242059640, 15533387063], "2025": [0, 0, 0]}, "batal": {"2020": [35, 105835531100, 96214119180], "2021": [43, 137199297900, 124726634456], "2022": [18, 70020322800, 63485737009], "2023": [16, 55704519652, 50204932942], "2024": [10, 36951929742, 33318539865], "2025": [0, 0, 0]}},
     jual: [
-      {"id":1,"tanggal":"2026-06-06","minggu":"2026-06-01","klaster":"Tanglin Parc","jumlah":1,"unit":"TP-TG2-022","konsumen":"","tipe":"7A","bayar":"KPR EXPRESS","rpInc":2506095850,"rpExc":2257744009,"sales":"CAHYA MELINDA - KEVIN HIMAWAN","ket":"CETAK SPU & P3U 06.06.2026"}],
+      {"id":1,"tanggal":"2026-06-06","minggu":"2026-06-01","klaster":"Tanglin Parc","jumlah":1,"unit":"TP-TG2-022","konsumen":"","tipe":"7A","bayar":"KPR EXPRESS","rpInc":2506095850,"rpExc":2257744009,"sales":"CAHYA MELINDA - KEVIN HIMAWAN","ket":"CETAK SPU & P3U 06.06.2026","sumber":"WALK IN","usia":"","lahir":"","kel":"","kec":"","kota":""}],
     batal: [
       ],
     hold: [
-      {"id":1,"tanggal":"2024-03-16","klaster":"Tanglin Parc","jumlah":1,"unit":"TP-W1-016","konsumen":"","tipe":"10","bayar":"TUNAI KERAS","rpInc":4976470000,"rpExc":4483306306,"sales":"WULAN SAFITRI - M. BERNALDI OESMAN, SE, M.B.A","ket":"Belum ada konfirmasi lebih lanjut dari sales & konsumen"},
-      {"id":2,"tanggal":"","jumlah":0,"konsumen":""}] },
+      {"id":1,"tanggal":"2024-03-16","klaster":"Tanglin Parc","jumlah":1,"unit":"TP-W1-016","konsumen":"","tipe":"10","bayar":"TUNAI KERAS","rpInc":4976470000,"rpExc":4483306306,"sales":"WULAN SAFITRI - M. BERNALDI OESMAN, SE, M.B.A","ket":"Belum ada konfirmasi lebih lanjut dari sales & konsumen","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":2,"tanggal":"","jumlah":0,"konsumen":"","usia":"","lahir":"","kel":"","kec":"","kota":""}] },
   /* Newton Springs: Weekly Report Newton Springs (Excel), kolom standar; Konsumen dikosongkan di sini karena kode halaman publik. */
-  "Newton Springs": { judul: "Weekly Report Newton Springs", awal: 2021, gabung: {"2021": {label: "TOTAL (Februari s.d Desember 2021)", sampai: 2021}}, ekstra: [], cfgV: 1, dataV: 1,
+  "Newton Springs": { judul: "Weekly Report Newton Springs", awal: 2021, gabung: {"2021": {label: "TOTAL (Februari s.d Desember 2021)", sampai: 2021}}, ekstra: [], cfgV: 1, dataV: 2,
     rekap: {"jual": {"2021": [55, 225931519320, 204875303550], "2022": [20, 74324699649, 67065681544], "2023": [10, 40642213700, 36614606936], "2024": [5, 20010165700, 18027176307], "2025": [6, 21762617400, 19605961622]}, "batal": {"2021": [40, 144664529000, 131513208182], "2022": [29, 114215139521, 103586014638], "2023": [22, 90089433193, 81162699205], "2024": [4, 14708632473, 13253245619], "2025": [9, 35141592600, 31659092433]}},
     jual: [
-      {"id":1,"tanggal":"2026-05-16","minggu":"2026-05-11","klaster":"Newton Springs","jumlah":1,"unit":"NS-NA1-010","konsumen":"","tipe":"8","bayar":"KPR DP 10%","rpInc":4264000000,"rpExc":3841441441,"sales":"SAPRIADI - RULLY LOEKITO","ket":"Hold Reserved 07.05.2026, Full Book 16.05.2026 - Create System 16.05.2026"},
-      {"id":2,"tanggal":"2026-05-18","minggu":"2026-05-18","klaster":"Newton Springs","jumlah":1,"unit":"NS-NW1-008","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":3225720000,"rpExc":2906054054,"sales":"MUHAMMAD IDHAM ASHARI - PINTAR PROPERTI","ket":"Cetak SPU & P3U 18.05.2026"},
-      {"id":3,"tanggal":"2026-05-21","minggu":"2026-05-18","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG1-008","konsumen":"","tipe":"7A","bayar":"KPR DP 10%","rpInc":2830500000,"rpExc":2550000000,"sales":"CAHYA MELINDA - RULLY LOEKITO","ket":"Cetak SPU & P3U 23.05.2026"},
-      {"id":4,"tanggal":"2026-08-24","minggu":"2026-08-03","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG2-003","konsumen":"","tipe":"7A","bayar":"TUNAI KERAS","rpInc":2601464500,"rpExc":2343661712,"sales":"SARTIKA PUJI ASTUTI - RULLY LOEKITO","ket":"Pindah Unit Dari OR-OD3-010 (Alasan : Kondisi keuangan konsumen kurang kondusif)"},
-      {"id":5,"tanggal":"2026-09-06","minggu":"2026-08-31","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG1-022","konsumen":"","tipe":"7A","bayar":"KPR EXPRESS","rpInc":2207790000,"rpExc":1989000000,"sales":"JULHAM HIDAYAT - KEVIN HIMAWAN","ket":"CETAK SPU & P3U 6.9.2026"},
-      {"id":6,"tanggal":"2026-09-06","minggu":"2026-08-31","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG1-026","konsumen":"","tipe":"7A","bayar":"TUNAI KERAS","rpInc":2164500000,"rpExc":1950000000,"sales":"MOEHAMAD RISMAN HERMANA - KEVIN HIMAWAN","ket":"CETAK SPU & P3U 6.9.2026"},
-      {"id":7,"tanggal":"2026-09-10","minggu":"2026-09-07","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG2-008","konsumen":"","tipe":"8","bayar":"TUNAI KERAS","rpInc":3850000000,"rpExc":3468468468,"sales":"AGUS KARIM - MANDIRI PROPERTI","ket":"PINDAH UNIIT DARI NS-NW2-009 (Alasan : Upgrade ke tanah yang lebih luas)"}],
+      {"id":1,"tanggal":"2026-05-16","minggu":"2026-05-11","klaster":"Newton Springs","jumlah":1,"unit":"NS-NA1-010","konsumen":"","tipe":"8","bayar":"KPR DP 10%","rpInc":4264000000,"rpExc":3841441441,"sales":"SAPRIADI - RULLY LOEKITO","ket":"Hold Reserved 07.05.2026, Full Book 16.05.2026 - Create System 16.05.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":2,"tanggal":"2026-05-18","minggu":"2026-05-18","klaster":"Newton Springs","jumlah":1,"unit":"NS-NW1-008","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":3225720000,"rpExc":2906054054,"sales":"MUHAMMAD IDHAM ASHARI - PINTAR PROPERTI","ket":"Cetak SPU & P3U 18.05.2026","sumber":"Call in","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":3,"tanggal":"2026-05-21","minggu":"2026-05-18","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG1-008","konsumen":"","tipe":"7A","bayar":"KPR DP 10%","rpInc":2830500000,"rpExc":2550000000,"sales":"CAHYA MELINDA - RULLY LOEKITO","ket":"Cetak SPU & P3U 23.05.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":4,"tanggal":"2026-08-24","minggu":"2026-08-03","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG2-003","konsumen":"","tipe":"7A","bayar":"TUNAI KERAS","rpInc":2601464500,"rpExc":2343661712,"sales":"SARTIKA PUJI ASTUTI - RULLY LOEKITO","ket":"Pindah Unit Dari OR-OD3-010 (Alasan : Kondisi keuangan konsumen kurang kondusif)","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":5,"tanggal":"2026-09-06","minggu":"2026-08-31","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG1-022","konsumen":"","tipe":"7A","bayar":"KPR EXPRESS","rpInc":2207790000,"rpExc":1989000000,"sales":"JULHAM HIDAYAT - KEVIN HIMAWAN","ket":"CETAK SPU & P3U 6.9.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":6,"tanggal":"2026-09-06","minggu":"2026-08-31","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG1-026","konsumen":"","tipe":"7A","bayar":"TUNAI KERAS","rpInc":2164500000,"rpExc":1950000000,"sales":"MOEHAMAD RISMAN HERMANA - KEVIN HIMAWAN","ket":"CETAK SPU & P3U 6.9.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":7,"tanggal":"2026-09-10","minggu":"2026-09-07","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG2-008","konsumen":"","tipe":"8","bayar":"TUNAI KERAS","rpInc":3850000000,"rpExc":3468468468,"sales":"AGUS KARIM - MANDIRI PROPERTI","ket":"PINDAH UNIIT DARI NS-NW2-009 (Alasan : Upgrade ke tanah yang lebih luas)","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""}],
     batal: [
-      {"id":1,"tanggal":"2026-01-22","minggu":"2026-01-19","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG2-003","konsumen":"","tipe":"7A","bayar":"KPR EXPRESS","rpInc":2737114400,"rpExc":2465868829,"sales":"CAHYA MELINDA - RULLY LOEKITO","ket":"Konsumen lalai dalam membayar Uang Muka 1"},
-      {"id":2,"tanggal":"2026-01-22","minggu":"2026-01-19","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG1-008","konsumen":"","tipe":"7A","bayar":"KPR EXPRESS","rpInc":2715334800,"rpExc":2446247568,"sales":"CAHYA MELINDA - RULLY LOEKITO","ket":"Rejected by 2 banks Bank. Bank Permata Dan Bank Danamon (Refund Rp. 147.343.351)"},
-      {"id":3,"tanggal":"2026-05-18","minggu":"2026-05-18","klaster":"Newton Springs","jumlah":1,"unit":"NS-NW1-008","konsumen":"","tipe":"8","bayar":"KPR DP 10%","rpInc":4245980000,"rpExc":3825207207,"sales":"ADAM ARSYANDA RAHMAWAN (LINKTOWN)","ket":"Pengajuan KPR ditolak oleh Bank"},
-      {"id":4,"tanggal":"2026-05-20","minggu":"2026-05-18","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG2-012","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":4640936700,"rpExc":4181024054,"sales":"ANGGI WAHYUDIN - RULLY LOEKITO","ket":"Customer lalai melakukan pembayaran uang muka 1 dan 2"},
-      {"id":5,"tanggal":"2026-08-21","minggu":"2026-08-17","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG1-026","konsumen":"","tipe":"7A","bayar":"TUNAI BERTAHAP 9X","rpInc":2721761200,"rpExc":2452037117,"sales":"ANGGA EKA PUTRA - AMAS PRO","ket":"KONDISI CASH FLOW USAHA YANG SEDANG MENGALAMI PENURUNAN"},
-      {"id":6,"tanggal":"2026-08-24","minggu":"2026-08-24","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG2-003","konsumen":"","tipe":"7A","bayar":"TUNAI KERAS","rpInc":2601464500,"rpExc":2343661712,"sales":"SARTIKA PUJI ASTUTI - RULLY LOEKITO","ket":"PEMBETULAN KONTRAK (PPN DTP)"},
-      {"id":7,"tanggal":"2026-09-10","minggu":"2026-09-07","klaster":"Newton Springs","jumlah":1,"unit":"NS-NW2-009","konsumen":"","tipe":"8","bayar":"TUNAI KERAS","rpInc":3733872000,"rpExc":3363848649,"sales":"AGUS KARIM - MANDIRI PROPERTI","ket":"PINDAH UNIT DARI NS-NG2-008 (Alasan : Upgrade ke tanah yang lebih luas)"}],
+      {"id":1,"tanggal":"2026-01-22","minggu":"2026-01-19","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG2-003","konsumen":"","tipe":"7A","bayar":"KPR EXPRESS","rpInc":2737114400,"rpExc":2465868829,"sales":"CAHYA MELINDA - RULLY LOEKITO","ket":"Konsumen lalai dalam membayar Uang Muka 1","sumber":"WALK IN","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":2,"tanggal":"2026-01-22","minggu":"2026-01-19","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG1-008","konsumen":"","tipe":"7A","bayar":"KPR EXPRESS","rpInc":2715334800,"rpExc":2446247568,"sales":"CAHYA MELINDA - RULLY LOEKITO","ket":"Rejected by 2 banks Bank. Bank Permata Dan Bank Danamon (Refund Rp. 147.343.351)","sumber":"WALK IN","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":3,"tanggal":"2026-05-18","minggu":"2026-05-18","klaster":"Newton Springs","jumlah":1,"unit":"NS-NW1-008","konsumen":"","tipe":"8","bayar":"KPR DP 10%","rpInc":4245980000,"rpExc":3825207207,"sales":"ADAM ARSYANDA RAHMAWAN (LINKTOWN)","ket":"Pengajuan KPR ditolak oleh Bank","sumber":"WALK IN","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":4,"tanggal":"2026-05-20","minggu":"2026-05-18","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG2-012","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":4640936700,"rpExc":4181024054,"sales":"ANGGI WAHYUDIN - RULLY LOEKITO","ket":"Customer lalai melakukan pembayaran uang muka 1 dan 2","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":5,"tanggal":"2026-08-21","minggu":"2026-08-17","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG1-026","konsumen":"","tipe":"7A","bayar":"TUNAI BERTAHAP 9X","rpInc":2721761200,"rpExc":2452037117,"sales":"ANGGA EKA PUTRA - AMAS PRO","ket":"KONDISI CASH FLOW USAHA YANG SEDANG MENGALAMI PENURUNAN","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":6,"tanggal":"2026-08-24","minggu":"2026-08-24","klaster":"Newton Springs","jumlah":1,"unit":"NS-NG2-003","konsumen":"","tipe":"7A","bayar":"TUNAI KERAS","rpInc":2601464500,"rpExc":2343661712,"sales":"SARTIKA PUJI ASTUTI - RULLY LOEKITO","ket":"PEMBETULAN KONTRAK (PPN DTP)","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":7,"tanggal":"2026-09-10","minggu":"2026-09-07","klaster":"Newton Springs","jumlah":1,"unit":"NS-NW2-009","konsumen":"","tipe":"8","bayar":"TUNAI KERAS","rpInc":3733872000,"rpExc":3363848649,"sales":"AGUS KARIM - MANDIRI PROPERTI","ket":"PINDAH UNIT DARI NS-NG2-008 (Alasan : Upgrade ke tanah yang lebih luas)","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""}],
     hold: [
-      {"id":1,"tanggal":"2021-04-25","klaster":"TSC","jumlah":1,"unit":"NS-NA1-008","konsumen":"","tipe":"8","bayar":"TUNAI KERAS","rpInc":4294781400,"rpExc":3904346727,"sales":"YUNUS WAHYUDI, SE - GROUP SONDANG","ket":"Hold Reserved Rp. 10 Juta - (Belum ada konfirmasi lebih lanjut dari sales & konsumen)"},
-      {"id":2,"tanggal":"2021-09-04","klaster":"TSC","jumlah":1,"unit":"NS-NG2-008","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":3494670000,"rpExc":3176972727,"sales":"ARIEF BUDIMAN (ERA FAJAR)","ket":"Hold Reserved Rp. 15 Juta - (Menentukan cara bayar & BI Checking)"},
-      {"id":3,"tanggal":"2024-10-16","klaster":"TSC","jumlah":0,"unit":"NS-NG2-012","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","sales":"BUDI MULYADI (ATM PRO)","ket":"BUKA HOLD 15.02.2025 (BELUM DI REFUND, INFO BUKA HOLD BY SALES MANAGER)"}] },
+      {"id":1,"tanggal":"2021-04-25","klaster":"TSC","jumlah":1,"unit":"NS-NA1-008","konsumen":"","tipe":"8","bayar":"TUNAI KERAS","rpInc":4294781400,"rpExc":3904346727,"sales":"YUNUS WAHYUDI, SE - GROUP SONDANG","ket":"Hold Reserved Rp. 10 Juta - (Belum ada konfirmasi lebih lanjut dari sales & konsumen)","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":2,"tanggal":"2021-09-04","klaster":"TSC","jumlah":1,"unit":"NS-NG2-008","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":3494670000,"rpExc":3176972727,"sales":"ARIEF BUDIMAN (ERA FAJAR)","ket":"Hold Reserved Rp. 15 Juta - (Menentukan cara bayar & BI Checking)","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":3,"tanggal":"2024-10-16","klaster":"TSC","jumlah":0,"unit":"NS-NG2-012","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","sales":"BUDI MULYADI (ATM PRO)","ket":"BUKA HOLD 15.02.2025 (BELUM DI REFUND, INFO BUKA HOLD BY SALES MANAGER)","usia":"","lahir":"","kel":"","kec":"","kota":""}] },
   /* Orchard Riviera: Weekly Report Orchard Riviera (Excel), kolom standar; Konsumen dikosongkan di sini karena kode halaman publik. */
-  "Orchard Riviera": { judul: "Weekly Report Orchard Riviera", awal: 2023, gabung: {"2023": {label: "TOTAL (Desember 2023)", sampai: 2023}}, ekstra: [], cfgV: 1, dataV: 1,
+  "Orchard Riviera": { judul: "Weekly Report Orchard Riviera", awal: 2023, gabung: {"2023": {label: "TOTAL (Desember 2023)", sampai: 2023}}, ekstra: [], cfgV: 1, dataV: 2,
     rekap: {"jual": {"2023": [5, 36545760080, 32924108180], "2024": [13, 82320603520, 74162705874], "2025": [8, 53520894600, 48217022162]}, "batal": {"2023": [0, 0, 0], "2024": [5, 36860767700, 33207898830], "2025": [4, 25155437500, 22662556306]}},
     jual: [
-      {"id":1,"tanggal":"2026-01-15","minggu":"2026-01-12","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD2-005","konsumen":"","tipe":"10","bayar":"KPR EXPRESS","rpInc":5702080500,"rpExc":5137009459,"sales":"LUSIANA OKTAVIANI ULFA - RULLY LOEKITO","ket":"RESERVED TGL 26.12.2025 CREATE SISTEM 15.01.2025"},
-      {"id":2,"tanggal":"2026-02-21","minggu":"2026-02-16","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-008","konsumen":"","tipe":"8","bayar":"TUNAI BERTAHAP 36X","rpInc":4542296050,"rpExc":4092158604,"sales":"SARTIKA PUJI ASTUTI - RULLY LOEKITO","ket":"CETAK SPU & P3U 22.02.2026"},
-      {"id":3,"tanggal":"2026-04-19","minggu":"2026-04-13","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OBD-008","konsumen":"","tipe":"10","bayar":"TUNAI KERAS","rpInc":5840942000,"rpExc":5262109910,"sales":"HASAN ALI AS SAM'ANI BEY - RULLY LOEKITO","ket":"CETAK SPU & P3U 19.04.2026"},
-      {"id":4,"tanggal":"2026-04-27","minggu":"2026-04-27","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OBD-015","konsumen":"","tipe":"12","bayar":"TUNAI KERAS","rpInc":11060444200,"rpExc":9964364144,"sales":"HASAN ALI AS SAM'ANI BEY - RULLY LOEKITO","ket":"CETAK SPU & P3U 27.04.2026"},
-      {"id":5,"tanggal":"2026-04-28","minggu":"2026-04-27","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-002","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":5060000000,"rpExc":4558558559,"sales":"CAHYA MELINDA - RULLY LOEKITO","ket":"CETAK SPU & P3U 28.04.2026"},
-      {"id":6,"tanggal":"2026-08-16","minggu":"2026-08-10","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD3-005","konsumen":"","tipe":"10","bayar":"TUNAI BERTAHAP 24X","rpInc":6401230800,"rpExc":5766874595,"sales":"JULHAM HIDAYAT - KEVIN HIMAWAN","ket":"CETAK SPU & P3U 16.08.2026"},
-      {"id":7,"tanggal":"2026-08-25","minggu":"2026-08-24","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OBD-011","konsumen":"","tipe":"12","bayar":"KPR EXPRESS","rpInc":11775000000,"rpExc":10608108108,"sales":"MOEHAMAD RISMAN HERMANA - KEVIN HIMAWAN","ket":"CETAK SPU & P3U 25.08.2026"},
-      {"id":8,"tanggal":"2026-08-25","minggu":"2026-08-24","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD3-010","konsumen":"","tipe":"10","bayar":"KPR DP 10%","rpInc":6514150000,"rpExc":5868603604,"sales":"HASAN ALI AS SAM'ANI BEY - KEVIN HIMAWAN","ket":"CETAK SPU & P3U 25.08.2026"},
-      {"id":9,"tanggal":"2026-09-30","minggu":"2026-09-28","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-011","konsumen":"","tipe":"8","bayar":"TUNAI BERTAHAP 17X","rpInc":5600000000,"rpExc":5045045045,"sales":"CAHYA MELINDA - KEVIIN HIMAWAN","ket":"CETAK SPU & P3U 30.09.2026"}],
+      {"id":1,"tanggal":"2026-01-15","minggu":"2026-01-12","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD2-005","konsumen":"","tipe":"10","bayar":"KPR EXPRESS","rpInc":5702080500,"rpExc":5137009459,"sales":"LUSIANA OKTAVIANI ULFA - RULLY LOEKITO","ket":"RESERVED TGL 26.12.2025 CREATE SISTEM 15.01.2025","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":2,"tanggal":"2026-02-21","minggu":"2026-02-16","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-008","konsumen":"","tipe":"8","bayar":"TUNAI BERTAHAP 36X","rpInc":4542296050,"rpExc":4092158604,"sales":"SARTIKA PUJI ASTUTI - RULLY LOEKITO","ket":"CETAK SPU & P3U 22.02.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":3,"tanggal":"2026-04-19","minggu":"2026-04-13","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OBD-008","konsumen":"","tipe":"10","bayar":"TUNAI KERAS","rpInc":5840942000,"rpExc":5262109910,"sales":"HASAN ALI AS SAM'ANI BEY - RULLY LOEKITO","ket":"CETAK SPU & P3U 19.04.2026","sumber":"Pameran","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":4,"tanggal":"2026-04-27","minggu":"2026-04-27","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OBD-015","konsumen":"","tipe":"12","bayar":"TUNAI KERAS","rpInc":11060444200,"rpExc":9964364144,"sales":"HASAN ALI AS SAM'ANI BEY - RULLY LOEKITO","ket":"CETAK SPU & P3U 27.04.2026","sumber":"Pameran","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":5,"tanggal":"2026-04-28","minggu":"2026-04-27","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-002","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":5060000000,"rpExc":4558558559,"sales":"CAHYA MELINDA - RULLY LOEKITO","ket":"CETAK SPU & P3U 28.04.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":6,"tanggal":"2026-08-16","minggu":"2026-08-10","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD3-005","konsumen":"","tipe":"10","bayar":"TUNAI BERTAHAP 24X","rpInc":6401230800,"rpExc":5766874595,"sales":"JULHAM HIDAYAT - KEVIN HIMAWAN","ket":"CETAK SPU & P3U 16.08.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":7,"tanggal":"2026-08-25","minggu":"2026-08-24","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OBD-011","konsumen":"","tipe":"12","bayar":"KPR EXPRESS","rpInc":11775000000,"rpExc":10608108108,"sales":"MOEHAMAD RISMAN HERMANA - KEVIN HIMAWAN","ket":"CETAK SPU & P3U 25.08.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":8,"tanggal":"2026-08-25","minggu":"2026-08-24","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD3-010","konsumen":"","tipe":"10","bayar":"KPR DP 10%","rpInc":6514150000,"rpExc":5868603604,"sales":"HASAN ALI AS SAM'ANI BEY - KEVIN HIMAWAN","ket":"CETAK SPU & P3U 25.08.2026","sumber":"Call in","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":9,"tanggal":"2026-09-30","minggu":"2026-09-28","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-011","konsumen":"","tipe":"8","bayar":"TUNAI BERTAHAP 17X","rpInc":5600000000,"rpExc":5045045045,"sales":"CAHYA MELINDA - KEVIIN HIMAWAN","ket":"CETAK SPU & P3U 30.09.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""}],
     batal: [
-      {"id":1,"tanggal":"2026-01-15","minggu":"2026-01-12","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-006","konsumen":"","tipe":"8","bayar":"KPR DP 10%","rpInc":4502050000,"rpExc":4055900901,"sales":"JULI HARIYANTO - FAM ESTATE","ket":"Pindah unit ke OR-OA6-006"},
-      {"id":2,"tanggal":"2026-01-22","minggu":"2026-01-19","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-011","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":5250120000,"rpExc":4729837838,"sales":"RENANDA INDRA SHAUMI - RULLY LOEKITO","ket":"Customer lalai melakukan pembayaran uang muka 1"},
-      {"id":3,"tanggal":"2026-01-22","minggu":"2026-01-19","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-012","konsumen":"","tipe":"8","bayar":"KPR DP 10%","rpInc":4413700000,"rpExc":3976306306,"sales":"INA MARLINA - RULLY LOEKITO","ket":"Customer lalai melakukan pembayaran uang muka 1"},
-      {"id":4,"tanggal":"2026-03-26","minggu":"2026-03-23","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OBD-008","konsumen":"","tipe":"10","bayar":"TUNAI BERTAHAP 12X","rpInc":6139405500,"rpExc":5530995946,"sales":"CRISTIANA BUDIMAN (INSIGHT)","ket":"Customer lalai melakukan pembayaran angsuran 1"},
-      {"id":5,"tanggal":"2026-05-12","minggu":"2026-05-11","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD3-010","konsumen":"","tipe":"10","bayar":"TUNAI BERTAHAP 56X","rpInc":6970252800,"rpExc":6279507027,"sales":"SARTIKA PUJI ASTUTI - RULLY LOEKITO","ket":"Pindah Unit Ke NS-NG2-003 (Alasan : Kondisi keuangan konsumen kurang kondusif)"},
-      {"id":6,"tanggal":"2026-05-20","minggu":"2026-05-18","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-003","konsumen":"","tipe":"8","bayar":"TUNAI BERTAHAP 36X","rpInc":4512924025,"rpExc":4065697320,"sales":"R FIRMANSYAH - ATM PRO","ket":"Customer lalai melakukan pembayaran angsuran 1 sampai dengan 3"},
-      {"id":7,"tanggal":"2026-07-07","minggu":"2026-07-06","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-009","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":4088345500,"rpExc":3683194144,"sales":"CHELLY - RULLY LOEKITO","ket":"Customer lalai melakukan pembayaran uang muka"},
-      {"id":8,"tanggal":"2026-08-03","minggu":"2026-08-03","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-011","konsumen":"","tipe":"10","bayar":"TUNAI BERTAHAP 16X","rpInc":5514968600,"rpExc":4968440180,"sales":"ALIFINZA HAZRA ACHMAD - KEVIN HIMAWAN","ket":"Pindah Unit Dari OR-OA6-011 (Alasan : Keluarga ingin rumah yg lebih besar)"},
-      {"id":9,"tanggal":"2026-09-03","minggu":"2026-08-31","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD3-003","konsumen":"","tipe":"10","bayar":"TUNAI BERTAHAP 60X","rpInc":7257051000,"rpExc":6537883784,"sales":"CAHYA MELINDA - RULLY LOEKITO","ket":"Customer Lalai Dalam Membayar Angsuran"},
-      {"id":10,"tanggal":"2026-10-12","minggu":"2026-09-28","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-006","konsumen":"","tipe":"8","bayar":"KPR DP 10%","rpInc":4502050000,"rpExc":4055900901,"sales":"JULI HARIYANTO - FAM ESTATE","ket":"KENDALA FINANSIAL UNTUK MELAJUTKAN PEMBAYARAN DP"},
-      {"id":11,"tanggal":"2026-10-12","minggu":"2026-09-28","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-007","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":4522950000,"rpExc":4074729730,"sales":"RIDWAN - AMAS PRO","ket":"KENDALA FINANSIAL UNTUK MELAJUTKAN PEMBAYARAN DP"},
-      {"id":12,"tanggal":"2026-11-03","minggu":"2026-11-02","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD3-012","konsumen":"","tipe":"10","bayar":"TUNAI BERTAHAP 16X","rpInc":6000000000,"rpExc":5405405405,"sales":"ALIFINZA HAZRA ACHMAD - KEVIN HIMAWAN","ket":"DANA DIGUNAKAN UNTUK KEPERLUAN KELUARGA (URGENT)"},
-      {"id":13,"tanggal":"2026-11-03","minggu":"2026-11-02","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD2-007","konsumen":"","tipe":"10","bayar":"KPR EXPRESS","rpInc":5868169550,"rpExc":5286639234,"sales":"MOEHAMAD RISMAN HERMANA - KEVIN HIMAWAN","ket":"DANA DIGUNAKAN UNTUK MEMBELI PROPERTY JENIS YG LAIN"}],
+      {"id":1,"tanggal":"2026-01-15","minggu":"2026-01-12","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-006","konsumen":"","tipe":"8","bayar":"KPR DP 10%","rpInc":4502050000,"rpExc":4055900901,"sales":"JULI HARIYANTO - FAM ESTATE","ket":"Pindah unit ke OR-OA6-006","sumber":"WALK IN","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":2,"tanggal":"2026-01-22","minggu":"2026-01-19","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-011","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":5250120000,"rpExc":4729837838,"sales":"RENANDA INDRA SHAUMI - RULLY LOEKITO","ket":"Customer lalai melakukan pembayaran uang muka 1","sumber":"WALK IN","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":3,"tanggal":"2026-01-22","minggu":"2026-01-19","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-012","konsumen":"","tipe":"8","bayar":"KPR DP 10%","rpInc":4413700000,"rpExc":3976306306,"sales":"INA MARLINA - RULLY LOEKITO","ket":"Customer lalai melakukan pembayaran uang muka 1","sumber":"WALK IN","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":4,"tanggal":"2026-03-26","minggu":"2026-03-23","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OBD-008","konsumen":"","tipe":"10","bayar":"TUNAI BERTAHAP 12X","rpInc":6139405500,"rpExc":5530995946,"sales":"CRISTIANA BUDIMAN (INSIGHT)","ket":"Customer lalai melakukan pembayaran angsuran 1","sumber":"REFERENSI","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":5,"tanggal":"2026-05-12","minggu":"2026-05-11","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD3-010","konsumen":"","tipe":"10","bayar":"TUNAI BERTAHAP 56X","rpInc":6970252800,"rpExc":6279507027,"sales":"SARTIKA PUJI ASTUTI - RULLY LOEKITO","ket":"Pindah Unit Ke NS-NG2-003 (Alasan : Kondisi keuangan konsumen kurang kondusif)","sumber":"WALK IN","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":6,"tanggal":"2026-05-20","minggu":"2026-05-18","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-003","konsumen":"","tipe":"8","bayar":"TUNAI BERTAHAP 36X","rpInc":4512924025,"rpExc":4065697320,"sales":"R FIRMANSYAH - ATM PRO","ket":"Customer lalai melakukan pembayaran angsuran 1 sampai dengan 3","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":7,"tanggal":"2026-07-07","minggu":"2026-07-06","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-009","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":4088345500,"rpExc":3683194144,"sales":"CHELLY - RULLY LOEKITO","ket":"Customer lalai melakukan pembayaran uang muka","sumber":"WALK IN","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":8,"tanggal":"2026-08-03","minggu":"2026-08-03","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-011","konsumen":"","tipe":"10","bayar":"TUNAI BERTAHAP 16X","rpInc":5514968600,"rpExc":4968440180,"sales":"ALIFINZA HAZRA ACHMAD - KEVIN HIMAWAN","ket":"Pindah Unit Dari OR-OA6-011 (Alasan : Keluarga ingin rumah yg lebih besar)","sumber":"Pameran","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":9,"tanggal":"2026-09-03","minggu":"2026-08-31","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD3-003","konsumen":"","tipe":"10","bayar":"TUNAI BERTAHAP 60X","rpInc":7257051000,"rpExc":6537883784,"sales":"CAHYA MELINDA - RULLY LOEKITO","ket":"Customer Lalai Dalam Membayar Angsuran","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":10,"tanggal":"2026-10-12","minggu":"2026-09-28","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-006","konsumen":"","tipe":"8","bayar":"KPR DP 10%","rpInc":4502050000,"rpExc":4055900901,"sales":"JULI HARIYANTO - FAM ESTATE","ket":"KENDALA FINANSIAL UNTUK MELAJUTKAN PEMBAYARAN DP","sumber":"WALK IN","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":11,"tanggal":"2026-10-12","minggu":"2026-09-28","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OA6-007","konsumen":"","tipe":"8","bayar":"KPR EXPRESS","rpInc":4522950000,"rpExc":4074729730,"sales":"RIDWAN - AMAS PRO","ket":"KENDALA FINANSIAL UNTUK MELAJUTKAN PEMBAYARAN DP","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":12,"tanggal":"2026-11-03","minggu":"2026-11-02","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD3-012","konsumen":"","tipe":"10","bayar":"TUNAI BERTAHAP 16X","rpInc":6000000000,"rpExc":5405405405,"sales":"ALIFINZA HAZRA ACHMAD - KEVIN HIMAWAN","ket":"DANA DIGUNAKAN UNTUK KEPERLUAN KELUARGA (URGENT)","sumber":"Pameran","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":13,"tanggal":"2026-11-03","minggu":"2026-11-02","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD2-007","konsumen":"","tipe":"10","bayar":"KPR EXPRESS","rpInc":5868169550,"rpExc":5286639234,"sales":"MOEHAMAD RISMAN HERMANA - KEVIN HIMAWAN","ket":"DANA DIGUNAKAN UNTUK MEMBELI PROPERTY JENIS YG LAIN","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""}],
     hold: [
-      {"id":1,"tanggal":"2023-11-25","klaster":"TSC","jumlah":1,"unit":"OR-OBD-007","konsumen":"","tipe":"12","bayar":"KPR EXPRESS","rpInc":11732510000,"rpExc":10569828829,"sales":"IVONE SUSAN (AKUR PRO)","ket":"Hold Reserved Rp. 25 Juta - (Menentukan cara bayar & BI cheking)"},
-      {"id":2,"tanggal":"2025-05-26","klaster":"TSC","jumlah":1,"unit":"OR-OA6-001","konsumen":"","tipe":"8","bayar":"TUNAI KERAS","rpInc":5127420000,"rpExc":4619297297,"sales":"HELMI HERMAWAN - RULLY LOEKITO","ket":"Hold Reserved Rp. 20 Juta - (Menentukan cara bayar & BI Checking)"},
-      {"id":3,"tanggal":"2026-06-07","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD3-005","konsumen":"","tipe":"10","bayar":"TUNAI KERAS","rpInc":6210880000,"rpExc":5595387387,"sales":"SARTIKA PUJI ASTUTI - KEVIN HIMAWAN","ket":"Hold Reserved Rp. 40 Juta - (Menentukan cara bayar & BI Checking)"},
-      {"id":4,"tanggal":"","jumlah":0,"konsumen":""}] },
+      {"id":1,"tanggal":"2023-11-25","klaster":"TSC","jumlah":1,"unit":"OR-OBD-007","konsumen":"","tipe":"12","bayar":"KPR EXPRESS","rpInc":11732510000,"rpExc":10569828829,"sales":"IVONE SUSAN (AKUR PRO)","ket":"Hold Reserved Rp. 25 Juta - (Menentukan cara bayar & BI cheking)","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":2,"tanggal":"2025-05-26","klaster":"TSC","jumlah":1,"unit":"OR-OA6-001","konsumen":"","tipe":"8","bayar":"TUNAI KERAS","rpInc":5127420000,"rpExc":4619297297,"sales":"HELMI HERMAWAN - RULLY LOEKITO","ket":"Hold Reserved Rp. 20 Juta - (Menentukan cara bayar & BI Checking)","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":3,"tanggal":"2026-06-07","klaster":"Orchard Riviera","jumlah":1,"unit":"OR-OD3-005","konsumen":"","tipe":"10","bayar":"TUNAI KERAS","rpInc":6210880000,"rpExc":5595387387,"sales":"SARTIKA PUJI ASTUTI - KEVIN HIMAWAN","ket":"Hold Reserved Rp. 40 Juta - (Menentukan cara bayar & BI Checking)","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":4,"tanggal":"","jumlah":0,"konsumen":"","usia":"","lahir":"","kel":"","kec":"","kota":""}] },
   /* Scotts Vale: Weekly Report Scotts Vale (Excel), kolom standar; Konsumen dikosongkan di sini karena kode halaman publik. */
-  "Scotts Vale": { judul: "Weekly Report Scotts Vale", awal: 2026, ekstra: [], cfgV: 1, dataV: 1,
+  "Scotts Vale": { judul: "Weekly Report Scotts Vale", awal: 2026, ekstra: [], cfgV: 1, dataV: 2,
     rekap: {"jual": {}, "batal": {}},
     jual: [
-      {"id":1,"tanggal":"2026-10-13","minggu":"2026-10-12","klaster":"Scotts Vale","jumlah":1,"unit":"SL-SL5-027","konsumen":"","tipe":"5","bayar":"TUANI KERAS","rpInc":1600632000,"rpExc":1442010811,"sales":"SARTIKA PUJI ASTUTI - KEVIN HIMAWAN","ket":"Cetak SPU & P3U 13.10.2026"},
-      {"id":2,"tanggal":"2026-10-18","minggu":"2026-10-12","klaster":"Scotts Vale","jumlah":1,"unit":"SV-SBD-022","konsumen":"","tipe":"7","bayar":"KPR EXPRESS","rpInc":2984652000,"rpExc":2688875676,"sales":"MIRNA - NARA PRO","ket":"Cetak SPU & P3U 19.10.2026"},
-      {"id":3,"tanggal":"2026-10-19","minggu":"2026-10-19","klaster":"Scotts Vale","jumlah":1,"unit":"SL-SL5-002","konsumen":"","tipe":"5","bayar":"TUNAI BERTAHAP 60X","rpInc":1976319000,"rpExc":1780467568,"sales":"LUSIANA OKTAVIANI ULFA - RULLY LOEKITO","ket":"Cetak SPU & P3U 19.10.2026"},
-      {"id":4,"tanggal":"2026-10-23","minggu":"2026-10-19","klaster":"Scotts Vale","jumlah":1,"unit":"SV-SBD-006","konsumen":"","tipe":"7","bayar":"TUNAI KERAS","rpInc":2492088000,"rpExc":2245124324,"sales":"SARTIKA PUJI ASTUTI - RULLY LOEKITO","ket":"Cetak SPU & P3U 23.10.2026"},
-      {"id":5,"tanggal":"2026-10-25","minggu":"2026-10-19","klaster":"Scotts Vale","jumlah":1,"unit":"SV-SL5-001","konsumen":"","tipe":"5","bayar":"KPR DP 10%","rpInc":1806300000,"rpExc":1627297297,"sales":"ISA - KASHI PRO","ket":"Cetak SPU & P3U 25.10.2026"},
-      {"id":6,"tanggal":"2026-10-26","minggu":"2026-10-26","klaster":"Scotts Vale","jumlah":1,"unit":"SV-SL5-032","konsumen":"","tipe":"5","bayar":"TUNAI KERAS","rpInc":1585242000,"rpExc":1428145946,"sales":"EKA - DM PRO","ket":"FULL BOOKING 23.10.2026 Cetak SPU & P3U 25.10.2026"},
-      {"id":7,"tanggal":"2026-11-03","minggu":"2026-11-02","klaster":"Scotts Vale","jumlah":1,"unit":"SV-SBD-002","konsumen":"","tipe":"7","bayar":"KPR EXPRESS","rpInc":2980260000,"rpExc":2684918919,"sales":"AJI BANDI - JUARA PRO","ket":"Cetak SPU & P3U 03.11.2026"}],
+      {"id":1,"tanggal":"2026-10-13","minggu":"2026-10-12","klaster":"Scotts Vale","jumlah":1,"unit":"SL-SL5-027","konsumen":"","tipe":"5","bayar":"TUANI KERAS","rpInc":1600632000,"rpExc":1442010811,"sales":"SARTIKA PUJI ASTUTI - KEVIN HIMAWAN","ket":"Cetak SPU & P3U 13.10.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":2,"tanggal":"2026-10-18","minggu":"2026-10-12","klaster":"Scotts Vale","jumlah":1,"unit":"SV-SBD-022","konsumen":"","tipe":"7","bayar":"KPR EXPRESS","rpInc":2984652000,"rpExc":2688875676,"sales":"MIRNA - NARA PRO","ket":"Cetak SPU & P3U 19.10.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":3,"tanggal":"2026-10-19","minggu":"2026-10-19","klaster":"Scotts Vale","jumlah":1,"unit":"SL-SL5-002","konsumen":"","tipe":"5","bayar":"TUNAI BERTAHAP 60X","rpInc":1976319000,"rpExc":1780467568,"sales":"LUSIANA OKTAVIANI ULFA - RULLY LOEKITO","ket":"Cetak SPU & P3U 19.10.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":4,"tanggal":"2026-10-23","minggu":"2026-10-19","klaster":"Scotts Vale","jumlah":1,"unit":"SV-SBD-006","konsumen":"","tipe":"7","bayar":"TUNAI KERAS","rpInc":2492088000,"rpExc":2245124324,"sales":"SARTIKA PUJI ASTUTI - RULLY LOEKITO","ket":"Cetak SPU & P3U 23.10.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":5,"tanggal":"2026-10-25","minggu":"2026-10-19","klaster":"Scotts Vale","jumlah":1,"unit":"SV-SL5-001","konsumen":"","tipe":"5","bayar":"KPR DP 10%","rpInc":1806300000,"rpExc":1627297297,"sales":"ISA - KASHI PRO","ket":"Cetak SPU & P3U 25.10.2026","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":6,"tanggal":"2026-10-26","minggu":"2026-10-26","klaster":"Scotts Vale","jumlah":1,"unit":"SV-SL5-032","konsumen":"","tipe":"5","bayar":"TUNAI KERAS","rpInc":1585242000,"rpExc":1428145946,"sales":"EKA - DM PRO","ket":"FULL BOOKING 23.10.2026 Cetak SPU & P3U 25.10.2026","usia":"","lahir":"","kel":"","kec":"","kota":""},
+      {"id":7,"tanggal":"2026-11-03","minggu":"2026-11-02","klaster":"Scotts Vale","jumlah":1,"unit":"SV-SBD-002","konsumen":"","tipe":"7","bayar":"KPR EXPRESS","rpInc":2980260000,"rpExc":2684918919,"sales":"AJI BANDI - JUARA PRO","ket":"Cetak SPU & P3U 03.11.2026","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""}],
     batal: [
-      {"id":1,"tanggal":"2026-10-23","minggu":"2026-10-19","klaster":"Scotts Vale","jumlah":1,"unit":"SV-SBD-002","konsumen":"","tipe":"7","bayar":"TUNAI KERAS","rpInc":2909823000,"rpExc":2621462162,"sales":"SARTIKA PUJI ASTUTI - RULLY LOEKITO","ket":"penyesuaian unit sesuai dengan budget konsumen (type sama, luas tanah unit baru lebih kecil)"}],
+      {"id":1,"tanggal":"2026-10-23","minggu":"2026-10-19","klaster":"Scotts Vale","jumlah":1,"unit":"SV-SBD-002","konsumen":"","tipe":"7","bayar":"TUNAI KERAS","rpInc":2909823000,"rpExc":2621462162,"sales":"SARTIKA PUJI ASTUTI - RULLY LOEKITO","ket":"penyesuaian unit sesuai dengan budget konsumen (type sama, luas tanah unit baru lebih kecil)","sumber":"Walk In","usia":"","lahir":"","kel":"","kec":"","kota":""}],
     hold: [
-      {"id":1,"tanggal":"","jumlah":0,"konsumen":""}] },
+      {"id":1,"tanggal":"","jumlah":0,"konsumen":"","usia":"","lahir":"","kel":"","kec":"","kota":""}] },
 };
 /* Daftar proyek Weekly per PT (menu sidebar) */
 const WK_GRUP = [["PT. Serpong Bangun Cipta", ["Banara Serpong", "Naraya Serpong", "Mazenta Residence", "Marchand"]],
@@ -1469,14 +1471,14 @@ function seedWeekly() {
     if (!w) { S.weekly[k] = clone(sd); ubah = true; return; }
     if ((w.cfgV || 0) < (sd.cfgV || 0)) { ["judul", "awal", "ekstra", "ppnOto", "gabung"].forEach(f => { if (sd[f] !== undefined) w[f] = clone(sd[f]); }); w.cfgV = sd.cfgV; ubah = true;
       if (sd.rekap && !["jual", "batal"].some(j => Object.keys((w.rekap || {})[j] || {}).length)) w.rekap = clone(sd.rekap);
-      /* kolom tambahan yang tidak dipakai lagi ikut dibuang dari data */
-      const pakai = new Set(w.ekstra || []); ["sumber", "usia", "lahir"].filter(c => !pakai.has(c)).forEach(c => ["jual", "batal", "hold"].forEach(j => (w[j] || []).forEach(x => delete x[c]))); }
+    }
     if ((w.dataV || 0) < (sd.dataV || 0)) {
-      /* Muat ulang dari Excel terbaru. Nama konsumen yang sudah diisi dipertahankan (dicocokkan dari tanggal + kode unit). */
+      /* Muat ulang dari Excel terbaru. Data pribadi yang sudah diisi (Konsumen, Usia, Tgl. Lahir, Domisili) dipertahankan (dicocokkan dari tanggal + kode unit). */
       const kunci = x => `${x.tanggal || ""}|${(x.unit || "").toUpperCase()}`;
       ["jual", "batal", "hold"].forEach(j => {
-        const nama = {}; (w[j] || []).forEach(x => { if (x.konsumen) nama[kunci(x)] = x.konsumen; });
-        w[j] = clone(sd[j]).map(x => (nama[kunci(x)] && !x.konsumen ? { ...x, konsumen: nama[kunci(x)] } : x));
+        const PRIBADI = ["konsumen", "usia", "lahir", "kel", "kec", "kota"], simpan = {};
+        (w[j] || []).forEach(x => { const v = {}; PRIBADI.forEach(f => { if (x[f]) v[f] = x[f]; }); if (Object.keys(v).length) simpan[kunci(x)] = v; });
+        w[j] = clone(sd[j]).map(x => { const v = simpan[kunci(x)]; if (!v) return x; const y = { ...x }; PRIBADI.forEach(f => { if (v[f] && !y[f]) y[f] = v[f]; }); return y; });
       });
       w.dataV = sd.dataV; ubah = true;
       try { catat(`weekly:${k}`, "Input Data", [`${k} · Data dimuat ulang dari Weekly Report Excel terbaru (${sd.jual.length} penjualan, ${sd.batal.length} batal, ${sd.hold.length} hold)`]); } catch (e) {}
@@ -2122,6 +2124,7 @@ function bukaDailyReport() {
   w.hidden = false; try { terapkanBahasa(w); } catch (e) {}
 }
 function tutupDailyReport() { document.getElementById("drWrap").hidden = true; }
+document.addEventListener("click", e => { if (e.target.closest("[data-wktambahan]")) { S.wkTambahanOff = !S.wkTambahanOff; save(); render(); return; } });
 document.addEventListener("click", e => { if (e.target.closest("[data-dr]")) { e.preventDefault(); setMenu(false); bukaDailyReport(); } });
 document.getElementById("drClose").onclick = tutupDailyReport;
 document.getElementById("drWrap").addEventListener("click", e => { if (e.target.id === "drWrap") tutupDailyReport(); });
@@ -2160,6 +2163,10 @@ function wkMinggu(th) {
 }
 /* Kolom per proyek. Semua proyek: Klaster, Jumlah, Tipe, Skema Bayar, Rp termasuk/tidak termasuk PPN, Sales, Keterangan.
    Kolom tambahan per proyek (W.ekstra): "unit" (kode unit), "konsumen", "sbum" (Rp). */
+const WK_TAMBAHAN = ["sumber", "usia", "lahir", "kel", "kec", "kota"];
+const wkTambahanTampil = () => !(S && S.wkTambahanOff);
+/* Kolom yang tampil di layar (kolom tambahan bisa disembunyikan) */
+const wkKolomLayar = W => wkKolom(W).filter(c => wkTambahanTampil() || !WK_TAMBAHAN.includes(c.k));
 function wkKolom(W) {
   /* Kolom dasar sama untuk semua proyek (termasuk Unit & Konsumen); W.ekstra hanya menambah kolom khusus (SBUM, PPJB, ...) */
   const e = W.ekstra || [], K = [{ k: "klaster", l: "Klaster", t: "tx" }, { k: "jumlah", l: "Jumlah", t: "n" },
@@ -2169,9 +2176,10 @@ function wkKolom(W) {
     { k: "rpInc", l: "Nilai Kontrak<br>(Include PPN)", x: "Nilai Kontrak (Include PPN)", t: "rp" }, { k: "rpExc", l: "Nilai Kontrak<br>(Exclude PPN)", x: "Nilai Kontrak (Exclude PPN)", t: "rp" });
   if (e.includes("sbum")) K.push({ k: "sbum", l: "SBUM", t: "rp" });
   K.push({ k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" });
-  if (e.includes("sumber")) K.push({ k: "sumber", l: "Sumber<br>Informasi", x: "Sumber Informasi", t: "tx" });
-  if (e.includes("usia")) K.push({ k: "usia", l: "Usia", t: "tx" });
-  if (e.includes("lahir")) K.push({ k: "lahir", l: "Tgl. Lahir", t: "date" });
+  /* Kolom standar setelah Keterangan (semua proyek): Sumber Informasi, Usia, Tgl. Lahir, Domisili */
+  K.push({ k: "sumber", l: "Sumber<br>Informasi", x: "Sumber Informasi", t: "tx" }, { k: "usia", l: "Usia", t: "tx" }, { k: "lahir", l: "Tgl. Lahir", t: "date" },
+    { k: "kel", l: "Domisili<br>Kelurahan/Desa", x: "Domisili - Kelurahan/Desa", t: "tx" }, { k: "kec", l: "Domisili<br>Kecamatan", x: "Domisili - Kecamatan", t: "tx" },
+    { k: "kota", l: "Domisili<br>Kota", x: "Domisili - Kota", t: "tx" });
   return K;
 }
 const wkRpK = W => wkKolom(W).filter(c => c.t === "rp").map(c => c.k);
@@ -2196,7 +2204,7 @@ const WK_PG = {
       { k: "bayarBaru", l: "Skema Bayar Baru", t: "tx" }, { k: "harga", l: "Harga Unit<br>(Rp)", x: "Harga Unit (Rp)", t: "rp" },
       { k: "konsumen", l: "Konsumen", t: "tx" }, { k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" }] },
 };
-const wkKolBag = (W, j) => WK_PG[j] ? WK_PG[j].kol(W) : wkKolom(W);
+const wkKolBag = (W, j, layar) => WK_PG[j] ? WK_PG[j].kol(W) : layar ? wkKolomLayar(W) : wkKolom(W);
 /* [unit, Rp kolom-kolom rp sesuai urutan wkRpK] */
 const wkSum = (l, W) => { const rk = wkRpK(W); return l.reduce((a, x) => [a[0] + (+x.jumlah || 0), ...rk.map((k, i) => a[i + 1] + (x[k] || 0))], [0, ...rk.map(() => 0)]); };
 /* Nilai di kartu: Rp termasuk PPN; jika kosong (mis. rumah subsidi) pakai Rp tidak termasuk PPN */
@@ -2214,7 +2222,7 @@ let wkHanyaIsi = false, wkPilihMg = ""; /* wkPilihMg = tanggal awal minggu yang 
 function viewWeekly(nama, id) {
   const W = S.weekly && S.weekly[nama];
   if (!W) return wkKosong(nama, "Dashboard", id);
-  const th = tahunKe(), hari = S.sales2.tanggal, mg = wkMinggu(th), K = wkKolom(W), rk = wkRpK(W), aw = wkAwal(W), nol = () => [0, ...rk.map(() => 0)];
+  const th = tahunKe(), hari = S.sales2.tanggal, mg = wkMinggu(th), K = wkKolomLayar(W), rk = wkRpK(W), aw = wkAwal(W), nol = () => [0, ...rk.map(() => 0)];
   const thIni = j => (W[j] || []).filter(x => +wkEf(x).slice(0, 4) === th).sort(wkUrut);
   const rekapRows = j => {
     const lalu = wkTahunRekap(W, th).map(({ y, l }) => { const v = (W.rekap[j] || {})[y] || nol(); return [l, v, v[1] || v[2] || 0]; });
@@ -2262,6 +2270,7 @@ function viewWeekly(nama, id) {
       const jml = w => [...thIni("jual"), ...thIni("batal")].filter(x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai).length;
       const ini = mg.find(x => hari >= x.dari && hari <= x.sampai);
       return `<label class="wk-opt" for="wkMg">Minggu <select id="wkMg"><option value="">Semua minggu</option>${opsi.slice().reverse().map(w => `<option value="${w.dari}" ${w.dari === wkPilihMg ? "selected" : ""}>${w.n ? `Minggu ke-${w.n}` : "Awal tahun"} (${wkPendek(w.dari, w.sampai)})${ini && w.dari === ini.dari ? " • berjalan" : ""}${jml(w) ? ` • ${jml(w)} transaksi` : ""}</option>`).join("")}</select></label>`; })()}
+      <button type="button" class="btn sec wk-tgl" data-wktambahan>${wkTambahanTampil() ? "Sembunyikan" : "Tampilkan"} kolom Sumber Info, Usia, Tgl. Lahir & Domisili</button>
       <label class="wk-opt"><input type="checkbox" id="wkHanyaIsi" ${wkHanyaIsi ? "checked" : ""} ${wkPilihMg ? "disabled" : ""}> Hanya minggu yang ada transaksi</label></div></div>
     <div class="desc">${wkPilihMg ? `Menampilkan ${(() => { const w = mg.find(x => x.dari === wkPilihMg); return w ? `${w.n ? `minggu ke-${w.n}` : "awal tahun"} (${wkPendek(w.dari, w.sampai)})` : "minggu terpilih"; })()} untuk tabel Penjualan dan Batal.` : "Minggu Senin s.d Minggu, sampai minggu berjalan."}</div>${mingguTbl("jual")}
     <h3 class="wk-sub">Rekap penjualan</h3>${rekapTbl("jual", aw < th ? `Grand Total ${aw} s.d ${th}` : `Grand Total ${th}`)}</section>
@@ -2290,7 +2299,7 @@ function bindWeekly() {
 let wkDraft = null, wkDraftNama = null;
 const WK_LIHAT = 5;
 /* Lebar kolom tetap di tabel Input Data; kolom tanpa lebar (Klaster, Konsumen, Skema Bayar, Sales, Keterangan) berbagi sisa lebar */
-const WK_COLW = { hargaLama: "112px", harga: "112px", kodeLama: "104px", kode: "104px", jumlah: "50px", unit: "96px", tipe: "72px", bayar: "13%", rpInc: "110px", rpExc: "110px", sbum: "86px", ppjb: "110px", usia: "48px", lahir: "118px", sales: "11%", klaster: "100px", konsumen: "130px", ket: "11%" };
+const WK_COLW = { sumber: "110px", usia: "52px", kel: "112px", kec: "104px", kota: "104px", hargaLama: "112px", harga: "112px", kodeLama: "104px", kode: "104px", jumlah: "50px", unit: "96px", tipe: "72px", bayar: "13%", rpInc: "110px", rpExc: "110px", sbum: "86px", ppjb: "110px", usia: "48px", lahir: "118px", sales: "11%", klaster: "100px", konsumen: "130px", ket: "11%" };
 let wkTampil = {};
 const wkT = j => wkTampil[j] = wkTampil[j] || { bulan: "", n: WK_LIHAT };
 const wkLoad = nama => { wkDraft = clone(S.weekly[nama]); wkDraftNama = nama; wkTampil = {}; };
@@ -2298,7 +2307,7 @@ function viewWeeklyInput(nama, id) {
   const W = S.weekly && S.weekly[nama];
   if (!W) return wkKosong(nama, "Input Data", id);
   if (wkDraftNama !== nama || !wkDraft) wkLoad(nama);
-  const d = wkDraft, th = tahunKe(), lk = !bolehEdit(nama), ro = lk ? 'readonly class="locked"' : "", K = wkKolom(W), rk = wkRpK(W), aw = wkAwal(W);
+  const d = wkDraft, th = tahunKe(), lk = !bolehEdit(nama), ro = lk ? 'readonly class="locked"' : "", K = wkKolomLayar(W), rk = wkRpK(W), aw = wkAwal(W);
   const oto = W.ppnOto !== false;
   const inp = (j, x, c) => {
     if (c.k === "klaster") return `<textarea rows="1" class="wk-ta wk-klaster" readonly tabindex="-1" title="Klaster = nama proyek" aria-label="Klaster">${esc(nama)}</textarea>`; const idx = `wk-${j}-${x.id}-${c.k}`, at = `id="${idx}" data-wk="${j}" data-id="${x.id}" data-f="${c.k}"`;
@@ -2310,7 +2319,7 @@ function viewWeeklyInput(nama, id) {
     /* Teks: kotak yang membungkus ke baris berikutnya, jadi isi panjang tetap terbaca utuh */
     return `<textarea rows="1" class="wk-ta" ${at} placeholder="${c.ph || ""}" ${ro}>${esc(x[c.k] || "")}</textarea>`; };
   const tabel = j => { const semua = (d[j] || []).slice().sort((a, b) => wkUrut(b, a)), T = wkT(j); /* terbaru di atas */
-    const K = wkKolBag(W, j), B = WK_PG[j] || WK_BAG[j];
+    const K = wkKolBag(W, j, true), B = WK_PG[j] || WK_BAG[j];
     const cocok = semua.filter(x => !T.bulan || wkEf(x).slice(0, 7) === T.bulan), list = cocok.slice(0, T.n);
     const blnAda = [...new Set(semua.map(x => wkEf(x).slice(0, 7)).filter(Boolean))].sort().reverse();
     const bar = semua.length ? `<div class="bh-filter wk-bar"><label for="wkb-${j}">Bulan <select id="wkb-${j}" data-wkbln="${j}"><option value="">Semua bulan</option>${blnAda.map(b => `<option value="${b}" ${b === T.bulan ? "selected" : ""}>${BULAN[+b.slice(5, 7) - 1]} ${b.slice(0, 4)}</option>`).join("")}</select></label>
@@ -2318,7 +2327,7 @@ function viewWeeklyInput(nama, id) {
     const more = cocok.length > WK_LIHAT ? `<div class="wk-more">${list.length < cocok.length ? `<button type="button" class="btn sec" data-wkmore="${j}">Tampilkan ${Math.min(WK_LIHAT, cocok.length - list.length)} lagi</button><button type="button" class="btn sec" data-wkall="${j}">Tampilkan semua (${cocok.length})</button>` : ""}${list.length > WK_LIHAT ? `<button type="button" class="btn sec" data-wkless="${j}">Ringkas</button>` : ""}</div>` : "";
     return `<div class="bh-box"><div class="bh-head"><div><h3>${B.judul}</h3><div class="desc">${WK_PG[j] ? B.desc : j === "hold" ? "Unit yang ditahan, belum dihitung sebagai penjualan." : `Satu baris per transaksi, masuk ke minggu dan bulan sesuai tanggalnya.`}${oto && !WK_PG[j] ? " Nilai Kontrak (Exclude PPN) otomatis ÷ 1,11 jika kosong." : ""}</div></div>
       ${lk ? "" : `<button class="btn sec" data-wkadd="${j}" type="button">Tambah baris</button>`}</div>
-      ${bar}<div class="tbl-wrap"><table class="edit bh-t wk-in wk-fit${K.length >= 10 ? " wk-banyak" : ""}"><colgroup><col style="width:114px">${K.map(c => `<col${WK_COLW[c.k] ? ` style="width:${WK_COLW[c.k]}"` : ""}>`).join("")}<col style="width:28px"></colgroup><thead><tr><th>${B.tgl}</th>${K.map(c => `<th class="${c.t === "rp" ? "c" : ""}${c.k === "sbum" ? " c-sbum" : ""}">${c.k === "jumlah" ? "Jumlah (unit)" : c.l}</th>`).join("")}<th></th></tr></thead><tbody>
+      ${bar}<div class="tbl-wrap"><table class="edit bh-t wk-in wk-fit${K.length >= 15 ? " wk-banyak wk-sgt" : K.length >= 10 ? " wk-banyak" : ""}"><colgroup><col style="width:114px">${K.map(c => `<col${WK_COLW[c.k] ? ` style="width:${WK_COLW[c.k]}"` : ""}>`).join("")}<col style="width:28px"></colgroup><thead><tr><th>${B.tgl}</th>${K.map(c => `<th class="${c.t === "rp" ? "c" : ""}${c.k === "sbum" ? " c-sbum" : ""}">${c.k === "jumlah" ? "Jumlah (unit)" : c.l}</th>`).join("")}<th></th></tr></thead><tbody>
       ${list.map(x => `<tr><td><input type="date" id="wk-${j}-${x.id}-tanggal" data-wk="${j}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal || ""}" ${ro} ${x.minggu && wkEf(x) !== x.tanggal ? `title="Di Excel ada di minggu ${wkTgl(x.minggu)}"` : ""}></td>${K.map(c => `<td${c.k === "sbum" ? ' class="c-sbum"' : ""}>${inp(j, x, c)}</td>`).join("")}
         <td>${lk ? ikonKunci : `<button class="del" data-wkdel="${j}:${x.id}" type="button" aria-label="Hapus">×</button>`}</td></tr>`).join("")
         || `<tr><td colspan="${K.length + 2}" style="color:var(--muted);text-align:center;padding:12px">${semua.length ? "Tidak ada baris pada bulan ini." : "Belum ada data."}</td></tr>`}</tbody></table></div>${more}</div>`; };
@@ -2331,7 +2340,7 @@ function viewWeeklyInput(nama, id) {
   const idx = [...Array(nk).keys()];
   return `<div class="page gut"><div class="form-head"><div><h2>Input Data Weekly ${esc(nama)}</h2>
     <div class="desc">Isi transaksi tahun ${th} per baris, atau ambil dari file Weekly Report dengan Impor dari Excel. Dashboard menyusunnya per minggu (Senin s.d Minggu) dan per bulan. Angka tahun ${aw} s.d ${th - 1} diisi di Rekap tahun sebelumnya. Rp dalam Rupiah penuh.</div></div>
-    <div class="btn-row">${lk ? "" : `<button class="btn sec" id="wkImp" type="button">Impor dari Excel</button><input type="file" id="wkImpFile" accept=".xlsx,.xls" hidden>`}<button class="btn sec" id="wkXls" type="button">Ekspor Excel</button><button class="btn sec" id="wkReset" type="button" ${lk ? "disabled" : ""}>Batalkan perubahan</button><button class="btn" id="wkSave" type="button" ${lk ? "disabled" : ""}>Simpan data</button></div></div>
+    <div class="btn-row"><button type="button" class="btn sec wk-tgl" data-wktambahan>${wkTambahanTampil() ? "Sembunyikan" : "Tampilkan"} kolom Sumber Info, Usia, Tgl. Lahir & Domisili</button>${lk ? "" : `<button class="btn sec" id="wkImp" type="button">Impor dari Excel</button><input type="file" id="wkImpFile" accept=".xlsx,.xls" hidden>`}<button class="btn sec" id="wkXls" type="button">Ekspor Excel</button><button class="btn sec" id="wkReset" type="button" ${lk ? "disabled" : ""}>Batalkan perubahan</button><button class="btn" id="wkSave" type="button" ${lk ? "disabled" : ""}>Simpan data</button></div></div>
     ${lk ? `<p class="hint">${ikonKunci} Akun Anda tidak bisa mengubah data ${esc(nama)}.</p>` : ""}
     <div class="bh">${tabel("jual")}${tabel("batal")}${tabel("hold")}${tabel("pindah")}${tabel("ganti")}
     <div class="bh-box"><h3>Rekap tahun sebelumnya</h3><div class="desc">Total per tahun dari Weekly Report lama. Baris TOTAL (${th}) dihitung otomatis dari tabel Penjualan dan Batal di atas, jadi tetap tampil walau belum ada transaksi.</div>
@@ -2390,7 +2399,7 @@ function exportWeeklyExcel(nama) {
     C.slice(1).forEach((c, i) => { const col = huruf(3 + i); tot.push(c.t === "rp" ? fm(`SUM(${col}${r0}:${col}${r1})`, RP) : ""); });
     aoa.push(tot); });
   const ws = aoaSheet(aoa);
-  const lebar = { klaster: 14, jumlah: 8, _unit: 6, unit: 12, konsumen: 26, ppjb: 14, tipe: 12, bayar: 24, rpInc: 20, rpExc: 22, sbum: 14, sales: 34, ket: 40, sumber: 18, usia: 6, lahir: 12 };
+  const lebar = { klaster: 14, jumlah: 8, _unit: 6, unit: 12, konsumen: 26, ppjb: 14, tipe: 12, bayar: 24, rpInc: 20, rpExc: 22, sbum: 14, sales: 34, ket: 40, sumber: 18, usia: 6, lahir: 12, kel: 18, kec: 16, kota: 16 };
   ws["!cols"] = [37, 18, ...kol.map(c => lebar[c.k] || 14)].map(w => ({ wch: w }));
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, String(th));
   XLSX.writeFile(wb, `Weekly_Report_${nama.replace(/\s+/g, "_")}_${S.sales2.tanggal}.xlsx`);
@@ -2429,10 +2438,11 @@ function wkBacaExcel(rows, W, th) {
         if (h === "klaster") map.klaster = i; else if (h === "jumlah") map.jumlah = i; else if (h === "unit") map.unit = i; else if (h === "konsumen") map.konsumen = i;
         else if (h === "tipe") map.tipe = i; else if (h.startsWith("keterangan pembayaran") || h.startsWith("cara bayar") || h.startsWith("skema bayar")) map.bayar = i; else if (h.includes("sales")) map.sales = i; else if (h === "keterangan") map.ket = i;
         else if (h.includes("ppjb")) map.ppjb = i; else if (h.startsWith("sumber")) map.sumber = i; else if (h === "usia") map.usia = i; else if (h.startsWith("tgl. lahir") || h.startsWith("tanggal lahir")) map.lahir = i; });
+      sub.forEach((v, i) => { const h = low(v); if (/^kel(urahan)?\s*\/?\s*desa/.test(h)) map.kel = i; else if (h === "kecamatan") map.kec = i; else if (h === "kota") map.kota = i; });
       sub.forEach((v, i) => { const h = low(v); if (h.includes("tidak termasuk") || h.includes("exclude")) map.rpExc = i; else if (h.includes("termasuk") || h.includes("include")) map.rpInc = i; else if (h === "sbum") map.sbum = i; });
       /* judul Rp bisa juga satu baris: "Nilai Kontrak (Include PPN)" / "(Exclude PPN)" */
       row.forEach((v, i) => { const h = low(v); if (h.includes("exclude") || h.includes("tidak termasuk ppn")) map.rpExc = i; else if (h.includes("include") || (h.includes("termasuk ppn") && !h.includes("tidak"))) map.rpInc = i; });
-      if (sub.some(v => /termasuk|sbum|include|exclude/.test(low(v)))) r++; /* baris sub-judul Rp bukan data */
+      if (sub.some(v => /termasuk|sbum|include|exclude|kecamatan/.test(low(v)))) r++; /* baris sub-judul Rp bukan data */
       continue;
     }
     if (!bag) continue;
@@ -2915,7 +2925,7 @@ side.addEventListener("click", e => { if (e.target.closest("a")) setMenu(false);
 
 /* ===================== Sinkron dengan database server ===================== */
 const SERVER = { on: false, versi: null, terakhir: "", kirimT: null, sibuk: false, info: "Menghubungkan ke server…" };
-const LOKAL = ["role", "rpMode", "showCatatan", "lang"];
+const LOKAL = ["role", "rpMode", "showCatatan", "lang", "wkTambahanOff"];
 const dataBersama = () => { const o = {}; Object.keys(S).forEach(k => { if (!LOKAL.includes(k)) o[k] = S[k]; }); return o; };
 async function api(metode, url, body) {
   const r = await fetch(url, { method: metode, headers: Object.assign({ "Content-Type": "application/json" }, SESI && SESI.token ? { Authorization: "Bearer " + SESI.token } : {}),
@@ -2925,7 +2935,7 @@ async function api(metode, url, body) {
   return { status: r.status, ok: r.ok, data: j };
 }
 function terapkan(st, versi) {
-  const simpan = { role: S.role, rpMode: S.rpMode, showCatatan: S.showCatatan, lang: S.lang };
+  const simpan = { role: S.role, rpMode: S.rpMode, showCatatan: S.showCatatan, lang: S.lang, wkTambahanOff: S.wkTambahanOff };
   S = Object.assign({}, st, simpan); SERVER.versi = versi; SERVER.terakhir = JSON.stringify(dataBersama());
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
 }
