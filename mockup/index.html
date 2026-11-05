@@ -361,7 +361,7 @@ table { width: 100%; border-collapse: collapse; }
 .edit.wk-fit th { white-space: normal; font-size: 12px; padding: 6px 4px; }
 .edit.wk-fit td { padding: 4px 3px; }
 .edit.wk-fit td input, .edit.wk-fit td:nth-child(2) input[type="text"], .edit.wk-fit td:nth-child(3) input[type="text"] { min-width: 0; width: 100%; box-sizing: border-box; font-size: 13px; padding-left: 4px; padding-right: 4px; }
-.edit.wk-fit td textarea.wk-ta { display: block; width: 100%; min-width: 0; box-sizing: border-box; resize: none; overflow: hidden; font: inherit; font-size: 13px; line-height: 1.3; text-align: center; padding: 6px 4px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); min-height: 32px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.edit.wk-fit td textarea.wk-ta { display: block; width: 100%; min-width: 0; box-sizing: border-box; resize: none; overflow: hidden; font: inherit; font-size: 13px; line-height: 1.3; text-align: center; padding: 6px 4px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); min-height: 32px; white-space: pre-wrap; overflow-wrap: break-word; }
 .edit.wk-fit td textarea.wk-ta.locked { background: var(--grey-soft); }
 .wk-bar select { margin-left: 6px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); font: inherit; font-size: 13px; }
 .wk-more { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
@@ -2049,9 +2049,9 @@ function wkMinggu(th) {
 /* Kolom per proyek. Semua proyek: Klaster, Jumlah, Tipe, Skema Bayar, Rp termasuk/tidak termasuk PPN, Sales, Keterangan.
    Kolom tambahan per proyek (W.ekstra): "unit" (kode unit), "konsumen", "sbum" (Rp). */
 function wkKolom(W) {
-  const e = W.ekstra || [], K = [{ k: "klaster", l: "Klaster", t: "tx" }, { k: "jumlah", l: "Jumlah", t: "n" }];
-  if (e.includes("unit")) K.push({ k: "unit", l: "Unit", t: "tx", ph: "A1-16" });
-  if (e.includes("konsumen")) K.push({ k: "konsumen", l: "Konsumen", t: "tx" });
+  /* Kolom dasar sama untuk semua proyek (termasuk Unit & Konsumen); W.ekstra hanya menambah kolom khusus (SBUM, PPJB, ...) */
+  const e = W.ekstra || [], K = [{ k: "klaster", l: "Klaster", t: "tx" }, { k: "jumlah", l: "Jumlah", t: "n" },
+    { k: "unit", l: "Unit", t: "tx", ph: "A1-16" }, { k: "konsumen", l: "Konsumen", t: "tx" }];
   if (e.includes("ppjb")) K.push({ k: "ppjb", l: "Penandatanganan<br>PPJB", x: "Penandatanganan PPJB", t: "date" });
   K.push({ k: "tipe", l: "Tipe", t: "tx" }, { k: "bayar", l: "Skema Bayar", x: "Skema Bayar", t: "tx", ph: "KPR / Cash" },
     { k: "rpInc", l: "Nilai Kontrak<br>(Include PPN)", x: "Nilai Kontrak (Include PPN)", t: "rp" }, { k: "rpExc", l: "Nilai Kontrak<br>(Exclude PPN)", x: "Nilai Kontrak (Exclude PPN)", t: "rp" });
@@ -2069,11 +2069,11 @@ const WK_PG = {
   pindah: { judul: "Pindah Unit", tgl: "Tanggal", desc: "Satu baris per unit yang pindah ke unit lain (kode & harga unit lama → baru). Angka penjualan tidak berubah otomatis.",
     kol: W => [{ k: "kodeLama", l: "Kode Unit Lama", t: "tx" }, { k: "hargaLama", l: "Harga Unit Lama<br>(Rp)", x: "Harga Unit Lama (Rp)", t: "rp" },
       { k: "kode", l: "Kode Unit Baru", t: "tx" }, { k: "harga", l: "Harga Unit Baru<br>(Rp)", x: "Harga Unit Baru (Rp)", t: "rp" },
-      ...((W.ekstra || []).includes("konsumen") ? [{ k: "konsumen", l: "Konsumen", t: "tx" }] : []), { k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" }] },
+      { k: "konsumen", l: "Konsumen", t: "tx" }, { k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" }] },
   ganti: { judul: "Ganti Cara Bayar", tgl: "Tanggal", desc: "Satu baris per unit yang ganti skema bayar (lama → baru). Angka penjualan tidak berubah otomatis.",
     kol: W => [{ k: "unit", l: "Kode Unit", t: "tx" }, { k: "bayarLama", l: "Skema Bayar Lama", t: "tx" }, { k: "hargaLama", l: "Harga Unit<br>(Rp)", x: "Harga Unit (Rp)", t: "rp" },
       { k: "bayarBaru", l: "Skema Bayar Baru", t: "tx" }, { k: "harga", l: "Harga Unit<br>(Rp)", x: "Harga Unit (Rp)", t: "rp" },
-      ...((W.ekstra || []).includes("konsumen") ? [{ k: "konsumen", l: "Konsumen", t: "tx" }] : []), { k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" }] },
+      { k: "konsumen", l: "Konsumen", t: "tx" }, { k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" }] },
 };
 const wkKolBag = (W, j) => WK_PG[j] ? WK_PG[j].kol(W) : wkKolom(W);
 /* [unit, Rp kolom-kolom rp sesuai urutan wkRpK] */
@@ -2169,7 +2169,7 @@ function bindWeekly() {
 let wkDraft = null, wkDraftNama = null;
 const WK_LIHAT = 5;
 /* Lebar kolom tetap di tabel Input Data; kolom tanpa lebar (Klaster, Konsumen, Skema Bayar, Sales, Keterangan) berbagi sisa lebar */
-const WK_COLW = { hargaLama: "120px", harga: "120px", kodeLama: "110px", kode: "110px", jumlah: "54px", unit: "88px", tipe: "62px", bayar: "130px", rpInc: "102px", rpExc: "106px", sbum: "88px", ppjb: "124px", usia: "48px", lahir: "124px" };
+const WK_COLW = { hargaLama: "112px", harga: "112px", kodeLama: "104px", kode: "104px", jumlah: "50px", unit: "96px", tipe: "52px", bayar: "120px", rpInc: "100px", rpExc: "100px", sbum: "86px", ppjb: "110px", usia: "48px", lahir: "118px", sales: "12.5%" };
 let wkTampil = {};
 const wkT = j => wkTampil[j] = wkTampil[j] || { bulan: "", n: WK_LIHAT };
 const wkLoad = nama => { wkDraft = clone(S.weekly[nama]); wkDraftNama = nama; wkTampil = {}; };
@@ -2183,6 +2183,8 @@ function viewWeeklyInput(nama, id) {
     if (c.t === "rp") return `<input type="text" inputmode="numeric" ${at} value="${x[c.k] ? rpDot(x[c.k]) : ""}" placeholder="0" ${ro}>`;
     if (c.t === "n") return `<input type="number" min="0" step="1" ${at} value="${x[c.k] || 0}" ${ro}>`;
     if (c.t === "date") return `<input type="date" ${at} value="${x[c.k] || ""}" ${ro}>`;
+    /* Kode unit: satu baris (tidak dipatah) */
+    if (["unit", "kode", "kodeLama"].includes(c.k)) return `<input type="text" class="wk-kode" ${at} value="${esc(x[c.k] || "")}" placeholder="${c.ph || ""}" ${ro}>`;
     /* Teks: kotak yang membungkus ke baris berikutnya, jadi isi panjang tetap terbaca utuh */
     return `<textarea rows="1" class="wk-ta" ${at} placeholder="${c.ph || ""}" ${ro}>${esc(x[c.k] || "")}</textarea>`; };
   const tabel = j => { const semua = (d[j] || []).slice().sort((a, b) => wkUrut(b, a)), T = wkT(j); /* terbaru di atas */
@@ -2194,7 +2196,7 @@ function viewWeeklyInput(nama, id) {
     const more = cocok.length > WK_LIHAT ? `<div class="wk-more">${list.length < cocok.length ? `<button type="button" class="btn sec" data-wkmore="${j}">Tampilkan ${Math.min(WK_LIHAT, cocok.length - list.length)} lagi</button><button type="button" class="btn sec" data-wkall="${j}">Tampilkan semua (${cocok.length})</button>` : ""}${list.length > WK_LIHAT ? `<button type="button" class="btn sec" data-wkless="${j}">Ringkas</button>` : ""}</div>` : "";
     return `<div class="bh-box"><div class="bh-head"><div><h3>${B.judul}</h3><div class="desc">${WK_PG[j] ? B.desc : j === "hold" ? "Unit yang ditahan, belum dihitung sebagai penjualan." : `Satu baris per transaksi, masuk ke minggu dan bulan sesuai tanggalnya.`}${oto && !WK_PG[j] ? " Nilai Kontrak (Exclude PPN) otomatis ÷ 1,11 jika kosong." : ""}</div></div>
       ${lk ? "" : `<button class="btn sec" data-wkadd="${j}" type="button">Tambah baris</button>`}</div>
-      ${bar}<div class="tbl-wrap"><table class="edit bh-t wk-in wk-fit"><colgroup><col style="width:124px">${K.map(c => `<col${WK_COLW[c.k] ? ` style="width:${WK_COLW[c.k]}"` : ""}>`).join("")}<col style="width:28px"></colgroup><thead><tr><th>${B.tgl}</th>${K.map(c => `<th class="${c.t === "rp" ? "c" : ""}${c.k === "sbum" ? " c-sbum" : ""}">${c.k === "jumlah" ? "Jumlah (unit)" : c.l}</th>`).join("")}<th></th></tr></thead><tbody>
+      ${bar}<div class="tbl-wrap"><table class="edit bh-t wk-in wk-fit"><colgroup><col style="width:118px">${K.map(c => `<col${WK_COLW[c.k] ? ` style="width:${WK_COLW[c.k]}"` : ""}>`).join("")}<col style="width:28px"></colgroup><thead><tr><th>${B.tgl}</th>${K.map(c => `<th class="${c.t === "rp" ? "c" : ""}${c.k === "sbum" ? " c-sbum" : ""}">${c.k === "jumlah" ? "Jumlah (unit)" : c.l}</th>`).join("")}<th></th></tr></thead><tbody>
       ${list.map(x => `<tr><td><input type="date" id="wk-${j}-${x.id}-tanggal" data-wk="${j}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal || ""}" ${ro} ${x.minggu && wkEf(x) !== x.tanggal ? `title="Di Excel ada di minggu ${wkTgl(x.minggu)}"` : ""}></td>${K.map(c => `<td${c.k === "sbum" ? ' class="c-sbum"' : ""}>${inp(j, x, c)}</td>`).join("")}
         <td>${lk ? ikonKunci : `<button class="del" data-wkdel="${j}:${x.id}" type="button" aria-label="Hapus">×</button>`}</td></tr>`).join("")
         || `<tr><td colspan="${K.length + 2}" style="color:var(--muted);text-align:center;padding:12px">${semua.length ? "Tidak ada baris pada bulan ini." : "Belum ada data."}</td></tr>`}</tbody></table></div>${more}</div>`; };
@@ -2326,6 +2328,7 @@ function wkBacaExcel(rows, W, th) {
     if (bag !== "hold" && cur) x.minggu = cur;
     wkKolom(W).forEach(c => { const i = map[c.k]; const v = i == null ? null : row[i];
       x[c.k] = c.t === "rp" ? angka(v) : c.t === "date" ? (tgl(v) || "") : c.k === "jumlah" ? Math.max(0, angka(v)) : teks(v); });
+    if (low(x.unit) === "unit") x.unit = "";
     if (!ada.has("unit")) delete x.unit;
     if (!t) out.lewat++;
     out[bag].push(x);
