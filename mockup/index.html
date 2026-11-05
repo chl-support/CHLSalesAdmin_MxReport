@@ -261,7 +261,7 @@ table { width: 100%; border-collapse: collapse; }
 .hold-t th:nth-child(3), .hold-t th:nth-child(4) { text-align: right; }
 .hold-t td.acc { width: 1%; white-space: nowrap; }
 .hold-t.pg-t th { text-align: left; }
-.bh-t input[data-bh="pindah"][data-f="harga"] { min-width: 140px; }
+.bh-t input[data-bh="pindah"][data-f="harga"], .bh-t input[data-bh="pindah"][data-f="hargaLama"] { min-width: 140px; }
 .ak-rp { display: flex; justify-content: space-between; gap: 14px; min-width: 150px; font-variant-numeric: tabular-nums; }
 .hold-t tr.t td { background: var(--blue-soft); font-weight: 800; color: var(--ink); }
 .bh { display: flex; flex-direction: column; gap: 22px; margin-top: 28px; }
@@ -1175,9 +1175,9 @@ function daftarPindahGanti(m, tgl, bln) {
   const pd = ambil("pindah"), gb = ambil("ganti");
   return (pd.length ? `<section class="gut"><h2>Pindah Unit</h2>
     <div class="desc">Unit yang pindah ke unit lain selama ${esc(bln)} (s.d. ${ddmmyyyy(tgl)}).</div>
-    <div class="tbl-wrap"><table class="hold-t pg-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit lama</th><th>Kode unit baru</th><th>Harga</th><th>Keterangan</th></tr></thead><tbody>
-    ${pd.map(x => `<tr>${tglC(x)}<td class="proj">${esc(namaProyekSales(x.proyekId))}</td><td>${esc(x.kodeLama || "–")}</td><td>${esc(x.kode || "–")}</td><td class="nowrap">${x.harga ? "Rp " + rpDot(x.harga) : "–"}</td><td class="ket">${esc(x.ket || "")}</td></tr>`).join("")}
-    <tr class="t"><td></td><td class="proj">Total</td><td>${pd.length} unit</td><td></td><td class="nowrap">${pd.some(x => x.harga) ? "Rp " + rpDot(pd.reduce((a, x) => a + (x.harga || 0), 0)) : "–"}</td><td></td></tr></tbody></table></div></section>` : "")
+    <div class="tbl-wrap"><table class="hold-t pg-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit lama</th><th>Harga unit</th><th>Kode unit baru</th><th>Harga unit</th><th>Keterangan</th></tr></thead><tbody>
+    ${pd.map(x => `<tr>${tglC(x)}<td class="proj">${esc(namaProyekSales(x.proyekId))}</td><td>${esc(x.kodeLama || "–")}</td><td class="nowrap">${x.hargaLama ? "Rp " + rpDot(x.hargaLama) : "–"}</td><td>${esc(x.kode || "–")}</td><td class="nowrap">${x.harga ? "Rp " + rpDot(x.harga) : "–"}</td><td class="ket">${esc(x.ket || "")}</td></tr>`).join("")}
+    <tr class="t"><td></td><td class="proj">Total</td><td>${pd.length} unit</td>${["hargaLama", "harga"].map(k => `<td class="nowrap">${pd.some(x => x[k]) ? "Rp " + rpDot(pd.reduce((a, x) => a + (x[k] || 0), 0)) : "–"}</td>`).join("<td></td>")}<td></td></tr></tbody></table></div></section>` : "")
   + (gb.length ? `<section class="gut"><h2>Ganti Bayar</h2>
     <div class="desc">Unit yang ganti cara bayar selama ${esc(bln)} (s.d. ${ddmmyyyy(tgl)}).</div>
     <div class="tbl-wrap"><table class="hold-t pg-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit</th><th>Cara bayar lama</th><th>Cara bayar baru</th><th>Keterangan</th></tr></thead><tbody>
@@ -1342,7 +1342,7 @@ function daftarBatalHold(d) {
       <span class="bh-count">${aktif ? `Menampilkan ${n} dari ${list.length} ${satuan}` : `${list.length} ${satuan}`}</span></div>`; };
   const batal = (d.batal || []).filter(x => lolos("batal", x)).map(x => row("batal", x, `<td>${txt("batal", x, "kode", "OR-OD3-012")}</td><td>${rpIn("batal", x, "rp")}</td><td>${txt("batal", x, "ket")}</td>`)).join("");
   const hold = (d.hold || []).filter(x => lolos("hold", x)).map(x => row("hold", x, `<td>${txt("hold", x, "kode", "NS-NR1-06")}</td><td>${rpIn("hold", x, "harga")}</td><td>${rpIn("hold", x, "tandaJadi")}</td><td>${txt("hold", x, "ket")}</td>`)).join("");
-  const pindah = (d.pindah || []).filter(x => lolos("pindah", x)).map(x => row("pindah", x, `<td>${txt("pindah", x, "kodeLama", "A5-02")}</td><td>${txt("pindah", x, "kode", "A5-06")}</td><td>${rpIn("pindah", x, "harga")}</td><td>${txt("pindah", x, "ket")}</td>`)).join("");
+  const pindah = (d.pindah || []).filter(x => lolos("pindah", x)).map(x => row("pindah", x, `<td>${txt("pindah", x, "kodeLama", "A5-02")}</td><td>${rpIn("pindah", x, "hargaLama")}</td><td>${txt("pindah", x, "kode", "A5-06")}</td><td>${rpIn("pindah", x, "harga")}</td><td>${txt("pindah", x, "ket")}</td>`)).join("");
   const ganti = (d.ganti || []).filter(x => lolos("ganti", x)).map(x => row("ganti", x, `<td>${txt("ganti", x, "kode", "B4-10")}</td><td>${txt("ganti", x, "bayarLama", "KPR")}</td><td>${txt("ganti", x, "bayarBaru", "Cash Bertahap")}</td><td>${txt("ganti", x, "ket")}</td>`)).join("");
   const kosong = (n, t) => `<tr><td colspan="${n}" style="color:var(--muted);text-align:center;padding:12px">${t}</td></tr>`;
   const catRows = d.proyek.slice().sort(byUrut).filter(p => p.aktif).map(p => { const lk = !bolehEdit(p.nama);
@@ -1365,8 +1365,8 @@ function daftarBatalHold(d) {
     <div class="bh-box"><div class="bh-head"><div><h3>Pindah Unit</h3><div class="desc">Satu baris per unit yang pindah ke unit lain. Isi kode unit lama dan kode unit baru. Angka penjualan di tabel atas tidak berubah otomatis.</div></div>
       <button class="btn sec" id="addPindah" type="button">Tambah pindah unit</button></div>
       ${bar("pindah", d.pindah || [], "unit")}
-      <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit lama</th><th>Kode unit baru</th><th>Harga (Rp)</th><th>Keterangan</th><th></th></tr></thead>
-      <tbody>${pindah || kosong(7, (d.pindah || []).length ? "Tidak ada pindah unit pada rentang tanggal ini." : "Belum ada pindah unit.")}</tbody></table></div></div>
+      <div class="tbl-wrap"><table class="edit bh-t"><thead><tr><th>Tanggal</th><th>Proyek</th><th>Kode unit lama</th><th>Harga unit (Rp)</th><th>Kode unit baru</th><th>Harga unit (Rp)</th><th>Keterangan</th><th></th></tr></thead>
+      <tbody>${pindah || kosong(8, (d.pindah || []).length ? "Tidak ada pindah unit pada rentang tanggal ini." : "Belum ada pindah unit.")}</tbody></table></div></div>
     <div class="bh-box"><div class="bh-head"><div><h3>Ganti Bayar</h3><div class="desc">Satu baris per unit yang ganti cara bayar (lama → baru). Angka penjualan di tabel atas tidak berubah otomatis.</div></div>
       <button class="btn sec" id="addGanti" type="button">Tambah ganti bayar</button></div>
       ${bar("ganti", d.ganti || [], "unit")}
@@ -1388,7 +1388,7 @@ function bindSalesInput() {
   document.getElementById("addHold").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; } bukaFilter("hold");
     bhList("hold").push({ id: nextId("hold"), tanggal: todayISO(), proyekId: pid, kode: "", harga: 0, tandaJadi: 0, ket: "Belum di-create ke sistem" }); render(); };
   document.getElementById("addPindah").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; } bukaFilter("pindah");
-    bhList("pindah").push({ id: nextId("pindah"), tanggal: todayISO(), proyekId: pid, kodeLama: "", kode: "", harga: 0, ket: "" }); render(); };
+    bhList("pindah").push({ id: nextId("pindah"), tanggal: todayISO(), proyekId: pid, kodeLama: "", hargaLama: 0, kode: "", harga: 0, ket: "" }); render(); };
   document.getElementById("addGanti").onclick = () => { const pid = firstOk(); if (!pid) { toast("Akun Anda tidak bisa menambah data"); return; } bukaFilter("ganti");
     bhList("ganti").push({ id: nextId("ganti"), tanggal: todayISO(), proyekId: pid, kode: "", bayarLama: "", bayarBaru: "", ket: "" }); render(); };
   const v0 = document.getElementById("view");
@@ -1409,7 +1409,7 @@ function bindSalesInput() {
     el.onchange = () => {
       const r = x(); if (!r) return;
       if (f === "proyekId") r.proyekId = +el.value;
-      else if (f === "rp" || f === "harga" || f === "tandaJadi") r[f] = Number(el.value.replace(/[^0-9]/g, "")) || 0;
+      else if (f === "rp" || f === "harga" || f === "hargaLama" || f === "tandaJadi") r[f] = Number(el.value.replace(/[^0-9]/g, "")) || 0;
       else r[f] = el.value.trim();
       render(el.id);
     };
@@ -1738,7 +1738,7 @@ const EN = {
   "Unit": "Unit", "Keterangan": "Notes", "Simpan data": "Save data", "Simpan laporan": "Save report", "Tambah baris": "Add row",
   "Batalkan perubahan": "Discard changes", "Kode unit": "Unit code", "Harga unit": "Unit price", "Tanda jadi": "Booking fee",
   "Tanggal laporan": "Report date", "Akumulasi terjual": "Total sold", "Unit Batal": "Cancelled units", "Batal": "Cancelled", "Pindah Unit": "Unit transfer", "Ganti Bayar": "Payment change",
-  "Tambah pindah unit": "Add unit transfer", "Tambah ganti bayar": "Add payment change", "Kode unit lama": "Old unit code", "Kode unit baru": "New unit code", "Harga (Rp)": "Price (Rp)", "Harga": "Price",
+  "Tambah pindah unit": "Add unit transfer", "Tambah ganti bayar": "Add payment change", "Kode unit lama": "Old unit code", "Kode unit baru": "New unit code", "Harga unit (Rp)": "Unit price (Rp)", "Harga unit": "Unit price",
   "Cara bayar lama": "Old payment method", "Cara bayar baru": "New payment method", "Belum ada pindah unit.": "No unit transfers yet.", "Belum ada ganti bayar.": "No payment changes yet.", "Catatan proyek": "Project notes",
   "Tambah unit batal": "Add cancelled unit", "Tambah unit hold": "Add held unit", "Semua tanggal": "All dates", "Filter tanggal": "Date filter",
   "Dari": "From", "Sampai": "To", "Waktu": "Time", "Bagian": "Section", "Perubahan": "Change", "Oleh": "By",
