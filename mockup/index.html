@@ -2194,7 +2194,7 @@ function bindWeekly() {
 let wkDraft = null, wkDraftNama = null;
 const WK_LIHAT = 5;
 /* Lebar kolom tetap di tabel Input Data; kolom tanpa lebar (Klaster, Konsumen, Skema Bayar, Sales, Keterangan) berbagi sisa lebar */
-const WK_COLW = { hargaLama: "112px", harga: "112px", kodeLama: "104px", kode: "104px", jumlah: "50px", unit: "96px", tipe: "72px", bayar: "136px", rpInc: "110px", rpExc: "110px", sbum: "86px", ppjb: "110px", usia: "48px", lahir: "118px", sales: "9.5%", klaster: "100px" };
+const WK_COLW = { hargaLama: "112px", harga: "112px", kodeLama: "104px", kode: "104px", jumlah: "50px", unit: "96px", tipe: "72px", bayar: "13%", rpInc: "110px", rpExc: "110px", sbum: "86px", ppjb: "110px", usia: "48px", lahir: "118px", sales: "11%", klaster: "100px", konsumen: "130px", ket: "11%" };
 let wkTampil = {};
 const wkT = j => wkTampil[j] = wkTampil[j] || { bulan: "", n: WK_LIHAT };
 const wkLoad = nama => { wkDraft = clone(S.weekly[nama]); wkDraftNama = nama; wkTampil = {}; };
