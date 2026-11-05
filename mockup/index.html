@@ -2168,6 +2168,9 @@ function wkMinggu(th) {
 /* Kolom per proyek. Semua proyek: Klaster, Jumlah, Tipe, Skema Bayar, Rp termasuk/tidak termasuk PPN, Sales, Keterangan.
    Kolom tambahan per proyek (W.ekstra): "unit" (kode unit), "konsumen", "sbum" (Rp). */
 const WK_TAMBAHAN = ["sumber", "usia", "lahir", "kel", "kec", "kota"];
+const WK_KOL_TMB = () => [{ k: "sumber", l: "Sumber<br>Informasi", x: "Sumber Informasi", t: "tx" }, { k: "usia", l: "Usia", t: "tx" }, { k: "lahir", l: "Tgl. Lahir", t: "date" },
+  { k: "kel", l: "Domisili<br>Kelurahan/Desa", x: "Domisili - Kelurahan/Desa", t: "tx" }, { k: "kec", l: "Domisili<br>Kecamatan", x: "Domisili - Kecamatan", t: "tx" },
+  { k: "kota", l: "Domisili<br>Kota", x: "Domisili - Kota", t: "tx" }];
 const wkTambahanTampil = () => !(S && S.wkTambahanOff);
 const wkTmb = c => WK_TAMBAHAN.includes(c.k) ? " c-tmb" : "";
 /* Kolom yang tampil di layar (kolom tambahan bisa disembunyikan) */
@@ -2182,9 +2185,7 @@ function wkKolom(W) {
   if (e.includes("sbum")) K.push({ k: "sbum", l: "SBUM", t: "rp" });
   K.push({ k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" });
   /* Kolom standar setelah Keterangan (semua proyek): Sumber Informasi, Usia, Tgl. Lahir, Domisili */
-  K.push({ k: "sumber", l: "Sumber<br>Informasi", x: "Sumber Informasi", t: "tx" }, { k: "usia", l: "Usia", t: "tx" }, { k: "lahir", l: "Tgl. Lahir", t: "date" },
-    { k: "kel", l: "Domisili<br>Kelurahan/Desa", x: "Domisili - Kelurahan/Desa", t: "tx" }, { k: "kec", l: "Domisili<br>Kecamatan", x: "Domisili - Kecamatan", t: "tx" },
-    { k: "kota", l: "Domisili<br>Kota", x: "Domisili - Kota", t: "tx" });
+  K.push(...WK_KOL_TMB());
   return K;
 }
 const wkRpK = W => wkKolom(W).filter(c => c.t === "rp").map(c => c.k);
@@ -2203,13 +2204,13 @@ const WK_PG = {
   pindah: { judul: "Pindah Unit", tgl: "Tanggal", desc: "Satu baris per unit yang pindah ke unit lain (kode & harga unit lama → baru). Angka penjualan tidak berubah otomatis.",
     kol: W => [{ k: "kodeLama", l: "Kode Unit Lama", t: "tx" }, { k: "hargaLama", l: "Harga Unit Lama<br>(Rp)", x: "Harga Unit Lama (Rp)", t: "rp" },
       { k: "kode", l: "Kode Unit Baru", t: "tx" }, { k: "harga", l: "Harga Unit Baru<br>(Rp)", x: "Harga Unit Baru (Rp)", t: "rp" },
-      { k: "konsumen", l: "Konsumen", t: "tx" }, { k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" }] },
+      { k: "konsumen", l: "Konsumen", t: "tx" }, { k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" }, ...WK_KOL_TMB()] },
   ganti: { judul: "Ganti Cara Bayar", tgl: "Tanggal", desc: "Satu baris per unit yang ganti skema bayar (lama → baru). Angka penjualan tidak berubah otomatis.",
     kol: W => [{ k: "unit", l: "Kode Unit", t: "tx" }, { k: "bayarLama", l: "Skema Bayar Lama", t: "tx" }, { k: "hargaLama", l: "Harga Unit<br>(Rp)", x: "Harga Unit (Rp)", t: "rp" },
       { k: "bayarBaru", l: "Skema Bayar Baru", t: "tx" }, { k: "harga", l: "Harga Unit<br>(Rp)", x: "Harga Unit (Rp)", t: "rp" },
-      { k: "konsumen", l: "Konsumen", t: "tx" }, { k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" }] },
+      { k: "konsumen", l: "Konsumen", t: "tx" }, { k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" }, ...WK_KOL_TMB()] },
 };
-const wkKolBag = (W, j, layar) => WK_PG[j] ? WK_PG[j].kol(W) : layar ? wkKolomLayar(W) : wkKolom(W);
+const wkKolBag = (W, j, layar) => { const K = WK_PG[j] ? WK_PG[j].kol(W) : wkKolom(W); return layar ? K.filter(c => wkTambahanTampil() || !WK_TAMBAHAN.includes(c.k)) : K; };
 /* [unit, Rp kolom-kolom rp sesuai urutan wkRpK] */
 const wkSum = (l, W) => { const rk = wkRpK(W); return l.reduce((a, x) => [a[0] + (+x.jumlah || 0), ...rk.map((k, i) => a[i + 1] + (x[k] || 0))], [0, ...rk.map(() => 0)]); };
 /* Nilai di kartu: Rp termasuk PPN; jika kosong (mis. rumah subsidi) pakai Rp tidak termasuk PPN */
@@ -2285,11 +2286,11 @@ function viewWeekly(nama, id) {
     <div class="tbl-wrap"><table class="hold-t pg-t wk-t ${K.length > 8 ? "wk-lebar" : ""}">${kepala("", WK_BAG.hold.tgl)}<tbody>
     ${hold.map(x => `<tr>${baris(x)}</tr>`).join("") || `<tr><td colspan="${K.length + 1}" style="text-align:center;color:var(--muted)">Tidak ada unit hold saat ini.</td></tr>`}
     ${hold.length ? `<tr class="t"><td>Total</td>${K.map(c => c.k === "jumlah" ? `<td class="nowrap">${hTot[0]} Unit</td>` : c.t === "rp" ? `<td class="acc${c.k === "sbum" ? " c-sbum" : ""}">${wkRp(hTot[rk.indexOf(c.k) + 1])}</td>` : "<td></td>").join("")}</tr>` : ""}</tbody></table></div></section>
-  ${Object.keys(WK_PG).map(j => { const C = WK_PG[j].kol(W), l = (W[j] || []).filter(x => +(x.tanggal || "").slice(0, 4) === th).sort(wkUrut);
+  ${Object.keys(WK_PG).map(j => { const C = wkKolBag(W, j, true), l = (W[j] || []).filter(x => +(x.tanggal || "").slice(0, 4) === th).sort(wkUrut);
     if (!l.length) return "";
-    const cel = (c, x) => c.t === "rp" ? `<td class="acc">${wkRp(x[c.k])}</td>` : c.t === "ket" ? `<td class="ket">${esc(x[c.k] || "")}</td>` : `<td>${esc(x[c.k] || "–")}</td>`;
+    const cel = (c, x) => c.t === "rp" ? `<td class="acc">${wkRp(x[c.k])}</td>` : c.t === "ket" ? `<td class="ket">${esc(x[c.k] || "")}</td>` : c.t === "date" ? `<td class="nowrap${wkTmb(c)}">${x[c.k] ? ddmmyyyy(x[c.k]) : "–"}</td>` : `<td class="${wkTmb(c).trim()}">${esc(x[c.k] || "–")}</td>`;
     return `<section class="gut"><h2>${WK_PG[j].judul} ${th}</h2>
-    <div class="tbl-wrap"><table class="hold-t pg-t wk-t"><thead><tr><th>Tanggal</th>${C.map(c => `<th${c.t === "rp" ? ' class="c"' : ""}>${c.l}</th>`).join("")}</tr></thead><tbody>
+    <div class="tbl-wrap"><table class="hold-t pg-t wk-t"><thead><tr><th>Tanggal</th>${C.map(c => `<th class="${c.t === "rp" ? "c" : ""}${wkTmb(c)}">${c.l}</th>`).join("")}</tr></thead><tbody>
     ${l.map(x => `<tr><td class="nowrap">${x.tanggal ? ddmmyyyy(x.tanggal) : "–"}${x.tanggal === hari ? ' <span class="bag">Hari ini</span>' : ""}</td>${C.map(c => cel(c, x)).join("")}</tr>`).join("")}
     <tr class="t"><td>Total</td>${C.map((c, i) => i === 0 ? `<td>${l.length} unit</td>` : c.t === "rp" ? `<td class="acc">${wkRp(l.reduce((a, x) => a + (x[c.k] || 0), 0))}</td>` : "<td></td>").join("")}</tr></tbody></table></div></section>`; }).join("")}
   <div class="notes gut"><p class="desc" style="margin:0">Sumber: Weekly Report ${esc(nama)} • Rp = Rupiah penuh • “–” = nihil</p></div>
@@ -2304,7 +2305,7 @@ function bindWeekly() {
 let wkDraft = null, wkDraftNama = null;
 const WK_LIHAT = 5;
 /* Lebar kolom tetap di tabel Input Data; kolom tanpa lebar (Klaster, Konsumen, Skema Bayar, Sales, Keterangan) berbagi sisa lebar */
-const WK_COLW = { sumber: "110px", usia: "52px", kel: "112px", kec: "104px", kota: "104px", hargaLama: "112px", harga: "112px", kodeLama: "104px", kode: "104px", jumlah: "50px", unit: "96px", tipe: "72px", bayar: "13%", rpInc: "110px", rpExc: "110px", sbum: "86px", ppjb: "110px", usia: "48px", lahir: "118px", sales: "11%", klaster: "100px", konsumen: "130px", ket: "11%" };
+const WK_COLW = { bayarLama: "13%", bayarBaru: "13%", sumber: "110px", usia: "52px", kel: "112px", kec: "104px", kota: "104px", hargaLama: "112px", harga: "112px", kodeLama: "104px", kode: "104px", jumlah: "50px", unit: "96px", tipe: "72px", bayar: "13%", rpInc: "110px", rpExc: "110px", sbum: "86px", ppjb: "110px", usia: "48px", lahir: "118px", sales: "11%", klaster: "100px", konsumen: "130px", ket: "11%" };
 let wkTampil = {};
 const wkT = j => wkTampil[j] = wkTampil[j] || { bulan: "", n: WK_LIHAT };
 const wkLoad = nama => { wkDraft = clone(S.weekly[nama]); wkDraftNama = nama; wkTampil = {}; };
@@ -2398,7 +2399,7 @@ function exportWeeklyExcel(nama) {
   Object.keys(WK_PG).forEach(j => { const C = WK_PG[j].kol(W), l = urut(W[j]);
     aoa.push([], [], [WK_PG[j].judul, "Tanggal", ...C.map(c => (c.x || c.l).replace("<br>", " "))]);
     const r0 = aoa.length + 1;
-    l.forEach(x => aoa.push(["", x.tanggal ? ddmmyyyy(x.tanggal) : "", ...C.map(c => c.t === "rp" ? rpC(x[c.k]) : (x[c.k] || ""))]));
+    l.forEach(x => aoa.push(["", x.tanggal ? ddmmyyyy(x.tanggal) : "", ...C.map(c => c.t === "rp" ? rpC(x[c.k]) : c.t === "date" ? (x[c.k] ? ddmmyyyy(x[c.k]) : "") : (x[c.k] || ""))]));
     if (!l.length) aoa.push(["", "(belum ada data)"]);
     const r1 = aoa.length, tot = ["TOTAL", "", `${l.length} unit`];
     C.slice(1).forEach((c, i) => { const col = huruf(3 + i); tot.push(c.t === "rp" ? fm(`SUM(${col}${r0}:${col}${r1})`, RP) : ""); });
