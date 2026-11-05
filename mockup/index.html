@@ -1659,31 +1659,9 @@ function denganTahunSales(fn) {
   s2.tanggal = `${y}-12-31`; s2.hold = [];
   try { return fn(); } finally { s2.tanggal = simpan.tanggal; s2.proyek = simpan.proyek; s2.hold = simpan.hold; }
 }
-/* Sekali per proyek: unit Hold Reserved di Weekly yang belum ada di daftar Hold Daily Sales ditambahkan (cocok berdasarkan kode unit).
-   Setelah itu daftar Hold Daily dikelola manual seperti biasa (yang dihapus tidak ditambahkan lagi). */
-function holdDariWeekly() {
-  if (!S || !S.sales2 || !S.weekly || S.role !== "ADMIN") return false;
-  const kd = v => String(v || "").replace(/\s+/g, "").toUpperCase();
-  let ubah = false; const cat = [];
-  S.sales2.proyek.forEach(p => {
-    const W = S.weekly[p.nama]; if (p.holdWk || !W || !bolehEdit(p.nama)) return;
-    const ada = new Set((S.sales2.hold || []).filter(h => h.proyekId === p.id).map(h => kd(h.kode)));
-    (W.hold || []).filter(x => +x.jumlah && kd(x.unit) && !ada.has(kd(x.unit))).forEach(x => {
-      const ket = String(x.ket || "").trim(), m = ket.match(/rp\.?\s*([\d.,]+)\s*(juta|jt)/i);
-      const tj = m ? Math.round(parseFloat(m[1].replace(/\./g, "").replace(",", ".")) * 1e6) : 0;
-      S.sales2.hold = S.sales2.hold || [];
-      const id = Math.max(0, ...S.sales2.hold.map(h => +h.id || 0)) + 1;
-      S.sales2.hold.push({ id, tanggal: x.tanggal || todayISO(), proyekId: p.id, kode: String(x.unit).trim(), harga: x.rpInc || x.rpExc || 0, tandaJadi: tj, ket: ket || "Dari Weekly Hold Reserved" });
-      ada.add(kd(x.unit)); cat.push(`${p.nama}: ${String(x.unit).trim()} ditambahkan dari Weekly Hold Reserved`);
-    });
-    p.holdWk = 1; ubah = true;
-  });
-  if (cat.length) try { catat("penjualan", "Hold Reserved", cat); } catch (e) {}
-  return ubah;
-}
 function ikutiHariIni() {
   const t = todayISO();
-  if (gantiTahunSales() | holdDariWeekly()) save();
+  if (gantiTahunSales()) save();
   if (!S || !S.sales2 || S.sales2.tanggal === t) return;
   if (S.sales2.hariTanggal !== t) S.sales2.proyek.forEach(p => p.hari = [0, 0]);
   S.sales2.tanggal = t; S.sales2.hariTanggal = t; save();
