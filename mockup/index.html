@@ -1488,6 +1488,8 @@ function seedWeekly() {
       try { catat(`weekly:${k}`, "Input Data", [`${k} · Data dimuat ulang dari Weekly Report Excel terbaru (${sd.jual.length} penjualan, ${sd.batal.length} batal, ${sd.hold.length} hold)`]); } catch (e) {}
     }
   });
+  /* Usia tanpa angka di belakang koma */
+  Object.keys(S.weekly).forEach(nm => ["jual", "batal", "hold", "pindah", "ganti"].forEach(j => (S.weekly[nm][j] || []).forEach(x => { if (x.usia && wkUsia(x.usia) !== x.usia) { x.usia = wkUsia(x.usia); ubah = true; } })));
   /* Klaster selalu sama dengan nama proyek (judul di menu) */
   Object.keys(S.weekly).forEach(nm => ["jual", "batal", "hold"].forEach(j => (S.weekly[nm][j] || []).forEach(x => { if (x.klaster !== nm) { x.klaster = nm; ubah = true; } })));
   return ubah;
@@ -2168,6 +2170,8 @@ function wkMinggu(th) {
 /* Kolom per proyek. Semua proyek: Klaster, Jumlah, Tipe, Skema Bayar, Rp termasuk/tidak termasuk PPN, Sales, Keterangan.
    Kolom tambahan per proyek (W.ekstra): "unit" (kode unit), "konsumen", "sbum" (Rp). */
 const WK_TAMBAHAN = ["sumber", "usia", "lahir", "kel", "kec", "kota"];
+/* Usia ditulis bilangan bulat (Excel menyimpan usia sebagai pecahan tahun, mis. 54.0739...) */
+function wkUsia(v) { const t = String(v == null ? "" : v).trim().replace(",", "."); return /^\d+(\.\d+)?$/.test(t) ? String(Math.floor(+t)) : String(v || "").trim(); }
 const WK_KOL_TMB = () => [{ k: "sumber", l: "Sumber<br>Informasi", x: "Sumber Informasi", t: "tx" }, { k: "usia", l: "Usia", t: "tx" }, { k: "lahir", l: "Tgl. Lahir", t: "date" },
   { k: "kel", l: "Domisili<br>Kelurahan/Desa", x: "Domisili - Kelurahan/Desa", t: "tx" }, { k: "kec", l: "Domisili<br>Kecamatan", x: "Domisili - Kecamatan", t: "tx" },
   { k: "kota", l: "Domisili<br>Kota", x: "Domisili - Kota", t: "tx" }];
@@ -2470,6 +2474,7 @@ function wkBacaExcel(rows, W, th) {
     wkKolom(W).forEach(c => { const i = map[c.k]; const v = i == null ? null : row[i];
       x[c.k] = c.t === "rp" ? angka(v) : c.t === "date" ? (tgl(v) || "") : c.k === "jumlah" ? Math.max(0, angka(v)) : teks(v); });
     if (low(x.unit) === "unit") x.unit = "";
+    if (x.usia) x.usia = wkUsia(x.usia);
     if (!ada.has("unit")) delete x.unit;
     if (!t) out.lewat++;
     out[bag].push(x);
@@ -2519,6 +2524,7 @@ function bindWeeklyInput(nama) {
     else if (k === "jumlah") r[k] = Math.max(0, Math.round(+el.value || 0));
     else if (k === "tanggal") { r.tanggal = el.value || ""; delete r.minggu; }
     else if (el.type === "date") r[k] = el.value || "";
+    else if (k === "usia") r[k] = wkUsia(el.value);
     else r[k] = el.value.trim();
     render(el.id);
   });
