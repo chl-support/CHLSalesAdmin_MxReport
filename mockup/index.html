@@ -1773,7 +1773,7 @@ function viewWeekly(nama, id) {
       const lbl = `<td class="wk" rowspan="${Math.max(1, isi.length)}"><b>${w.n ? `Minggu ke-${w.n}` : "Awal tahun"}</b><small>(${wkPendek(w.dari, w.sampai)})</small></td>`;
       return isi.length ? isi.map((x, i) => `<tr>${i ? "" : lbl}${baris(x)}</tr>`).join("") : `<tr class="kosong">${lbl}<td colspan="9">–</td></tr>`;
     }).join("");
-    return `<div class="tbl-wrap"><table class="hold-t pg-t wk-t"><thead><tr><th>Minggu ke-</th><th>${WK_BAG[j].tgl.replace(" ", "<br>")}</th><th>Klaster</th><th>Jumlah</th><th>Tipe</th><th>Keterangan<br>Pembayaran</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th><th>Nama<br>Sales</th><th>Keterangan</th></tr></thead>
+    return `<div class="tbl-wrap"><table class="hold-t pg-t wk-t"><thead><tr><th>Minggu ke-</th><th>${WK_BAG[j].tgl.replace(" ", "<br>")}</th><th>Klaster</th><th>Jumlah</th><th>Tipe</th><th>Keterangan<br>Pembayaran</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th><th>Sales</th><th>Keterangan</th></tr></thead>
       <tbody>${rows || `<tr><td colspan="10" style="text-align:center;color:var(--muted)">Belum ada transaksi.</td></tr>`}</tbody></table></div>`;
   };
   const jTh = wkSum(thIni("jual")), bTh = wkSum(thIni("batal")), akum = rekapRows("jual").g, hold = (W.hold || []).slice().sort((a, b) => a.tanggal.localeCompare(b.tanggal)), hTot = wkSum(hold);
@@ -1789,7 +1789,7 @@ function viewWeekly(nama, id) {
   <section class="gut"><h2>Batal per minggu ${th}</h2>${mingguTbl("batal")}
     <h3 class="wk-sub">Rekap batal</h3>${rekapTbl("batal", "Grand Total")}</section>
   <section class="gut"><h2>Hold Reserved</h2>
-    <div class="tbl-wrap"><table class="hold-t pg-t wk-t"><thead><tr><th>${WK_BAG.hold.tgl.replace(" ", "<br>")}</th><th>Klaster</th><th>Jumlah</th><th>Tipe</th><th>Keterangan<br>Pembayaran</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th><th>Nama<br>Sales</th><th>Keterangan</th></tr></thead><tbody>
+    <div class="tbl-wrap"><table class="hold-t pg-t wk-t"><thead><tr><th>${WK_BAG.hold.tgl.replace(" ", "<br>")}</th><th>Klaster</th><th>Jumlah</th><th>Tipe</th><th>Keterangan<br>Pembayaran</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th><th>Sales</th><th>Keterangan</th></tr></thead><tbody>
     ${hold.map(x => `<tr>${baris(x)}</tr>`).join("") || `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Tidak ada unit hold saat ini.</td></tr>`}
     ${hold.length ? `<tr class="t"><td>Total</td><td></td><td class="nowrap">${hTot[0]} Unit</td><td></td><td></td><td class="acc">${wkRp(hTot[1])}</td><td class="acc">${wkRp(hTot[2])}</td><td></td><td></td></tr>` : ""}</tbody></table></div></section>
   <div class="notes gut"><p class="desc" style="margin:0">Sumber: Weekly Report ${esc(nama)} • Rp = Rupiah penuh • “–” = nihil</p></div>
@@ -1810,7 +1810,7 @@ function viewWeeklyInput(nama, id) {
   const tabel = j => { const list = (d[j] || []).slice().sort((a, b) => a.tanggal.localeCompare(b.tanggal));
     return `<div class="bh-box"><div class="bh-head"><div><h3>${WK_BAG[j].judul}</h3><div class="desc">${j === "hold" ? "Unit yang ditahan, belum dihitung sebagai penjualan." : `Satu baris per transaksi, masuk ke minggu dan bulan sesuai tanggalnya.`} Rp tanpa PPN otomatis ÷ 1,11 jika kosong.</div></div>
       ${lk ? "" : `<button class="btn sec" data-wkadd="${j}" type="button">Tambah baris</button>`}</div>
-      <div class="tbl-wrap"><table class="edit bh-t wk-in"><thead><tr><th>${WK_BAG[j].tgl}</th><th>Klaster</th><th>Jumlah (unit)</th><th>Tipe</th><th>Keterangan Pembayaran</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th><th>Nama Sales</th><th>Keterangan</th><th></th></tr></thead><tbody>
+      <div class="tbl-wrap"><table class="edit bh-t wk-in"><thead><tr><th>${WK_BAG[j].tgl}</th><th>Klaster</th><th>Jumlah (unit)</th><th>Tipe</th><th>Keterangan Pembayaran</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th><th>Sales</th><th>Keterangan</th><th></th></tr></thead><tbody>
       ${list.map(x => `<tr><td><input type="date" id="wk-${j}-${x.id}-tanggal" data-wk="${j}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal}" ${ro}></td><td>${tx(j, x, "klaster")}</td>
         <td><input type="number" min="0" step="1" id="wk-${j}-${x.id}-jumlah" data-wk="${j}" data-id="${x.id}" data-f="jumlah" value="${x.jumlah || 0}" ${ro}></td><td>${tx(j, x, "tipe")}</td><td>${tx(j, x, "bayar", "KPR / Cash")}</td>
         <td>${rpI(j, x, "rpInc")}</td><td>${rpI(j, x, "rpExc")}</td><td>${tx(j, x, "sales")}</td><td>${tx(j, x, "ket")}</td>
@@ -1840,7 +1840,7 @@ function exportWeeklyExcel(nama) {
   if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
   const W = S.weekly[nama], th = tahunKe(), mg = wkMinggu(th), aoa = [], RP = "#,##0";
   const rpC = v => ({ v: v || 0, t: "n", z: RP }), f = (x, zf) => ({ f: x, z: zf });
-  const kepala = (pertama, tgl) => [pertama, tgl, "Klaster", "Jumlah", "Unit", "Tipe", "Keterangan Pembayaran", "Rp (Termasuk PPN)", "Rp (Tidak Termasuk PPN)", "Nama Sales", "Keterangan"];
+  const kepala = (pertama, tgl) => [pertama, tgl, "Klaster", "Jumlah", "Unit", "Tipe", "Keterangan Pembayaran", "Rp (Termasuk PPN)", "Rp (Tidak Termasuk PPN)", "Sales", "Keterangan"];
   const isi = x => [ddmmyyyy(x.tanggal), x.klaster || "", +x.jumlah || 0, "Unit", x.tipe || "", x.bayar || "", rpC(x.rpInc), rpC(x.rpExc), x.sales || "", x.ket || ""];
   const urut = l => (l || []).slice().sort((a, b) => a.tanggal.localeCompare(b.tanggal));
   const bagian = (j, pertama, judulTotal) => {
