@@ -345,6 +345,8 @@ table { width: 100%; border-collapse: collapse; }
 .wk-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .wk-opt { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
 .wk-sub { font-size: 15px; margin: 18px 0 0; }
+.wk-imp { margin-top: 16px; padding: 12px 16px; border: 1px solid var(--gold); border-left-width: 4px; border-radius: 6px; background: var(--gold-soft); color: var(--ink); font-size: 14px; }
+.wk-imp a { color: var(--blue); font-weight: 700; }
 .kpis.wk-kpis, #view.fit .kpis.wk-kpis { grid-template-columns: repeat(5, 1fr); }
 @media (max-width: 760px) { #view:not(.fit) .kpis.wk-kpis { grid-template-columns: 1fr 1fr; } }
 .wk-in td.proj-c { white-space: nowrap; font-weight: 700; }
@@ -1839,6 +1841,8 @@ function viewWeekly(nama, id) {
       const w = mg.find(x => hari >= x.dari && hari <= x.sampai) || mg[mg.length - 1], dlm = x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai;
       const l = jL.filter(dlm), bt = totU(bL.filter(dlm));
       return kpi("var(--green)", "Minggu berjalan", totU(l), wkNilai(l), `${w.n ? `Minggu ke-${w.n}` : "Awal tahun"} • ${wkPendek(w.dari, w.sampai)}${bt ? ` • batal ${bt} unit` : ""}`); })()}${kpi("var(--blue)", `Penjualan ${th}`, totU(jL), wkNilai(jL), `Januari s.d ${BULAN[bulanKe() - 1]} ${th}`)}${kpi("var(--gold)", `Akumulasi ${aw}–${th}`, akum.g[0], akum.nilai, "Grand total penjualan")}${kpi("var(--red)", `Batal ${th}`, totU(bL), wkNilai(bL), `Januari s.d ${BULAN[bulanKe() - 1]} ${th}`)}${kpi("var(--purple)", "Hold Reserved", hTot[0], wkNilai(hold), hold.length ? `${hold.length} transaksi` : "Tidak ada unit hold")}</div>
+  ${!jL.length && !bL.length && !hold.length ? `<div class="wk-imp gut no-cap"><b>Belum ada transaksi ${th} untuk ${esc(nama)}.</b> ${S.role === "ADMIN" && bolehEdit(nama)
+    ? `Masukkan dari file Weekly Report: buka <a href="#${(REPORTS.find(r => r.id === "weekly").tabs.find(t => t.proyek === nama && t.label === "Input Data") || {}).id}">Input Data</a> → klik <b>Impor dari Excel</b> → pilih file → <b>Simpan data</b>.` : "Data akan tampil setelah admin mengisi Input Data."}</div>` : ""}
   <section class="gut"><div class="wk-h"><h2>Penjualan per minggu ${th}</h2>
     <label class="wk-opt no-cap"><input type="checkbox" id="wkHanyaIsi" ${wkHanyaIsi ? "checked" : ""}> Hanya minggu yang ada transaksi</label></div>
     <div class="desc">Minggu Senin s.d Minggu, sampai minggu berjalan.</div>${mingguTbl("jual")}
