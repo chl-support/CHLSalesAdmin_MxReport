@@ -1242,6 +1242,33 @@ function exportSalesExcel() {
   const ws2 = XLSX.utils.aoa_to_sheet(inp); ws2["!cols"] = [{ wch: 22 }, { wch: 34 }, ...Array(34).fill({ wch: 15 })];
   XLSX.utils.book_append_sheet(wb, ws1, "Dashboard");
   XLSX.utils.book_append_sheet(wb, ws2, "input data");
+  /* Tabel lain di Input Data, masing-masing satu sheet (Rp = Rupiah penuh, ada baris total dengan rumus) */
+  const rpC = v => ({ v: v || 0, t: "n", z: "#,##0" });
+  const urutP = x => ((S.sales2.proyek.find(p => p.id === x.proyekId) || {}).urutan || 99);
+  const urutkan = l => (l || []).slice().sort((a, b) => a.tanggal.localeCompare(b.tanggal) || urutP(a) - urutP(b));
+  const lembar = (nama, judul, kepala, rows, kolRp, lebar) => {
+    const aoa = [[judul], [], kepala, ...rows];
+    if (rows.length && kolRp.length) {
+      const r0 = 4, r1 = 3 + rows.length, tot = Array(kepala.length).fill("");
+      tot[1] = "TOTAL"; tot[2] = `${rows.length} unit`;
+      kolRp.forEach(i => tot[i] = { f: `SUM(${col(i)}${r0}:${col(i)}${r1})`, z: "#,##0" });
+      aoa.push(tot);
+    }
+    if (!rows.length) aoa.push(["(belum ada data)"]);
+    const ws = XLSX.utils.aoa_to_sheet(aoa); ws["!cols"] = lebar.map(w => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, ws, nama);
+  };
+  const nmP = x => namaProyekSales(x.proyekId);
+  lembar("Catatan proyek", "CATATAN PROYEK", ["Proyek", "Grup", "Catatan", "Di dashboard"],
+    list.map(p => [p.nama, p.grup, p.catatan || "", p.catatanTampil === false ? "Disembunyikan" : "Tampil"]), [], [22, 34, 70, 15]);
+  lembar("Batal", "BATAL", ["Tanggal", "Proyek", "Kode unit", "Nilai (Rp)", "Keterangan"],
+    urutkan(S.sales2.batal).map(x => [ddmmyyyy(x.tanggal), nmP(x), x.kode || "", rpC(x.rp), x.ket || ""]), [3], [12, 22, 16, 18, 45]);
+  lembar("Hold Reserved", "HOLD RESERVED", ["Tanggal", "Proyek", "Kode unit", "Harga unit (Rp)", "Tanda jadi (Rp)", "Keterangan"],
+    urutkan(S.sales2.hold).map(x => [ddmmyyyy(x.tanggal), nmP(x), x.kode || "", rpC(x.harga), rpC(x.tandaJadi), x.ket || ""]), [3, 4], [12, 22, 16, 18, 18, 45]);
+  lembar("Pindah Unit", "PINDAH UNIT", ["Tanggal", "Proyek", "Kode unit lama", "Harga unit (Rp)", "Kode unit baru", "Harga unit (Rp)", "Keterangan"],
+    urutkan(S.sales2.pindah).map(x => [ddmmyyyy(x.tanggal), nmP(x), x.kodeLama || "", rpC(x.hargaLama), x.kode || "", rpC(x.harga), x.ket || ""]), [3, 5], [12, 22, 16, 18, 16, 18, 45]);
+  lembar("Ganti Bayar", "GANTI BAYAR", ["Tanggal", "Proyek", "Kode unit", "Cara bayar lama", "Harga unit (Rp)", "Cara bayar baru", "Harga unit (Rp)", "Keterangan"],
+    urutkan(S.sales2.ganti).map(x => [ddmmyyyy(x.tanggal), nmP(x), x.kode || "", x.bayarLama || "", rpC(x.hargaLama), x.bayarBaru || "", rpC(x.harga), x.ket || ""]), [4, 6], [12, 22, 14, 18, 18, 18, 18, 45]);
   XLSX.writeFile(wb, `Dashboard_Penjualan_Properti_${tgl}.xlsx`);
   toast("File Excel diunduh");
 }
@@ -1315,7 +1342,7 @@ function viewSalesInput() {
     <div class="field">Tanggal laporan<span style="font-size:15px;font-weight:700;color:var(--ink)">${panjang(d.tanggal)}</span><span style="font-weight:400">Otomatis mengikuti tanggal hari ini. Bulan aktif: ${BULAN[m - 1]} ${th}.</span></div>
     <div class="seg" role="group" aria-label="Tampilan Rp"><span class="seg-l">Tampilan Rp</span>
       <button type="button" id="rpDetail" aria-pressed="${!rpM}">Rp detail</button><button type="button" id="rpM" aria-pressed="${rpM}">Rp M (miliar)</button></div>
-    <div class="btn-row"><button class="btn sec" id="sReset" type="button">Batalkan perubahan</button>
+    <div class="btn-row"><button class="btn sec" id="sXls" type="button">Ekspor Excel</button><button class="btn sec" id="sReset" type="button">Batalkan perubahan</button>
       <button class="btn" id="sSave" type="button" ${hasErr ? "disabled" : ""}>Simpan data</button></div>
   </div>
   <div class="tbl-wrap"><table class="edit sales-in num ${rpM ? "rp-m" : ""}"><thead><tr>${h1}</tr><tr>${h2}</tr></thead><tbody>${body}</tbody></table></div>
@@ -1378,6 +1405,12 @@ function daftarBatalHold(d) {
 function bindSalesInput() {
   const v = document.getElementById("view");
   document.getElementById("sReset").onclick = () => { sLoad(); render(); toast("Perubahan dibatalkan"); };
+  /* Ekspor memakai data yang sudah disimpan */
+  document.getElementById("sXls").onclick = () => {
+    const belum = JSON.stringify(sDraft) !== JSON.stringify(S.sales2);
+    denganID(exportSalesExcel);
+    if (belum && window.XLSX) setTimeout(() => toast("File Excel diunduh. Perubahan yang belum disimpan tidak ikut. Klik Simpan data dulu."), 2500);
+  };
   const bhList = j => sDraft[j] = sDraft[j] || [];
   const nextId = j => Math.max(0, ...bhList(j).map(x => x.id)) + 1;
   const firstOk = () => (sDraft.proyek.slice().sort(byUrut).find(p => p.aktif && bolehEdit(p.nama)) || {}).id;
