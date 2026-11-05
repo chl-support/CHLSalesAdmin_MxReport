@@ -1885,7 +1885,7 @@ const REPORTS = [
     ],
     meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
   { id: "weekly", subMenu: true, nama: "Dashboard Weekly Sales Performance", menu: "DASHBOARD WEEKLY SALES PERFORMANCE", desc: "",
-    /* Tiap proyek punya tab Dashboard, Input Data, Master, History; isi tiap tab kosong (dibangun sendiri) di <div id="…-view"> */
+    /* Tiap proyek punya tab Dashboard, Input Data, History; isi tiap tab kosong (dibangun sendiri) di <div id="…-view"> */
     /* Dikelompokkan per PT; judul PT tampil tebal di menu sidebar */
     tabs: [["PT. Serpong Bangun Cipta", ["Banara Serpong", "Naraya Serpong", "Mazenta Residence", "Marchand"]],
            ["PT. Serpong Bangun Lestari", ["Bio District"]],
@@ -1893,7 +1893,7 @@ const REPORTS = [
            ["PT. Bhakti Bangun Harmoni – The Sanctuary Collection", ["Tanglin Parc", "Newton Springs", "Scotts Vale", "Orchard Riviera"]]]
       .flatMap(([grup, list]) => list.map(nama => ({ grup, nama })))
       .flatMap(({ grup, nama }, i) => { const base = "weekly-" + nama.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-        return [["", "Dashboard", {}], ["-input", "Input Data", { admin: true }], ["-master", "Master", { admin: true, master: true }], ["-history", "History", {}]].map(([suf, label, hak]) => {
+        return [["", "Dashboard", {}], ["-input", "Input Data", { admin: true }], ["-history", "History", {}]].map(([suf, label, hak]) => {
           const id = !i && !suf ? "weekly" : base + suf;
           const view = label === "Dashboard" ? () => viewWeekly(nama, id) : label === "Input Data" ? () => viewWeeklyInput(nama, id)
             : label === "History" ? () => (S.weekly && S.weekly[nama] ? viewHistory(`weekly:${nama}`) : wkKosong(nama, label, id)) : () => wkKosong(nama, label, id);
