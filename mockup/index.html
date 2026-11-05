@@ -313,6 +313,17 @@ table { width: 100%; border-collapse: collapse; }
 .sub a { font-size: 12px; font-weight: 600; letter-spacing: .02em; line-height: 1.35; padding: 7px 10px; }
 .sub a.cur { font-weight: 700; color: var(--gold-ink); }
 .sub-chev { margin-left: 6px; font-size: 10px; }
+.wk-t td.wk { min-width: 270px; vertical-align: top; white-space: nowrap; }
+.wk-t td.wk b { color: var(--ink); margin-right: 6px; }
+.wk-t td.wk small { color: var(--muted); font-size: 12px; }
+.wk-t tr.kosong td { color: var(--muted); padding-top: 4px; padding-bottom: 4px; font-size: 13px; }
+.wk-t td, .wk-rk td { vertical-align: top; }
+.wk-rk tr.lalu td:first-child { font-weight: 700; color: var(--ink); }
+.wk-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.wk-opt { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
+.wk-sub { font-size: 15px; margin: 18px 0 0; }
+.wk-in input[type="text"], .wk-in input[type="number"] { min-width: 110px; }
+.wk-in input[data-f="rpInc"], .wk-in input[data-f="rpExc"], .wk-in input[data-k="1"], .wk-in input[data-k="2"] { min-width: 150px; }
 .sub2 { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 4px 14px; padding-left: 8px; border-left: 2px solid var(--side-line); }
 .sub2 a { font-size: 12px; font-weight: 600; letter-spacing: 0; padding: 5px 10px; }
 .sub2 a.cur { font-weight: 800; color: var(--gold-ink); }
@@ -1034,7 +1045,24 @@ function migrasiCatatan() {
   if (pi && (!pi.catatan || pi.catatan === "59 unit (Rp10,92 M) Full BF + Akad • 13 unit (Rp2,40 M) No BF + No SPK Bank")) pi.catatan = "59 Unit (10,92 M) [FULL BF + AKAD] & 13 Unit (2,40 M) [NO BF + NO SPK BANK]";
   S.sales2.catatanV = 2; return true;
 }
-if (migrasiCatatan()) save();
+/* Weekly Sales Performance: data awal per proyek (dari file Excel Weekly Report). Rp disimpan penuh: [unit, Rp termasuk PPN, Rp tidak termasuk PPN] */
+const WK_SEED = {
+  Marchand: { judul: "Weekly Report Marchand Hype Station",
+    rekap: {
+      jual: { 2019: [171, 94133970010, 85665007763], 2020: [14, 7943910247, 7217627330], 2021: [4, 1592224956, 1446246695] },
+      batal: { 2019: [42, 20720297080, 18862401845], 2020: [27, 13577055150, 12342777411], 2021: [7, 6419751310, 5836137554], 2022: [21, 11217618644, 10194918098],
+        2023: [8, 6180027745, 5616146073], 2024: [3, 1368900682, 1240434545], 2025: [1, 351148655, 319090910] } },
+    jual: [],
+    batal: [{ id: 1, tanggal: "2026-01-05", klaster: "", jumlah: 1, tipe: "", bayar: "", rpInc: 0, rpExc: 0, sales: "", ket: "Dari Excel: 1 unit batal Januari 2026, detail belum diisi" }],
+    hold: [] },
+};
+function seedWeekly() {
+  if (!S) return false;
+  S.weekly = S.weekly || {}; let ubah = false;
+  Object.keys(WK_SEED).forEach(k => { if (!S.weekly[k]) { S.weekly[k] = clone(WK_SEED[k]); ubah = true; } });
+  return ubah;
+}
+if (migrasiCatatan() | seedWeekly()) save();
 if (!S.sales2.batal) { S.sales2.batal = clone(SALES2_SEED.batal); S.sales2.hold = clone(SALES2_SEED.hold); save(); }
 /* Tanggal laporan selalu mengikuti hari ini, sehingga bulan aktif ikut bulan berjalan.
    Angka "hari ini" dikosongkan otomatis saat hari berganti. */
@@ -1685,6 +1713,138 @@ document.getElementById("drWA").onclick = () => { const t = document.getElementB
   window.open("https://wa.me/?text=" + encodeURIComponent(t), "_blank", "noopener"); };
 document.getElementById("drShare").onclick = async () => { try { await navigator.share({ title: "Daily Report", text: document.getElementById("drText").value }); } catch (e) { if (e && e.name !== "AbortError") toast("Gagal membagikan. Coba Salin teks atau Kirim ke WhatsApp."); } };
 
+/* ===================== Weekly Sales Performance (per proyek) ===================== */
+const WK_AWAL = 2019;
+const WK_BAG = { jual: { judul: "Penjualan", tgl: "Tanggal Pemesanan" }, batal: { judul: "Batal", tgl: "Tanggal Batal" }, hold: { judul: "Hold Reserved", tgl: "Tanggal Transaksi" } };
+const wkTgl = iso => `${iso.slice(8, 10)} ${BULAN[+iso.slice(5, 7) - 1]} ${iso.slice(0, 4)}`;
+/* Minggu Senin–Minggu dalam satu tahun, mulai Senin pertama; 1–4 Jan (jika bukan Senin) jadi minggu awal tersendiri */
+function wkMinggu(th) {
+  const iso = d => d.toISOString().slice(0, 10), H = 864e5;
+  const add = (8 - new Date(Date.UTC(th, 0, 1)).getUTCDay()) % 7;
+  let mon = new Date(Date.UTC(th, 0, 1 + add)); const out = [];
+  if (add) out.push({ dari: `${th}-01-01`, sampai: iso(new Date(+mon - H)), awal: true });
+  let n = 1;
+  while (mon.getUTCFullYear() === th) { out.push({ dari: iso(mon), sampai: iso(new Date(+mon + 6 * H)), n: n++ }); mon = new Date(+mon + 7 * H); }
+  return out;
+}
+const wkSum = l => l.reduce((a, x) => [a[0] + (+x.jumlah || 0), a[1] + (x.rpInc || 0), a[2] + (x.rpExc || 0)], [0, 0, 0]);
+const wkRp = v => v ? akRp(rpDot(v)) : "–";
+const wkKosong = (nama, bagian, id) => `<div class="page gut weekly-p" id="${id}-view" data-proyek="${esc(nama)}" data-bagian="${bagian}"></div>`;
+let wkHanyaIsi = false;
+function viewWeekly(nama, id) {
+  const W = S.weekly && S.weekly[nama];
+  if (!W) return wkKosong(nama, "Dashboard", id);
+  const th = tahunKe(), hari = S.sales2.tanggal, mg = wkMinggu(th);
+  const thIni = j => (W[j] || []).filter(x => +x.tanggal.slice(0, 4) === th).sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+  const rekapRows = j => {
+    const lalu = []; for (let y = WK_AWAL; y < th; y++) lalu.push([`TOTAL (${y})`, (W.rekap[j] || {})[y] || [0, 0, 0]]);
+    const bln = BULAN.map((b, i) => [`${b} ${th}`, wkSum(thIni(j).filter(x => +x.tanggal.slice(5, 7) === i + 1))]);
+    const semua = [...lalu, ...bln], g = semua.reduce((a, [, v]) => [a[0] + v[0], a[1] + v[1], a[2] + v[2]], [0, 0, 0]);
+    return { semua, g };
+  };
+  const rekapTbl = (j, judulTotal) => { const { semua, g } = rekapRows(j);
+    return `<div class="tbl-wrap"><table class="hold-t pg-t wk-rk"><thead><tr><th>Periode</th><th>Jumlah</th><th>Rp (Termasuk PPN)</th><th>Rp (Tidak Termasuk PPN)</th></tr></thead><tbody>
+      ${semua.map(([l, v]) => `<tr class="${l.startsWith("TOTAL") ? "lalu" : ""}"><td>${esc(l)}</td><td class="nowrap">${v[0] ? v[0].toLocaleString(LOC()) + " Unit" : "–"}</td><td class="acc">${wkRp(v[1])}</td><td class="acc">${wkRp(v[2])}</td></tr>`).join("")}
+      <tr class="t"><td>${esc(judulTotal)}</td><td class="nowrap">${g[0].toLocaleString(LOC())} Unit</td><td class="acc">${wkRp(g[1])}</td><td class="acc">${wkRp(g[2])}</td></tr></tbody></table></div>`; };
+  const baris = x => `<td class="nowrap">${ddmmyyyy(x.tanggal)}</td><td>${esc(x.klaster || "–")}</td><td class="nowrap">${x.jumlah ? x.jumlah + " Unit" : "–"}</td><td>${esc(x.tipe || "–")}</td><td>${esc(x.bayar || "–")}</td>
+    <td class="acc">${wkRp(x.rpInc)}</td><td class="acc">${wkRp(x.rpExc)}</td><td>${esc(x.sales || "–")}</td><td class="ket">${esc(x.ket || "")}</td>`;
+  const mingguTbl = j => {
+    const list = thIni(j);
+    const rows = mg.filter(w => (w.dari <= hari && !w.awal) || list.some(x => x.tanggal >= w.dari && x.tanggal <= w.sampai)).map(w => {
+      const isi = list.filter(x => x.tanggal >= w.dari && x.tanggal <= w.sampai);
+      if (!isi.length && wkHanyaIsi) return "";
+      const lbl = `<td class="wk" rowspan="${Math.max(1, isi.length)}"><b>${w.n ? `Minggu ke-${w.n}` : "Awal tahun"}</b><small>(${wkTgl(w.dari)} s.d ${wkTgl(w.sampai)})</small></td>`;
+      return isi.length ? isi.map((x, i) => `<tr>${i ? "" : lbl}${baris(x)}</tr>`).join("") : `<tr class="kosong">${lbl}<td colspan="9">–</td></tr>`;
+    }).join("");
+    return `<div class="tbl-wrap"><table class="hold-t pg-t wk-t"><thead><tr><th>Minggu ke-</th><th>${WK_BAG[j].tgl}</th><th>Klaster</th><th>Jumlah</th><th>Tipe</th><th>Keterangan Pembayaran</th><th>Rp (Termasuk PPN)</th><th>Rp (Tidak Termasuk PPN)</th><th>Nama Sales</th><th>Keterangan</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="10" style="text-align:center;color:var(--muted)">Belum ada transaksi.</td></tr>`}</tbody></table></div>`;
+  };
+  const jTh = wkSum(thIni("jual")), bTh = wkSum(thIni("batal")), akum = rekapRows("jual").g, hold = (W.hold || []).slice().sort((a, b) => a.tanggal.localeCompare(b.tanggal)), hTot = wkSum(hold);
+  const kpi = (c, lbl, v, note) => `<div class="kpi" style="--c:${c}"><div class="lbl">${lbl}</div><div class="val num">${v[0].toLocaleString(LOC())} <small>unit</small></div><div class="pct num">${rp(v[1])}</div><div class="note">${note}</div></div>`;
+  return `<div class="page cap" id="capWeekly">
+  <div class="hero"><div class="tabs"><span class="tab">Weekly Sales Performance</span><span class="tab">${panjang(hari)}</span></div>
+    <div class="hero-body gut"><h1>${esc(W.judul || "Weekly Report " + nama)}</h1><div class="sub">Tahun ${th} • data per ${ddmmyyyy(hari)} • Rp termasuk PPN pada kartu</div></div></div>
+  <div class="kpis gut">${kpi("var(--blue)", `Penjualan ${th}`, [jTh[0], jTh[1]], `Januari s.d ${BULAN[bulanKe() - 1]} ${th}`)}${kpi("var(--gold)", `Akumulasi ${WK_AWAL} s.d ${th}`, [akum[0], akum[1]], "Grand total penjualan")}${kpi("var(--red)", `Batal ${th}`, [bTh[0], bTh[1]], `Januari s.d ${BULAN[bulanKe() - 1]} ${th}`)}${kpi("var(--purple)", "Hold Reserved", [hTot[0], hTot[1]], hold.length ? `${hold.length} transaksi` : "Tidak ada unit hold")}</div>
+  <section class="gut"><div class="wk-h"><h2>Penjualan per minggu ${th}</h2>
+    <label class="wk-opt no-cap"><input type="checkbox" id="wkHanyaIsi" ${wkHanyaIsi ? "checked" : ""}> Hanya minggu yang ada transaksi</label></div>
+    <div class="desc">Minggu Senin s.d Minggu, sampai minggu berjalan.</div>${mingguTbl("jual")}
+    <h3 class="wk-sub">Rekap penjualan</h3>${rekapTbl("jual", `Grand Total ${WK_AWAL} s.d ${th}`)}</section>
+  <section class="gut"><h2>Batal per minggu ${th}</h2>${mingguTbl("batal")}
+    <h3 class="wk-sub">Rekap batal</h3>${rekapTbl("batal", "Grand Total")}</section>
+  <section class="gut"><h2>Hold Reserved</h2>
+    <div class="tbl-wrap"><table class="hold-t pg-t wk-t"><thead><tr><th>${WK_BAG.hold.tgl}</th><th>Klaster</th><th>Jumlah</th><th>Tipe</th><th>Keterangan Pembayaran</th><th>Rp (Termasuk PPN)</th><th>Rp (Tidak Termasuk PPN)</th><th>Nama Sales</th><th>Keterangan</th></tr></thead><tbody>
+    ${hold.map(x => `<tr>${baris(x)}</tr>`).join("") || `<tr><td colspan="9" style="text-align:center;color:var(--muted)">Tidak ada unit hold saat ini.</td></tr>`}
+    ${hold.length ? `<tr class="t"><td>Total</td><td></td><td class="nowrap">${hTot[0]} Unit</td><td></td><td></td><td class="acc">${wkRp(hTot[1])}</td><td class="acc">${wkRp(hTot[2])}</td><td></td><td></td></tr>` : ""}</tbody></table></div></section>
+  <div class="notes gut"><p class="desc" style="margin:0">Sumber: Weekly Report ${esc(nama)} • Rp = Rupiah penuh • “–” = nihil</p></div>
+  </div>`;
+}
+function bindWeekly() { const c = document.getElementById("wkHanyaIsi"); if (c) c.onchange = () => { wkHanyaIsi = c.checked; render("wkHanyaIsi"); }; }
+
+/* Input Data Weekly: draf per proyek, disimpan dengan tombol Simpan data */
+let wkDraft = null, wkDraftNama = null;
+const wkLoad = nama => { wkDraft = clone(S.weekly[nama]); wkDraftNama = nama; };
+function viewWeeklyInput(nama, id) {
+  const W = S.weekly && S.weekly[nama];
+  if (!W) return wkKosong(nama, "Input Data", id);
+  if (wkDraftNama !== nama || !wkDraft) wkLoad(nama);
+  const d = wkDraft, th = tahunKe(), lk = !bolehEdit(nama), ro = lk ? 'readonly class="locked"' : "";
+  const tx = (j, x, k, ph = "") => `<input type="text" id="wk-${j}-${x.id}-${k}" data-wk="${j}" data-id="${x.id}" data-f="${k}" value="${esc(x[k] || "")}" placeholder="${ph}" ${ro}>`;
+  const rpI = (j, x, k) => `<input type="text" inputmode="numeric" id="wk-${j}-${x.id}-${k}" data-wk="${j}" data-id="${x.id}" data-f="${k}" value="${x[k] ? rpDot(x[k]) : ""}" placeholder="0" ${ro}>`;
+  const tabel = j => { const list = (d[j] || []).slice().sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+    return `<div class="bh-box"><div class="bh-head"><div><h3>${WK_BAG[j].judul}</h3><div class="desc">${j === "hold" ? "Unit yang ditahan, belum dihitung sebagai penjualan." : `Satu baris per transaksi, masuk ke minggu dan bulan sesuai tanggalnya.`} Rp tanpa PPN otomatis ÷ 1,11 jika kosong.</div></div>
+      ${lk ? "" : `<button class="btn sec" data-wkadd="${j}" type="button">Tambah baris</button>`}</div>
+      <div class="tbl-wrap"><table class="edit bh-t wk-in"><thead><tr><th>${WK_BAG[j].tgl}</th><th>Klaster</th><th>Jumlah (unit)</th><th>Tipe</th><th>Keterangan Pembayaran</th><th>Rp (Termasuk PPN)</th><th>Rp (Tidak Termasuk PPN)</th><th>Nama Sales</th><th>Keterangan</th><th></th></tr></thead><tbody>
+      ${list.map(x => `<tr><td><input type="date" id="wk-${j}-${x.id}-tanggal" data-wk="${j}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal}" ${ro}></td><td>${tx(j, x, "klaster")}</td>
+        <td><input type="number" min="0" step="1" id="wk-${j}-${x.id}-jumlah" data-wk="${j}" data-id="${x.id}" data-f="jumlah" value="${x.jumlah || 0}" ${ro}></td><td>${tx(j, x, "tipe")}</td><td>${tx(j, x, "bayar", "KPR / Cash")}</td>
+        <td>${rpI(j, x, "rpInc")}</td><td>${rpI(j, x, "rpExc")}</td><td>${tx(j, x, "sales")}</td><td>${tx(j, x, "ket")}</td>
+        <td>${lk ? ikonKunci : `<button class="del" data-wkdel="${j}:${x.id}" type="button" aria-label="Hapus">×</button>`}</td></tr>`).join("")
+        || `<tr><td colspan="10" style="color:var(--muted);text-align:center;padding:12px">Belum ada data.</td></tr>`}</tbody></table></div></div>`; };
+  const tahunLalu = []; for (let y = WK_AWAL; y < th; y++) tahunLalu.push(y);
+  const rk = (j, y, k) => { const v = ((d.rekap[j] || {})[y] || [0, 0, 0])[k];
+    return k ? `<input type="text" inputmode="numeric" id="rk-${j}-${y}-${k}" data-rk="${j}" data-y="${y}" data-k="${k}" value="${v ? rpDot(v) : ""}" placeholder="0" ${ro}>`
+      : `<input type="number" min="0" step="1" id="rk-${j}-${y}-${k}" data-rk="${j}" data-y="${y}" data-k="0" value="${v || 0}" ${ro}>`; };
+  return `<div class="page gut"><div class="form-head"><div><h2>Input Data Weekly ${esc(nama)}</h2>
+    <div class="desc">Isi transaksi tahun ${th} per baris. Dashboard menyusunnya per minggu (Senin s.d Minggu) dan per bulan. Angka tahun ${WK_AWAL} s.d ${th - 1} diisi di Rekap tahun sebelumnya. Rp dalam Rupiah penuh.</div></div>
+    <div class="btn-row"><button class="btn sec" id="wkReset" type="button" ${lk ? "disabled" : ""}>Batalkan perubahan</button><button class="btn" id="wkSave" type="button" ${lk ? "disabled" : ""}>Simpan data</button></div></div>
+    ${lk ? `<p class="hint">${ikonKunci} Akun Anda tidak bisa mengubah data ${esc(nama)}.</p>` : ""}
+    <div class="bh">${tabel("jual")}${tabel("batal")}${tabel("hold")}
+    <div class="bh-box"><h3>Rekap tahun sebelumnya</h3><div class="desc">Total per tahun dari Weekly Report lama. Bulan-bulan tahun ${th} dihitung otomatis dari tabel di atas.</div>
+      <div class="tbl-wrap"><table class="edit bh-t wk-in"><thead><tr><th rowspan="2">Tahun</th><th colspan="3">Penjualan</th><th colspan="3">Batal</th></tr>
+        <tr><th>Unit</th><th>Rp (Termasuk PPN)</th><th>Rp (Tidak Termasuk PPN)</th><th>Unit</th><th>Rp (Termasuk PPN)</th><th>Rp (Tidak Termasuk PPN)</th></tr></thead><tbody>
+        ${tahunLalu.map(y => `<tr><td class="proj-c">TOTAL (${y})</td>${[0, 1, 2].map(k => `<td>${rk("jual", y, k)}</td>`).join("")}${[0, 1, 2].map(k => `<td>${rk("batal", y, k)}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>
+    </div></div>`;
+}
+function bindWeeklyInput(nama) {
+  if (!S.weekly || !S.weekly[nama] || !bolehEdit(nama)) return;
+  const v = document.getElementById("view"), d = wkDraft, angka = s => Number(String(s).replace(/[^0-9]/g, "")) || 0;
+  v.querySelectorAll("[data-wkadd]").forEach(b => b.onclick = () => { const j = b.dataset.wkadd; d[j] = d[j] || [];
+    d[j].push({ id: Math.max(0, ...d[j].map(x => x.id)) + 1, tanggal: todayISO(), klaster: "", jumlah: 1, tipe: "", bayar: "", rpInc: 0, rpExc: 0, sales: "", ket: "" }); render(); });
+  v.querySelectorAll("[data-wkdel]").forEach(b => b.onclick = () => { const [j, id] = b.dataset.wkdel.split(":"); d[j] = d[j].filter(x => x.id !== +id); render(); });
+  v.querySelectorAll("[data-wk]").forEach(el => el.onchange = () => {
+    const r = (d[el.dataset.wk] || []).find(x => x.id === +el.dataset.id), k = el.dataset.f; if (!r) return;
+    if (k === "rpInc" || k === "rpExc") { r[k] = angka(el.value); if (k === "rpInc" && !r.rpExc) r.rpExc = Math.round(r.rpInc / 1.11); }
+    else if (k === "jumlah") r[k] = Math.max(0, Math.round(+el.value || 0));
+    else r[k] = k === "tanggal" ? (el.value || r.tanggal) : el.value.trim();
+    render(el.id);
+  });
+  v.querySelectorAll("[data-rk]").forEach(el => el.onchange = () => {
+    const j = el.dataset.rk, y = el.dataset.y, k = +el.dataset.k; d.rekap[j] = d.rekap[j] || {};
+    const row = d.rekap[j][y] = d.rekap[j][y] || [0, 0, 0]; row[k] = k ? angka(el.value) : Math.max(0, Math.round(+el.value || 0));
+    render(el.id);
+  });
+  document.getElementById("wkReset").onclick = () => { wkLoad(nama); render(); toast("Perubahan dibatalkan"); };
+  document.getElementById("wkSave").onclick = () => {
+    const lama = S.weekly[nama], items = [], lbl = x => `${ddmmyyyy(x.tanggal)} ${x.klaster || ""} ${x.tipe || ""}`.trim();
+    Object.keys(WK_BAG).forEach(j => { const a = lama[j] || [], b = d[j] || [], nm = WK_BAG[j].judul;
+      b.forEach(x => { const o = a.find(y => y.id === x.id); if (!o) items.push(`${nm} ditambah: ${lbl(x)}`); else if (JSON.stringify(o) !== JSON.stringify(x)) items.push(`${nm} diubah: ${lbl(x)}`); });
+      a.forEach(o => { if (!b.some(x => x.id === o.id)) items.push(`${nm} dihapus: ${lbl(o)}`); }); });
+    ["jual", "batal"].forEach(j => { for (let y = WK_AWAL; y < tahunKe(); y++) { const o = (lama.rekap[j] || {})[y] || [0, 0, 0], n = (d.rekap[j] || {})[y] || [0, 0, 0];
+      if (JSON.stringify(o) !== JSON.stringify(n)) items.push(`Rekap ${WK_BAG[j].judul} ${y}: ${o[0]} unit → ${n[0]} unit`); } });
+    catat(`weekly:${nama}`, "Input Data", items.map(x => `${nama} · ${x}`));
+    S.weekly[nama] = clone(d); save(); toast(items.length ? `Data weekly ${nama} tersimpan` : "Tidak ada perubahan"); render();
+  };
+}
+
 /* ===================== Daftar report (tambah report baru di sini) ===================== */
 const REPORTS = [
   { id: "penjualan", nama: "Dashboard Penjualan Properti", menu: "DASHBOARD PENJUALAN PROPERTI", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan laporan, YTD, dan akumulasi terjual. Mengikuti format Excel Daily Report.",
@@ -1714,7 +1874,10 @@ const REPORTS = [
       .flatMap(({ grup, nama }, i) => { const base = "weekly-" + nama.toLowerCase().replace(/[^a-z0-9]+/g, "-");
         return [["", "Dashboard", {}], ["-input", "Input Data", { admin: true }], ["-master", "Master", { admin: true, master: true }], ["-history", "History", {}]].map(([suf, label, hak]) => {
           const id = !i && !suf ? "weekly" : base + suf;
-          return { id, label, proyek: nama, grup, ...hak, view: () => `<div class="page gut weekly-p" id="${id}-view" data-proyek="${esc(nama)}" data-bagian="${label}"></div>`, bind: () => {} }; }); }),
+          const view = label === "Dashboard" ? () => viewWeekly(nama, id) : label === "Input Data" ? () => viewWeeklyInput(nama, id)
+            : label === "History" ? () => (S.weekly && S.weekly[nama] ? viewHistory(`weekly:${nama}`) : wkKosong(nama, label, id)) : () => wkKosong(nama, label, id);
+          const bind = label === "Dashboard" ? bindWeekly : label === "Input Data" ? () => bindWeeklyInput(nama) : () => {};
+          return { id, label, proyek: nama, grup, ...hak, view, bind }; }); }),
     meta: () => "" },
 ];
 function viewLaporan() {
@@ -2067,7 +2230,7 @@ async function tarik(tampilkan) {
         /* Form yang belum diubah ikut memuat data terbaru; form yang sedang diubah dibiarkan */
         if (draft !== null && JSON.stringify(draft) === JSON.stringify((S.laporan || {})[draftDate] || [])) draft = null;
         if (sDraft !== null && JSON.stringify(sDraft) === JSON.stringify(S.sales2)) sDraft = null;
-        terapkan(r.data.state, r.data.version); if (migrasiCatatan()) save(); if (tampilkan !== false) render();
+        terapkan(r.data.state, r.data.version); if (migrasiCatatan() | seedWeekly()) save(); if (tampilkan !== false) render();
       }
     } else if (SESI && SESI.role === "ADMIN" && !SESI.proyek) {
       SERVER.versi = 0; SERVER.on = true; await kirim(true);   /* database kosong: isi dengan data saat ini */

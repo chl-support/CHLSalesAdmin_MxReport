@@ -117,6 +117,13 @@ function merge(old, inc, user) {
       out.sales2[j] = [...keep, ...mine];
     });
   }
+  /* Weekly: data per proyek; hanya proyek yang diizinkan yang diambil dari request */
+  if (inc.weekly) {
+    out.weekly = Object.assign({}, old.weekly || {});
+    Object.keys(inc.weekly).forEach(k => { if (ok(k)) out.weekly[k] = inc.weekly[k]; });
+    /* Data awal yang belum ada di server boleh ditambahkan oleh siapa saja (tidak menimpa) */
+    Object.keys(inc.weekly).forEach(k => { if (!out.weekly[k]) out.weekly[k] = inc.weekly[k]; });
+  }
   return out;
 }
 
