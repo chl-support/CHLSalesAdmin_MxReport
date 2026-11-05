@@ -1347,6 +1347,16 @@ const WK_SEED = {
       {"id":2,"tanggal":"2026-07-28","minggu":"2026-07-27","klaster":"Naraya","jumlah":1,"unit":"NS-NR1-09","konsumen":"","tipe":"7","bayar":"KPR 10% - 1x","rpInc":1461000000,"rpExc":1316216217,"sales":"Imamul Faizin (Tuku Realty)","ket":"Batal karena konsumen sudah beli unit di tempat lain"}],
     hold: [
       {"id":1,"tanggal":"2026-10-06","klaster":"Naraya","jumlah":1,"unit":"NS-NR1-06","konsumen":"","tipe":"7","bayar":"Cash Keras","rpInc":1208000000,"rpExc":1088288288,"sales":"Tania (Cari Properti)"}] },
+  /* Banara Serpong: rekap diawali baris gabungan TOTAL (2015 s.d Desember 2020), lalu per tahun 2021-2025.
+     Transaksi 2026 dari Weekly Report Banara Serpong (Excel). Kolom standar (tanpa kolom tambahan). */
+  "Banara Serpong": { judul: "Weekly Report Banara Serpong", awal: 2015, gabung: { 2015: { label: "TOTAL (2015 s.d Desember 2020)", sampai: 2020 } }, ekstra: [], cfgV: 1, dataV: 1,
+    rekap: {"jual": {"2015": [121, 112490304637, 102263913307], "2021": [32, 42422798966, 38566180878], "2022": [19, 25357451853, 22950695826], "2023": [1, 1282625000, 1155518018], "2024": [0, 0, 0], "2025": [0, 0, 0]}, "batal": {"2015": [80, 72567123757, 65970112507], "2021": [44, 55718415588, 50653105080], "2022": [32, 41811292391, 37929435449], "2023": [5, 7496956408, 6761886281], "2024": [3, 3712277484, 3374797713], "2025": [0, 0, 0]}},
+    jual: [
+      {"id":1,"tanggal":"2026-10-15","minggu":"2026-10-12","klaster":"Ambara","jumlah":1,"unit":"AM-A01-002","konsumen":"","tipe":"6","bayar":"Cash Keras","rpInc":946000000,"rpExc":852252252,"sales":"Oki Arnol Sunjaya (Jendela Properti123)"}],
+    batal: [
+      {"id":1,"tanggal":"2026-06-09","minggu":"2026-06-08","klaster":"Lenggana","jumlah":1,"unit":"LG-K01-007","konsumen":"","tipe":"6","bayar":"SPECIAL PAYMENT KPR","rpInc":1409000000,"rpExc":1269369369,"sales":"Ade Gunawan Lubis (Inhouse)","ket":"Pengajuan KPR turun plafon dan tidak memiliki dana karena masalah finansial"}],
+    hold: [
+      ] },
 };
 /* Daftar proyek Weekly per PT (menu sidebar) */
 const WK_GRUP = [["PT. Serpong Bangun Cipta", ["Banara Serpong", "Naraya Serpong", "Mazenta Residence", "Marchand"]],
@@ -1362,7 +1372,7 @@ function seedWeekly() {
   Object.keys(WK_SEED).forEach(k => {
     const sd = WK_SEED[k], w = S.weekly[k];
     if (!w) { S.weekly[k] = clone(sd); ubah = true; return; }
-    if ((w.cfgV || 0) < (sd.cfgV || 0)) { ["judul", "awal", "ekstra", "ppnOto"].forEach(f => { if (sd[f] !== undefined) w[f] = clone(sd[f]); }); w.cfgV = sd.cfgV; ubah = true;
+    if ((w.cfgV || 0) < (sd.cfgV || 0)) { ["judul", "awal", "ekstra", "ppnOto", "gabung"].forEach(f => { if (sd[f] !== undefined) w[f] = clone(sd[f]); }); w.cfgV = sd.cfgV; ubah = true;
       if (sd.rekap && !["jual", "batal"].some(j => Object.keys((w.rekap || {})[j] || {}).length)) w.rekap = clone(sd.rekap);
       /* kolom tambahan yang tidak dipakai lagi ikut dibuang dari data */
       const pakai = new Set(w.ekstra || []); ["sumber", "usia", "lahir"].filter(c => !pakai.has(c)).forEach(c => ["jual", "batal", "hold"].forEach(j => (w[j] || []).forEach(x => delete x[c]))); }
@@ -2070,6 +2080,15 @@ function wkKolom(W) {
 }
 const wkRpK = W => wkKolom(W).filter(c => c.t === "rp").map(c => c.k);
 const wkAwal = W => W.awal || WK_AWAL;
+/* Baris rekap tahun sebelumnya: [{ y, l }]. W.gabung menggabung beberapa tahun awal jadi satu baris (mis. 2015 s.d 2020). */
+function wkTahunRekap(W, th) {
+  const out = [], g = W.gabung || {};
+  for (let y = wkAwal(W); y < th; y++) {
+    if (g[y]) { out.push({ y, l: g[y].label }); y = g[y].sampai; continue; }
+    out.push({ y, l: `TOTAL (${y})` });
+  }
+  return out;
+}
 /* Tabel tambahan Weekly: Pindah Unit dan Ganti Cara Bayar (semua proyek). Kolom Konsumen ikut jika proyeknya memakai Konsumen. */
 const WK_PG = {
   pindah: { judul: "Pindah Unit", tgl: "Tanggal", desc: "Satu baris per unit yang pindah ke unit lain (kode & harga unit lama → baru). Angka penjualan tidak berubah otomatis.",
@@ -2102,7 +2121,7 @@ function viewWeekly(nama, id) {
   const th = tahunKe(), hari = S.sales2.tanggal, mg = wkMinggu(th), K = wkKolom(W), rk = wkRpK(W), aw = wkAwal(W), nol = () => [0, ...rk.map(() => 0)];
   const thIni = j => (W[j] || []).filter(x => +wkEf(x).slice(0, 4) === th).sort(wkUrut);
   const rekapRows = j => {
-    const lalu = []; for (let y = aw; y < th; y++) { const v = (W.rekap[j] || {})[y] || nol(); lalu.push([`TOTAL (${y})`, v, v[1] || v[2] || 0]); }
+    const lalu = wkTahunRekap(W, th).map(({ y, l }) => { const v = (W.rekap[j] || {})[y] || nol(); return [l, v, v[1] || v[2] || 0]; });
     const bln = BULAN.map((b, i) => { const l = thIni(j).filter(x => +wkEf(x).slice(5, 7) === i + 1); return [`${b} ${th}`, wkSum(l, W), wkNilai(l)]; });
     const semua = [...lalu, ...bln], g = semua.reduce((a, [, v]) => a.map((n, i) => n + (v[i] || 0)), nol());
     return { semua, g, nilai: semua.reduce((a, r) => a + r[2], 0) };
@@ -2207,7 +2226,7 @@ function viewWeeklyInput(nama, id) {
       ${list.map(x => `<tr><td><input type="date" id="wk-${j}-${x.id}-tanggal" data-wk="${j}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal || ""}" ${ro} ${x.minggu && wkEf(x) !== x.tanggal ? `title="Di Excel ada di minggu ${wkTgl(x.minggu)}"` : ""}></td>${K.map(c => `<td${c.k === "sbum" ? ' class="c-sbum"' : ""}>${inp(j, x, c)}</td>`).join("")}
         <td>${lk ? ikonKunci : `<button class="del" data-wkdel="${j}:${x.id}" type="button" aria-label="Hapus">×</button>`}</td></tr>`).join("")
         || `<tr><td colspan="${K.length + 2}" style="color:var(--muted);text-align:center;padding:12px">${semua.length ? "Tidak ada baris pada bulan ini." : "Belum ada data."}</td></tr>`}</tbody></table></div>${more}</div>`; };
-  const tahunLalu = []; for (let y = aw; y < th; y++) tahunLalu.push(y);
+  const tahunLalu = wkTahunRekap(W, th);
   const nk = rk.length + 1, nol = () => Array(nk).fill(0);
   const rkI = (j, y, k) => { const v = ((d.rekap[j] || {})[y] || nol())[k];
     return k ? `<input type="text" inputmode="numeric" id="rk-${j}-${y}-${k}" data-rk="${j}" data-y="${y}" data-k="${k}" value="${v ? rpDot(v) : ""}" placeholder="0" ${ro}>`
@@ -2222,7 +2241,7 @@ function viewWeeklyInput(nama, id) {
     <div class="bh-box"><h3>Rekap tahun sebelumnya</h3><div class="desc">Total per tahun dari Weekly Report lama. Baris TOTAL (${th}) dihitung otomatis dari tabel Penjualan dan Batal di atas, jadi tetap tampil walau belum ada transaksi.</div>
       <div class="tbl-wrap"><table class="edit bh-t wk-in wk-rkin"><colgroup><col style="width:130px">${["jual", "batal"].map(() => idx.map(k => `<col${k ? "" : ' style="width:8%"'}>`).join("")).join("")}</colgroup><thead><tr><th rowspan="2">Tahun</th><th colspan="${nk}">Penjualan</th><th colspan="${nk}">Batal</th></tr>
         <tr><th>Unit</th>${rpHead}<th>Unit</th>${rpHead}</tr></thead><tbody>
-        ${tahunLalu.map(y => `<tr><td class="proj-c">TOTAL (${y})</td>${idx.map(k => `<td>${rkI("jual", y, k)}</td>`).join("")}${idx.map(k => `<td>${rkI("batal", y, k)}</td>`).join("")}</tr>`).join("")}
+        ${tahunLalu.map(({ y, l }) => `<tr><td class="proj-c">${esc(l)}</td>${idx.map(k => `<td>${rkI("jual", y, k)}</td>`).join("")}${idx.map(k => `<td>${rkI("batal", y, k)}</td>`).join("")}</tr>`).join("")}
         ${(() => { /* Tahun berjalan: dihitung otomatis dari tabel Penjualan & Batal di atas (tidak bisa diketik) */
           const ini = j => wkSum((d[j] || []).filter(x => +wkEf(x).slice(0, 4) === th), W);
           const sel = v => v.map((n, k) => `<td><input type="text" readonly class="locked wk-auto" value="${k ? (n ? rpDot(n) : "0") : n}" title="Dihitung otomatis dari tabel di atas" aria-label="TOTAL ${th} otomatis"></td>`).join("");
@@ -2253,7 +2272,7 @@ function exportWeeklyExcel(nama) {
       if (!r.length) aoa.push([lbl]); else r.forEach((x, i) => aoa.push([i ? "" : lbl, ...isi(x)])); });
     aoa.push([]);
     const r0 = aoa.length + 1;
-    for (let y = aw; y < th; y++) aoa.push(barisRekap(`TOTAL (${y})`, (W.rekap[j] || {})[y] || [0, ...rk.map(() => 0)]));
+    wkTahunRekap(W, th).forEach(({ y, l }) => aoa.push(barisRekap(l, (W.rekap[j] || {})[y] || [0, ...rk.map(() => 0)])));
     BULAN.forEach((b, i) => aoa.push(barisRekap(`${b} ${th}`, wkSum(list.filter(x => +wkEf(x).slice(5, 7) === i + 1), W))));
     aoa.push(total(judulTotal, r0, aoa.length), [], []);
   };
@@ -2322,7 +2341,7 @@ function wkBacaExcel(rows, W, th) {
     }
     if (!bag) continue;
     const bk = blok(row[lc]); if (bk) cur = bk;
-    const rek = a.match(/^total \((\d{4})\)/);
+    const rek = a.match(/^total \((\d{4})(?:\s*s\.?\s*d\.?[^)]*)?\)/);
     if (rek && bag !== "hold") { const y = +rek[1];
       if (y < th) out.rekap[bag][y] = [angka(row[map.jumlah]), ...wkRpK(W).map(k => map[k] != null ? angka(row[map[k]]) : 0)]; continue; }
     if (/^(grand|total|januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/.test(a)) continue;
@@ -2402,7 +2421,7 @@ function bindWeeklyInput(nama) {
       if (tambah + hapus > 20) { items.push(`${nm}: ${b.length} baris (sebelumnya ${a.length})`); return; }
       b.forEach(x => { const o = a.find(y => y.id === x.id); if (!o) items.push(`${nm} ditambah: ${lbl(x)}`); else if (JSON.stringify(o) !== JSON.stringify(x)) items.push(`${nm} diubah: ${lbl(x)}`); });
       a.forEach(o => { if (!b.some(x => x.id === o.id)) items.push(`${nm} dihapus: ${lbl(o)}`); }); });
-    ["jual", "batal"].forEach(j => { for (let y = wkAwal(W); y < tahunKe(); y++) { const o = (lama.rekap[j] || {})[y] || [0], n = (d.rekap[j] || {})[y] || [0];
+    ["jual", "batal"].forEach(j => { for (const { y } of wkTahunRekap(W, tahunKe())) { const o = (lama.rekap[j] || {})[y] || [0], n = (d.rekap[j] || {})[y] || [0];
       if (JSON.stringify(o) !== JSON.stringify(n)) items.push(`Rekap ${WK_BAG[j].judul} ${y}: ${o[0] || 0} unit → ${n[0] || 0} unit`); } });
     catat(`weekly:${nama}`, "Input Data", items.map(x => `${nama} · ${x}`));
     S.weekly[nama] = clone(d); save(); toast(items.length ? `Data weekly ${nama} tersimpan` : "Tidak ada perubahan"); render();
