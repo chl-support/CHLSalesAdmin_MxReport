@@ -84,13 +84,28 @@ function userFromReq(req) {
   return users().find(x => x.u === p.u) || null;
 }
 
+/* ---------- what a restricted account may read: Weekly data and History of its own projects only ---------- */
+function historyVisible(h, user) {
+  if (!user.proyek) return true;
+  const m = /^weekly:(.+)$/.exec(String(h && h.report || ""));
+  return !m || user.proyek.includes(String(m[1]).trim().toLowerCase());
+}
+function forUser(state, user) {
+  if (!state || !user || !user.proyek) return state;
+  const out = Object.assign({}, state);
+  if (state.weekly) { out.weekly = {}; Object.keys(state.weekly).forEach(k => { if (user.proyek.includes(String(k).trim().toLowerCase())) out.weekly[k] = state.weekly[k]; }); }
+  if (Array.isArray(state.history)) out.history = state.history.filter(h => historyVisible(h, user));
+  return out;
+}
 /* ---------- merge: restricted admins only change their own projects ---------- */
 const low = s => String(s || "").trim().toLowerCase();
 function merge(old, inc, user) {
   if (!user.proyek) return inc;
   const ok = nama => user.proyek.includes(low(nama));
   const out = JSON.parse(JSON.stringify(old));
-  out.history = Array.isArray(inc.history) ? inc.history.slice(0, 500) : old.history;
+  /* History: entries this user cannot see (other projects' Weekly) are kept from the stored data */
+  const hidden = (old.history || []).filter(h => !historyVisible(h, user));
+  out.history = Array.isArray(inc.history) ? [...inc.history, ...hidden].sort((a, b) => String(b.t).localeCompare(String(a.t))).slice(0, 500) : old.history;
   /* BAST: rows of allowed projects come from the request, others stay as stored */
   const bastNama = id => ((old.proyek || []).find(p => p.id === id) || {}).nama;
   const dates = new Set([...Object.keys(old.laporan || {}), ...Object.keys(inc.laporan || {})]);
@@ -133,4 +148,4 @@ async function readBody(req) {
   const chunks = []; for await (const c of req) chunks.push(c);
   const s = Buffer.concat(chunks).toString(); return s ? JSON.parse(s) : {};
 }
-module.exports = { findUser, publicUser, signToken, userFromReq, loadDoc, saveDoc, merge, send, readBody, storageKind };
+module.exports = { findUser, publicUser, signToken, userFromReq, loadDoc, saveDoc, merge, forUser, send, readBody, storageKind };

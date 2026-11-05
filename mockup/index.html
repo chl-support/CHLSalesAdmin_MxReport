@@ -608,6 +608,14 @@ let SESI = null;
 /* Batasan per user: proyek yang boleh diedit (tanpa daftar = semua proyek) */
 const akunIni = () => SESI || null;
 const userTerbatas = () => !!(akunIni() && akunIni().proyek);
+/* Proyek Weekly yang boleh dibuka akun ini (akun tanpa daftar proyek, mis. Admin CHL / Viewer CHL, boleh semua) */
+function bolehLihat(namaProyek) {
+  const a = akunIni();
+  if (!a || !a.proyek) return true;
+  return a.proyek.includes(String(namaProyek || "").trim().toLowerCase());
+}
+/* Tab pertama sebuah report yang boleh dibuka (Weekly: proyek pertama yang diizinkan) */
+const tabAwal = r => r.subMenu ? r.tabs.find(t => bolehLihat(t.proyek)) : r.tabs[0];
 function bolehEdit(namaProyek) {
   const a = akunIni();
   if (!a || a.role !== "ADMIN") return false;
@@ -1369,8 +1377,9 @@ function seedWeekly() {
   S.weekly = S.weekly || {}; let ubah = false;
   /* Proyek yang belum punya Weekly Report: struktur standar kosong (Penjualan, Batal, Hold, Pindah Unit, Ganti Cara Bayar).
      Kolom & rekap tahun lalu bisa disesuaikan saat file Excel-nya dikirim. */
-  WK_GRUP.forEach(([, l]) => l.forEach(nm => { if (!S.weekly[nm] && !WK_SEED[nm]) { S.weekly[nm] = { judul: `Weekly Report ${nm}`, awal: +((S.sales2 && S.sales2.tanggal) || todayISO()).slice(0, 4), ekstra: ["unit", "konsumen"], rekap: { jual: {}, batal: {} }, jual: [], batal: [], hold: [], pindah: [], ganti: [] }; ubah = true; } }));
+  WK_GRUP.forEach(([, l]) => l.forEach(nm => { if (!S.weekly[nm] && !WK_SEED[nm] && bolehLihat(nm)) { S.weekly[nm] = { judul: `Weekly Report ${nm}`, awal: +((S.sales2 && S.sales2.tanggal) || todayISO()).slice(0, 4), ekstra: ["unit", "konsumen"], rekap: { jual: {}, batal: {} }, jual: [], batal: [], hold: [], pindah: [], ganti: [] }; ubah = true; } }));
   Object.keys(WK_SEED).forEach(k => {
+    if (!bolehLihat(k)) return;
     const sd = WK_SEED[k], w = S.weekly[k];
     if (!w) { S.weekly[k] = clone(sd); ubah = true; return; }
     if ((w.cfgV || 0) < (sd.cfgV || 0)) { ["judul", "awal", "ekstra", "ppnOto", "gabung"].forEach(f => { if (sd[f] !== undefined) w[f] = clone(sd[f]); }); w.cfgV = sd.cfgV; ubah = true;
@@ -2465,7 +2474,7 @@ function viewLaporan() {
   return `<div class="page gut"><div class="rhead"><div><h2>Monitoring Laporan</h2>
     <div class="desc">Pilih report untuk melihat dashboard atau mengisi data.</div></div>
     <button type="button" class="btn" data-dr>Kirim Daily Report</button></div>
-    <div class="cards">${REPORTS.map(r => `<a class="rcard" href="#${r.tabs[0].id}"><h3>${esc(r.nama)}</h3><p>${esc(r.desc)}</p><span class="meta">${esc(r.meta())}</span></a>`).join("")}
+    <div class="cards">${REPORTS.filter(r => tabAwal(r)).map(r => `<a class="rcard" href="#${tabAwal(r).id}"><h3>${esc(r.nama)}</h3><p>${esc(r.desc)}</p><span class="meta">${esc(r.meta())}</span></a>`).join("")}
       <div class="rcard soon"><h3>Report lainnya</h3><p>Report berikutnya akan muncul di sini dengan format yang sama: dashboard, input data, dan master.</p></div></div></div>`;
 }
 function reportFrame(r, tab, inner) {
@@ -2492,11 +2501,12 @@ function renderMenu(v) {
   const ft = findTab(v);
   /* Report dengan subMenu (Weekly): pilihan proyek tampil menurun di bawah menunya saat report itu dibuka */
   document.getElementById("reportMenu").innerHTML = REPORTS.map(r => {
+    const awal = tabAwal(r); if (!awal) return "";
     const buka = ft && ft.r === r;
-    const sub = r.subMenu && buka ? `<div class="sub2">${r.tabs.filter(t => t.label === "Dashboard").map((t, i, a) => { const on = t.proyek === ft.t.proyek;
+    const sub = r.subMenu && buka ? `<div class="sub2">${r.tabs.filter(t => t.label === "Dashboard" && bolehLihat(t.proyek)).map((t, i, a) => { const on = t.proyek === ft.t.proyek;
       const judul = !i || a[i - 1].grup !== t.grup ? `<div class="sub2-g">${esc(t.grup)}</div>` : "";
       return `${judul}<a href="#${t.id}" class="${on ? "cur" : ""}" ${on ? 'aria-current="page"' : ""}>${esc(t.proyek)}</a>`; }).join("")}</div>` : "";
-    return `<a href="#${r.tabs[0].id}" class="${buka ? "cur" : ""}" ${r.subMenu ? `aria-expanded="${!!buka}"` : ""}>${esc(r.menu || r.nama)}${r.subMenu ? `<span class="sub-chev" aria-hidden="true">${buka ? "▾" : "▸"}</span>` : ""}</a>${sub}`;
+    return `<a href="#${awal.id}" class="${buka ? "cur" : ""}" ${r.subMenu ? `aria-expanded="${!!buka}"` : ""}>${esc(r.menu || r.nama)}${r.subMenu ? `<span class="sub-chev" aria-hidden="true">${buka ? "▾" : "▸"}</span>` : ""}</a>${sub}`;
   }).join("");
   document.querySelectorAll("#menu .grp-b > a").forEach(a => {
     const on = a.dataset.v === v || (a.dataset.v === "laporan" && (v === "laporan" || ft));
@@ -2521,6 +2531,8 @@ function render(focusId) {
   document.getElementById("syncInfo").textContent = SERVER.info;
   rendering = true;
   const v = current();
+  { const f0 = findTab(v);
+    if (f0 && f0.r.subMenu && !bolehLihat(f0.t.proyek)) { const a = tabAwal(f0.r); rendering = false; location.replace("#" + (a ? a.id : "laporan")); toast(`Akun ${SESI.nama} tidak punya akses ke ${f0.t.proyek}`); return; } }
   try {
     const view = document.getElementById("view"), ft = findTab(v);
     view.dataset.rep = ft ? ft.r.id : "";
