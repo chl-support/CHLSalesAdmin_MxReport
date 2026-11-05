@@ -330,8 +330,14 @@ table { width: 100%; border-collapse: collapse; }
 .wk-h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .wk-opt { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
 .wk-sub { font-size: 15px; margin: 18px 0 0; }
+.wk-in td.proj-c { white-space: nowrap; font-weight: 700; }
+.wk-in tr.wk-ini td { background: var(--blue-soft); }
+.wk-in tr.wk-ini td.proj-c small { display: block; font-weight: 600; font-size: 11px; color: var(--muted); }
 .wk-in input[type="text"], .wk-in input[type="number"] { min-width: 110px; }
-.wk-in input[data-f="rpInc"], .wk-in input[data-f="rpExc"], .wk-in input[data-k="1"], .wk-in input[data-k="2"] { min-width: 150px; }
+.wk-in input[data-f="rpInc"], .wk-in input[data-f="rpExc"] { min-width: 150px; }
+.wk-in input[data-rk], .wk-in input.wk-auto { min-width: 0; width: 100%; }
+.edit.wk-rkin { min-width: 0; width: 100%; table-layout: fixed; }
+.edit.wk-rkin td input[type="text"], .edit.wk-rkin td input[type="number"] { min-width: 0; width: 100%; }
 .sub2 { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 4px 14px; padding-left: 8px; border-left: 2px solid var(--side-line); }
 .sub2 a { font-size: 12px; font-weight: 600; letter-spacing: 0; padding: 5px 10px; }
 .sub2 a.cur { font-weight: 800; color: var(--gold-ink); }
@@ -1819,10 +1825,14 @@ function viewWeeklyInput(nama, id) {
     <div class="btn-row"><button class="btn sec" id="wkReset" type="button" ${lk ? "disabled" : ""}>Batalkan perubahan</button><button class="btn" id="wkSave" type="button" ${lk ? "disabled" : ""}>Simpan data</button></div></div>
     ${lk ? `<p class="hint">${ikonKunci} Akun Anda tidak bisa mengubah data ${esc(nama)}.</p>` : ""}
     <div class="bh">${tabel("jual")}${tabel("batal")}${tabel("hold")}
-    <div class="bh-box"><h3>Rekap tahun sebelumnya</h3><div class="desc">Total per tahun dari Weekly Report lama. Bulan-bulan tahun ${th} dihitung otomatis dari tabel di atas.</div>
-      <div class="tbl-wrap"><table class="edit bh-t wk-in"><thead><tr><th rowspan="2">Tahun</th><th colspan="3">Penjualan</th><th colspan="3">Batal</th></tr>
+    <div class="bh-box"><h3>Rekap tahun sebelumnya</h3><div class="desc">Total per tahun dari Weekly Report lama. Baris TOTAL (${th}) dihitung otomatis dari tabel Penjualan dan Batal di atas, jadi tetap tampil walau belum ada transaksi.</div>
+      <div class="tbl-wrap"><table class="edit bh-t wk-in wk-rkin"><colgroup><col style="width:130px"><col style="width:9%"><col><col><col style="width:9%"><col><col></colgroup><thead><tr><th rowspan="2">Tahun</th><th colspan="3">Penjualan</th><th colspan="3">Batal</th></tr>
         <tr><th>Unit</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th><th>Unit</th><th class="c">Rp<br>(Termasuk PPN)</th><th class="c">Rp<br>(Tidak Termasuk PPN)</th></tr></thead><tbody>
-        ${tahunLalu.map(y => `<tr><td class="proj-c">TOTAL (${y})</td>${[0, 1, 2].map(k => `<td>${rk("jual", y, k)}</td>`).join("")}${[0, 1, 2].map(k => `<td>${rk("batal", y, k)}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>
+        ${tahunLalu.map(y => `<tr><td class="proj-c">TOTAL (${y})</td>${[0, 1, 2].map(k => `<td>${rk("jual", y, k)}</td>`).join("")}${[0, 1, 2].map(k => `<td>${rk("batal", y, k)}</td>`).join("")}</tr>`).join("")}
+        ${(() => { /* Tahun berjalan: dihitung otomatis dari tabel Penjualan & Batal di atas (tidak bisa diketik) */
+          const ini = j => wkSum((d[j] || []).filter(x => +x.tanggal.slice(0, 4) === th));
+          const sel = v => v.map((n, k) => `<td><input type="text" readonly class="locked wk-auto" value="${k ? (n ? rpDot(n) : "0") : n}" title="Dihitung otomatis dari tabel di atas" aria-label="TOTAL ${th} otomatis"></td>`).join("");
+          return `<tr class="wk-ini"><td class="proj-c">TOTAL (${th})<small>otomatis</small></td>${sel(ini("jual"))}${sel(ini("batal"))}</tr>`; })()}</tbody></table></div></div>
     </div></div>`;
 }
 function bindWeeklyInput(nama) {
