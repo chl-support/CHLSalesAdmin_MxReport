@@ -1822,7 +1822,7 @@ function viewWeeklyInput(nama, id) {
       : `<input type="number" min="0" step="1" id="rk-${j}-${y}-${k}" data-rk="${j}" data-y="${y}" data-k="0" value="${v || 0}" ${ro}>`; };
   return `<div class="page gut"><div class="form-head"><div><h2>Input Data Weekly ${esc(nama)}</h2>
     <div class="desc">Isi transaksi tahun ${th} per baris. Dashboard menyusunnya per minggu (Senin s.d Minggu) dan per bulan. Angka tahun ${WK_AWAL} s.d ${th - 1} diisi di Rekap tahun sebelumnya. Rp dalam Rupiah penuh.</div></div>
-    <div class="btn-row"><button class="btn sec" id="wkReset" type="button" ${lk ? "disabled" : ""}>Batalkan perubahan</button><button class="btn" id="wkSave" type="button" ${lk ? "disabled" : ""}>Simpan data</button></div></div>
+    <div class="btn-row"><button class="btn sec" id="wkXls" type="button">Ekspor Excel</button><button class="btn sec" id="wkReset" type="button" ${lk ? "disabled" : ""}>Batalkan perubahan</button><button class="btn" id="wkSave" type="button" ${lk ? "disabled" : ""}>Simpan data</button></div></div>
     ${lk ? `<p class="hint">${ikonKunci} Akun Anda tidak bisa mengubah data ${esc(nama)}.</p>` : ""}
     <div class="bh">${tabel("jual")}${tabel("batal")}${tabel("hold")}
     <div class="bh-box"><h3>Rekap tahun sebelumnya</h3><div class="desc">Total per tahun dari Weekly Report lama. Baris TOTAL (${th}) dihitung otomatis dari tabel Penjualan dan Batal di atas, jadi tetap tampil walau belum ada transaksi.</div>
@@ -1835,7 +1835,52 @@ function viewWeeklyInput(nama, id) {
           return `<tr class="wk-ini"><td class="proj-c">TOTAL (${th})<small>otomatis</small></td>${sel(ini("jual"))}${sel(ini("batal"))}</tr>`; })()}</tbody></table></div></div>
     </div></div>`;
 }
+/* Ekspor Excel Weekly: satu sheet per tahun, susunannya seperti file Weekly Report (Penjualan per minggu + rekap, Batal per minggu + rekap, Hold Reserved) */
+function exportWeeklyExcel(nama) {
+  if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
+  const W = S.weekly[nama], th = tahunKe(), mg = wkMinggu(th), aoa = [], RP = "#,##0";
+  const rpC = v => ({ v: v || 0, t: "n", z: RP }), f = (x, zf) => ({ f: x, z: zf });
+  const kepala = (pertama, tgl) => [pertama, tgl, "Klaster", "Jumlah", "Unit", "Tipe", "Keterangan Pembayaran", "Rp (Termasuk PPN)", "Rp (Tidak Termasuk PPN)", "Nama Sales", "Keterangan"];
+  const isi = x => [ddmmyyyy(x.tanggal), x.klaster || "", +x.jumlah || 0, "Unit", x.tipe || "", x.bayar || "", rpC(x.rpInc), rpC(x.rpExc), x.sales || "", x.ket || ""];
+  const urut = l => (l || []).slice().sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+  const bagian = (j, pertama, judulTotal) => {
+    const list = urut(W[j]).filter(x => +x.tanggal.slice(0, 4) === th);
+    aoa.push(kepala(pertama, WK_BAG[j].tgl));
+    mg.forEach(w => { const r = list.filter(x => x.tanggal >= w.dari && x.tanggal <= w.sampai);
+      if (w.awal && !r.length) return;
+      const lbl = `(${wkTgl(w.dari)} s.d ${wkTgl(w.sampai)})`;
+      if (!r.length) aoa.push([lbl]); else r.forEach((x, i) => aoa.push([i ? "" : lbl, ...isi(x)])); });
+    aoa.push([]);
+    const r0 = aoa.length + 1;
+    for (let y = WK_AWAL; y < th; y++) { const v = (W.rekap[j] || {})[y] || [0, 0, 0]; aoa.push([`TOTAL (${y})`, "", "", v[0], "Unit", "", "", rpC(v[1]), rpC(v[2])]); }
+    BULAN.forEach((b, i) => { const v = wkSum(list.filter(x => +x.tanggal.slice(5, 7) === i + 1)); aoa.push([`${b} ${th}`, "", "", v[0], "Unit", "", "", rpC(v[1]), rpC(v[2])]); });
+    const r1 = aoa.length;
+    aoa.push([judulTotal, "", "", f(`SUM(D${r0}:D${r1})`), "Unit", "", "", f(`SUM(H${r0}:H${r1})`, RP), f(`SUM(I${r0}:I${r1})`, RP)]);
+    aoa.push([], []);
+  };
+  aoa.push([(W.judul || `Weekly Report ${nama}`).toUpperCase()], [`Data per ${ddmmyyyy(S.sales2.tanggal)} • Rp = Rupiah penuh`], []);
+  bagian("jual", "Minggu Ke -", `Grand Total ${WK_AWAL} s.d ${th}`);
+  bagian("batal", "Batal", "GRAND TOTAL");
+  const hold = urut(W.hold);
+  aoa.push(kepala("Hold Reserved", WK_BAG.hold.tgl));
+  const h0 = aoa.length + 1;
+  hold.forEach(x => aoa.push(["", ...isi(x)]));
+  if (!hold.length) aoa.push(["", "(belum ada data)"]);
+  const h1 = aoa.length;
+  aoa.push(["TOTAL", "", "", f(`SUM(D${h0}:D${h1})`), "Unit", "", "", f(`SUM(H${h0}:H${h1})`, RP), f(`SUM(I${h0}:I${h1})`, RP)]);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [37, 18, 13, 8, 6, 13, 26, 20, 22, 30, 45].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, String(th));
+  XLSX.writeFile(wb, `Weekly_Report_${nama.replace(/\s+/g, "_")}_${S.sales2.tanggal}.xlsx`);
+  toast("File Excel diunduh");
+}
 function bindWeeklyInput(nama) {
+  const xb = document.getElementById("wkXls");
+  if (xb) xb.onclick = () => {
+    const belum = wkDraft && wkDraftNama === nama && JSON.stringify(wkDraft) !== JSON.stringify(S.weekly[nama]);
+    denganID(() => exportWeeklyExcel(nama));
+    if (belum && window.XLSX) setTimeout(() => toast("File Excel diunduh. Perubahan yang belum disimpan tidak ikut. Klik Simpan data dulu."), 2500);
+  };
   if (!S.weekly || !S.weekly[nama] || !bolehEdit(nama)) return;
   const v = document.getElementById("view"), d = wkDraft, angka = s => Number(String(s).replace(/[^0-9]/g, "")) || 0;
   v.querySelectorAll("[data-wkadd]").forEach(b => b.onclick = () => { const j = b.dataset.wkadd; d[j] = d[j] || [];
