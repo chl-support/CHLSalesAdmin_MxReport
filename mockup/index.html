@@ -349,6 +349,9 @@ table { width: 100%; border-collapse: collapse; }
 .rtabs a { text-decoration: none; color: var(--muted); font-weight: 700; font-size: 14px; padding: 10px 14px; border-bottom: 3px solid transparent; margin-bottom: -1px; }
 .rtabs a:hover { color: var(--ink); }
 .rtabs a.on { color: var(--ink); border-bottom-color: var(--gold); }
+/* Banyak tab (mis. Weekly per proyek): nama tetap satu baris, tab yang tidak muat pindah ke baris berikutnya */
+.rtabs { flex-wrap: wrap; }
+.rtabs a { white-space: nowrap; flex: 0 0 auto; }
 
 /* Report catalogue */
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; margin-top: 20px; }
@@ -1673,16 +1676,17 @@ const REPORTS = [
     ],
     meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
   { id: "weekly", nama: "Dashboard Weekly Sales Performance", menu: "DASHBOARD WEEKLY SALES PERFORMANCE", desc: "",
-    tabs: [
-      { id: "weekly", label: "Dashboard", view: () => `<div class="page gut" id="weeklyView"></div>`, bind: () => {} }, /* isi dibangun sendiri */
-    ],
+    /* Satu tab per proyek; isi tiap tab kosong (dibangun sendiri) di <div id="weekly-…-view"> */
+    tabs: ["Banara Serpong", "Naraya Serpong", "Bio District", "Permai Indah", "Tanglin Parc", "Newton Springs", "Scotts Vale", "Mazenta Residence", "Marchand"]
+      .map((nama, i) => { const id = i ? "weekly-" + nama.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "weekly";
+        return { id, label: nama, view: () => `<div class="page gut weekly-p" id="${id}-view" data-proyek="${esc(nama)}"></div>`, bind: () => {} }; }),
     meta: () => "" },
 ];
 function viewLaporan() {
   return `<div class="page gut"><div class="rhead"><div><h2>Monitoring Laporan</h2>
     <div class="desc">Pilih report untuk melihat dashboard atau mengisi data.</div></div>
     <button type="button" class="btn" data-dr>Kirim Daily Report</button></div>
-    <div class="cards">${REPORTS.map(r => `<a class="rcard" href="#${r.id}"><h3>${esc(r.nama)}</h3><p>${esc(r.desc)}</p><span class="meta">${esc(r.meta())}</span></a>`).join("")}
+    <div class="cards">${REPORTS.map(r => `<a class="rcard" href="#${r.tabs[0].id}"><h3>${esc(r.nama)}</h3><p>${esc(r.desc)}</p><span class="meta">${esc(r.meta())}</span></a>`).join("")}
       <div class="rcard soon"><h3>Report lainnya</h3><p>Report berikutnya akan muncul di sini dengan format yang sama: dashboard, input data, dan master.</p></div></div></div>`;
 }
 function reportFrame(r, tab, inner) {
