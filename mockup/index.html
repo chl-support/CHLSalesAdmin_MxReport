@@ -407,6 +407,11 @@ select.th-sel { font: inherit; font-size: 13px; font-weight: 700; padding: 4px 8
 .mn-t td.up { color: var(--green); font-weight: 700; } .mn-t td.down { color: var(--red); font-weight: 700; }
 .mn-t tr.mn-na td { color: var(--muted); font-style: italic; }
 .mn-skema { margin-bottom: 18px; }
+.mn-cek .mn-st { text-align: left; min-width: 220px; }
+.mn-cek .mn-st small { display: block; color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: 2px; }
+.mn-ok { color: var(--green); font-weight: 800; } .mn-ng { color: var(--red); font-weight: 800; }
+.mn-cek td.mn-x { color: var(--red); font-weight: 800; }
+.mn-cek tr.mn-bad td.mn-pn { font-weight: 700; }
 .mn-kh { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .mn-kc { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 .mn-kc button { font: inherit; font-size: 12.5px; font-weight: 700; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
@@ -2868,6 +2873,45 @@ function mnData(th) {
     const hd = th >= yNow ? (S.sales2.hold || []).filter(h => h.proyekId === p.id) : [];
     return { grup: x.grup, nama: x.nama, adaWk: !!W, jual, batal, hold: hd, holdU: hd.length, holdV: hd.reduce((a, h) => a + (h.tandaJadi || 0), 0) }; }) };
 }
+/* Cek kesesuaian: Daily Sales vs Weekly per proyek (penjualan & batal Jan s.d bulan terpilih, hold saat ini) */
+function mnCek(P, th, b) {
+  const kd = v => String(v || "").replace(/\s+/g, "").toUpperCase(), nM = v => v ? idn(M(v)) : "–", beda = (a, c) => a !== c;
+  let semuaSama = true;
+  /* Batal di Daily dicatat per unit sejak sistem dipakai: dibandingkan mulai bulan pertama ada catatan batal di Daily */
+  const bt0 = (S.sales2.batal || []).map(x => String(x.tanggal)).filter(t => +t.slice(0, 4) === th).sort()[0], mb = bt0 ? +bt0.slice(5, 7) : b + 1;
+  const rows = P.map(p => {
+    const W0 = S.weekly && S.weekly[p.nama], W = W0 && ["jual", "batal", "hold"].some(j => (W0[j] || []).length) ? W0 : null;
+    const sdBl = l => l.filter(r => +wkEf(r).slice(0, 4) === th && +wkEf(r).slice(5, 7) <= b);
+    const btBl = l => l.filter(r => +wkEf(r).slice(0, 4) === th && +wkEf(r).slice(5, 7) >= mb && +wkEf(r).slice(5, 7) <= b);
+    const dJ = p.jual.slice(0, b).reduce((a, m) => [a[0] + m.u, a[1] + m.v], [0, 0]);
+    const wJl = W ? sdBl(W.jual || []) : [], wJ = [mnU(wJl), wkNilai(wJl)];
+    const dB = p.batal.slice(mb - 1, b).reduce((a, m) => a + m.u, 0), wB = W ? mnU(btBl(W.batal || [])) : 0;
+    const dH = p.hold.map(h => kd(h.kode)).filter(Boolean), wH = W ? (W.hold || []).filter(x => +x.jumlah).map(x => kd(x.unit)).filter(Boolean) : [];
+    const hanyaD = dH.filter(k => !wH.includes(k)), hanyaW = wH.filter(k => !dH.includes(k));
+    /* bulan yang unitnya berbeda */
+    const blnBeda = W ? BULAN.slice(0, b).map((nm, i) => { const d = p.jual[i].u, w = mnU(p.jual[i].l); return d !== w ? `${nm.slice(0, 3)} (Daily ${d} / Weekly ${w})` : ""; }).filter(Boolean) : [];
+    const rpBeda = Math.abs(dJ[1] - wJ[1]) >= 1e6;
+    const ok = W && !beda(dJ[0], wJ[0]) && !rpBeda && !beda(dB, wB) && !hanyaD.length && !hanyaW.length;
+    if (!ok) semuaSama = false;
+    const cat = !W ? ["Belum ada data Weekly"] : [
+      ...(blnBeda.length ? [`Penjualan beda di: ${blnBeda.join(", ")}`] : rpBeda ? [`Nilai penjualan beda ${rp(Math.abs(dJ[1] - wJ[1]))}`] : []),
+      ...(beda(dB, wB) ? [`Batal: Daily ${dB} unit, Weekly ${wB} unit`] : []),
+      ...(hanyaD.length ? [`Hold hanya di Daily: ${hanyaD.join(", ")}`] : []),
+      ...(hanyaW.length ? [`Hold hanya di Weekly: ${hanyaW.join(", ")}`] : [])];
+    const td = (x, y, f) => `<td class="num${x !== y ? " mn-x" : ""}">${f(x)}</td>`;
+    return `<tr class="${ok ? "" : "mn-bad"}"><td class="mn-pn">${esc(p.nama)}</td>
+      <td class="num">${dJ[0]}</td><td class="acc">${nM(dJ[1])}</td>${W ? td(wJ[0], dJ[0], v => v) + `<td class="acc${rpBeda ? " mn-x" : ""}">${nM(wJ[1])}</td>` : `<td class="num">–</td><td class="acc">–</td>`}
+      <td class="num">${dB}</td>${W ? td(wB, dB, v => v) : `<td class="num">–</td>`}
+      <td class="num">${dH.length}</td>${W ? `<td class="num${hanyaD.length || hanyaW.length ? " mn-x" : ""}">${wH.length}</td>` : `<td class="num">–</td>`}
+      <td class="mn-st">${ok ? `<span class="mn-ok">✓ Sama</span>` : `<span class="mn-ng">⚠ Beda</span><small>${cat.map(esc).join("<br>")}</small>`}</td></tr>`;
+  }).join("");
+  return `<section class="gut"><h2>Cek kesesuaian data</h2><div class="desc">Membandingkan Daily Sales Dashboard dengan Weekly Sales Dashboard per proyek: penjualan Januari s.d ${BULAN[b - 1]} ${th}, batal ${mb <= b ? `${mb === b ? BULAN[b - 1] : BULAN[mb - 1] + " s.d " + BULAN[b - 1]} (sejak Daily mencatat batal)` : "(belum ada catatan batal di Daily)"}, serta Hold Reserved saat ini.
+    ${semuaSama ? `<b class="mn-ok">Semua proyek sudah sama.</b>` : `<b class="mn-ng">Ada yang belum sama</b>, perbaiki di Input Data menu terkait.`}</div>
+    <div class="tbl-wrap"><table class="hold-t pg-t mn-t mn-cek"><thead>
+      <tr><th rowspan="2" class="mn-pn">Proyek</th><th colspan="2">Penjualan Daily</th><th colspan="2">Penjualan Weekly</th><th colspan="2">Batal (unit)${mb <= b ? `<br><small>${mb === b ? BULAN[b - 1] : `${BULAN[mb - 1].slice(0, 3)} s.d ${BULAN[b - 1].slice(0, 3)}`}</small>` : ""}</th><th colspan="2">Hold (unit)</th><th rowspan="2">Status</th></tr>
+      <tr><th>Unit</th><th>Rp M</th><th>Unit</th><th>Rp M</th><th>Daily</th><th>Weekly</th><th>Daily</th><th>Weekly</th></tr></thead>
+      <tbody>${rows}</tbody></table></div></section>`;
+}
 function viewMonthly() {
   const th = mnTh(), hari = S.sales2.tanggal, bk = mnBk(), b = Math.min(mnBulan || bk, 12), bi = b - 1;
   const { semua, P } = mnData(th);
@@ -2981,6 +3025,7 @@ function viewMonthly() {
       <span class="mn-uk no-cap" role="group" aria-label="Tampilan grafik"><button type="button" data-mnuk="unit" class="${mnUkur === "nilai" ? "" : "on"}">Unit</button><button type="button" data-mnuk="nilai" class="${mnUkur === "nilai" ? "on" : ""}">Nilai (Rp M)</button></span></div>
     <div class="mn-cw">${grafik}</div></section>
   <section class="gut"><h2>Ringkasan ${BULAN[bi]} ${th} per proyek</h2><div class="desc">Angka sama dengan Daily Sales Dashboard • nilai dalam miliar rupiah.</div>${ringkas}</section>
+  ${mnCek(P, th, b)}
   <section class="gut"><h2>Unit terjual per bulan ${th}</h2>${tblBulan((p, i) => p.jual[i].u, n, "unit")}</section>
   <section class="gut"><h2>Nilai penjualan per bulan ${th} (Rp M)</h2>${tblBulan((p, i) => p.jual[i].v, nM, "Rp M")}</section>
   <section class="gut"><h2>Komposisi penjualan</h2><div class="desc">Rincian dari data per transaksi di Weekly Sales Dashboard${(() => { const t = P.filter(p => { const d = p.jual.slice(0, b).reduce((x, m) => x + m.u, 0), w = p.jual.slice(0, b).reduce((x, m) => x + mnU(m.l), 0); return d !== w; }).map(p => p.nama); return t.length ? `. Belum ada / belum lengkap data Weekly-nya: ${esc(t.join(", "))}, jadi totalnya bisa berbeda dari angka di atas` : ""; })()}.</div>${skemaTbl}<div class="mn-dua">${komposisi("Sumber informasi", x => mnSumber(x.sumber))}</div></section>
