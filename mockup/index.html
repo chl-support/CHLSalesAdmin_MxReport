@@ -406,13 +406,13 @@ select.th-sel { font: inherit; font-size: 13px; font-weight: 700; padding: 4px 8
 .mn-t td.tot { font-weight: 700; }
 .mn-t td.up { color: var(--green); font-weight: 700; } .mn-t td.down { color: var(--red); font-weight: 700; }
 .mn-t tr.mn-na td { color: var(--muted); font-style: italic; }
-/* Tanda peringatan data belum sama */
-.cek-warn { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; padding-top: 12px; padding-bottom: 12px; background: var(--red-soft); border-left: 4px solid var(--red); color: var(--text); font-size: 13.5px; }
-.cek-warn .cek-ic { font-size: 20px; line-height: 1; color: var(--red); }
-.cek-warn b { color: var(--ink); }
-.cek-warn ul { margin: 4px 0 6px; padding-left: 18px; }
-.cek-warn li { margin: 2px 0; }
-.cek-warn a { color: var(--red); font-weight: 700; }
+/* Tombol peringatan: data Daily dan Weekly belum sama */
+.cek-btn { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; align-self: center; padding: 9px 16px; border-radius: 999px; background: var(--red); color: #fff !important; font-weight: 800; font-size: 14px; letter-spacing: .02em; text-decoration: none; box-shadow: 0 4px 14px rgba(192,57,43,.35); animation: cekDenyut 2s ease-in-out infinite; white-space: nowrap; }
+.cek-btn span { font-size: 17px; line-height: 1; }
+.cek-btn small { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.22); }
+.cek-btn:hover { filter: brightness(1.08); }
+@keyframes cekDenyut { 0%, 100% { box-shadow: 0 4px 14px rgba(192,57,43,.35); } 50% { box-shadow: 0 4px 22px rgba(192,57,43,.65); } }
+@media (prefers-reduced-motion: reduce) { .cek-btn { animation: none; } }
 .mn-skema { margin-bottom: 18px; }
 .mn-cek .mn-st { text-align: left; min-width: 220px; }
 .mn-cek .mn-st small { display: block; color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: 2px; }
@@ -1775,7 +1775,6 @@ function viewSales() {
         <button class="btn-ghost" id="salesShot" type="button" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button>
       </div></div>
   </div>
-  ${salesTahun ? "" : cekPeringatan()}
   <div class="kpis gut">
     ${kpi("var(--gold)", "Laporan hari ini", T.hari, cur ? `Penjualan ${panjang(tgl)}` : "Hanya untuk bulan berjalan")}
     ${kpi("var(--blue)", `Bulan ${esc(bln)}`, T.bln, `Penjualan selama ${esc(BULAN[m - 1])}`)}
@@ -2523,7 +2522,6 @@ function viewWeekly(nama, id) {
   return `<div class="page cap" id="capWeekly">
   <div class="hero"><div class="tabs"><span class="tab">Weekly Sales Performance</span><span class="tab">${panjang(hari)}</span></div>
     <div class="hero-body gut"><h1>${esc(W.judul || "Weekly Report " + nama)}</h1><div class="sub">Tahun ${th} • data per ${ddmmyyyy(hari)} • nilai pada kartu: Nilai Kontrak Include PPN (Exclude PPN jika kosong)</div></div></div>
-  ${wkTahun && wkTahun < wkThIni() ? "" : cekPeringatan(nama)}
   <div class="kpis wk-kpis gut">${(() => { /* Minggu berjalan: minggu (Senin–Minggu) yang memuat tanggal laporan */
       const w = mg.find(x => hari >= x.dari && hari <= x.sampai) || mg[mg.length - 1], dlm = x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai;
       const l = jL.filter(dlm), bt = totU(bL.filter(dlm));
@@ -2919,13 +2917,12 @@ function mnCekList(P, th, b) {
 /* Tanda peringatan: proyek yang datanya belum sama antara Daily dan Weekly */
 function cekPeringatan(namaSaja) {
   try {
-    const y = +todayISO().slice(0, 4); if (tahunKe() !== y) return "";
+    const y = +todayISO().slice(0, 4);
     const simpan = mnProyek; mnProyek = null; let P; try { P = mnData(y).P; } finally { mnProyek = simpan; }
     if (namaSaja) P = P.filter(p => p.nama === namaSaja);
     const beda = mnCekList(P, y, bulanKe()).list.filter(x => !x.ok); if (!beda.length) return "";
-    const isi = beda.map(x => `<li><b>${esc(x.nama)}</b>: ${esc(x.cat.join("; "))}</li>`).join("");
-    return `<div class="cek-warn gut no-cap" role="alert"><div class="cek-ic" aria-hidden="true">⚠</div><div><b>Data belum sama antara Daily Sales dan Weekly Sales</b>${namaSaja ? "" : ` (${beda.length} proyek)`}
-      <ul>${isi}</ul><a href="#monthly" data-cekgo>Lihat detail di Cek kesesuaian data →</a></div></div>`;
+    const ket = beda.map(x => `${x.nama}: ${x.cat.join("; ")}`).join("\n");
+    return `<a href="#monthly" class="cek-btn no-cap" data-cekgo title="${esc(ket)}"><span aria-hidden="true">⚠</span> Data belum sama${namaSaja ? "" : ` · ${beda.length} proyek`}<small>Lihat detail</small></a>`;
   } catch (e) { return ""; }
 }
 document.addEventListener("click", e => { if (e.target.closest("[data-cekgo]")) setTimeout(() => { const el = document.getElementById("mnCek"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 350); });
@@ -3045,7 +3042,6 @@ function viewMonthly() {
     <label class="wk-opt" for="mnBln">Bulan <select id="mnBln">${opsiBln}</select></label>
     <span class="wk-opt">Proyek <details class="dr-dd mn-dd" id="mnPr"${mnBukaPr ? " open" : ""}><summary>${esc(namaFilter)}</summary><div class="dr-dd-list">${opsiPr}</div></details></span>
     <span class="mn-act"><button type="button" class="btn sec" id="mnKirim">Kirim ringkasan</button><button type="button" class="btn sec" id="mnShot" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button><button type="button" class="btn sec" id="mnXls">Ekspor Excel</button></span></div>
-  ${th === +todayISO().slice(0, 4) ? cekPeringatan() : ""}
   <div class="kpis wk-kpis gut">${kpi("var(--blue)", `Penjualan ${BULAN[bi]}`, J[0], J[1], dLalu)}${kpi("var(--red)", `Batal ${BULAN[bi]}`, Bt[0], Bt[1], Bt[0] ? `${P.filter(p => p.batal[bi].u).length} proyek` : "Tidak ada pembatalan")}${kpi("var(--green)", `Bersih ${BULAN[bi]}`, J[0] - Bt[0], J[1] - Bt[1], "Penjualan dikurangi batal")}${kpi("var(--gold)", `YTD ${th}`, Y[0], Y[1], `Januari s.d ${BULAN[bi]} • batal ${YB[0]} unit`)}<div class="kpi" style="--c:var(--purple)"><div class="lbl">Hold Reserved</div><div class="val num">${H[0].toLocaleString(LOC())} <small>unit</small></div><div class="pct num">${rpRingkas(H[1])} <small style="font-size:13px;font-weight:600;color:var(--muted)">tanda jadi</small></div><div class="note">Posisi saat ini • belum dihitung sebagai penjualan</div></div></div>
   <section class="gut"><h2>Penjualan & batal per bulan ${th}</h2>
     <div class="mn-leg"><span><i class="mn-j"></i>Penjualan</span><span><i class="mn-b"></i>Batal</span><span class="desc">Arahkan kursor / sentuh bulan untuk rincian, klik untuk memilih bulan.</span>
@@ -3209,9 +3205,9 @@ function reportFrame(r, tab, inner) {
   const tabs = r.tabs.filter(t => (!t.admin || S.role === "ADMIN") && !(t.master && userTerbatas()));
   if (r.subMenu) { const pt = tabs.filter(t => t.proyek === tab.proyek);
     return `<div class="page gut"><div class="rhead"><div><div class="crumb"><a href="#laporan">Property Sales Dashboard</a> / ${esc(r.nama)}</div><h2>${esc(r.nama)}</h2>
-    <div class="desc" style="font-size:15px;font-weight:700;color:var(--ink);margin-top:4px">${esc(tab.proyek)}</div></div></div>
+    <div class="desc" style="font-size:15px;font-weight:700;color:var(--ink);margin-top:4px">${esc(tab.proyek)}</div></div>${r.id === "weekly" ? cekPeringatan(tab.proyek) : ""}</div>
     <nav class="rtabs" aria-label="Bagian report">${pt.map(t => `<a href="#${t.id}" class="${t.id === tab.id ? "on" : ""}" ${t.id === tab.id ? 'aria-current="page"' : ""}>${t.label}</a>`).join("")}</nav></div>${inner}`; }
-  return `<div class="page gut"><div class="rhead"><div><div class="crumb"><a href="#laporan">Property Sales Dashboard</a> / ${esc(r.nama)}</div><h2>${esc(r.nama)}</h2></div></div>
+  return `<div class="page gut"><div class="rhead"><div><div class="crumb"><a href="#laporan">Property Sales Dashboard</a> / ${esc(r.nama)}</div><h2>${esc(r.nama)}</h2></div>${r.id === "penjualan" || r.id === "monthly" ? cekPeringatan() : ""}</div>
     <nav class="rtabs" aria-label="Bagian report">${tabs.map(t => `<a href="#${t.id}" class="${t.id === tab.id ? "on" : ""}" ${t.id === tab.id ? 'aria-current="page"' : ""}>${t.label}</a>`).join("")}</nav></div>${inner}`;
 }
 function findTab(v) { for (const r of REPORTS) for (const t of r.tabs) if (t.id === v) return { r, t }; return null; }
