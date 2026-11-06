@@ -3365,8 +3365,7 @@ function pasTabel() {
     t.style.width = "auto"; const n = t.offsetWidth;
     if (n >= w * 0.72) { t.style.width = ""; return; }
     if (sedikit) { t.classList.add("lebar-isi"); return; } /* mis. Master: selebar isinya */
-    /* tabel laporan yang isinya sempit (mis. Penjualan per Proyek di layar lebar): secukupnya, tidak selebar layar */
-    t.style.width = Math.min(w, Math.round(n * 1.6)) + "px";
+    t.style.width = ""; /* tabel laporan tetap selebar layar */
   });
   document.querySelectorAll("#view .tbl-wrap > table").forEach(t => {
     t.style.zoom = "";
