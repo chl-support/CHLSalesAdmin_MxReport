@@ -2737,6 +2737,10 @@ function wkBacaExcel(rows, W, th) {
       row.forEach((v, i) => { if (i <= iT) return; const h = nLbl(v); if (!h) return;
         const c = C.find(c => !pakai.has(c.k) && (nLbl(c.x || c.l) === h || (c.k === "sales" && h.includes("sales")) || (c.k === "lahir" && h.startsWith("tgl. lahir"))));
         if (c) { pakai.add(c.k); map[c.k] = i; } });
+      /* Domisili: Kelurahan/Desa, Kecamatan, Kota ada di baris judul kedua */
+      const sub = rows[r + 1] || []; let adaSub = false;
+      sub.forEach((v, i) => { const h = low(v); if (/^kel(urahan)?\s*\/?\s*desa/.test(h)) { map.kel = i; adaSub = true; } else if (h === "kecamatan") { map.kec = i; adaSub = true; } else if (h === "kota") { map.kota = i; adaSub = true; } });
+      if (adaSub) r++;
       continue;
     }
     if (bag && WK_PG[bag]) {
@@ -2744,7 +2748,7 @@ function wkBacaExcel(rows, W, th) {
       const C = WK_PG[bag].kol(W), t = tgl(row[map.tanggal]);
       const x = { id: out[bag].length + 1, tanggal: t || "" };
       C.forEach(c => { const i = map[c.k], v = i == null ? null : row[i]; x[c.k] = c.t === "rp" ? angka(v) : c.t === "date" ? (tgl(v) || "") : teks(v); });
-      if (!t && !C.some(c => c.t !== "rp" && x[c.k])) continue; /* baris kosong / "(belum ada data)" */
+      if (!t && !C.some(c => c.t !== "rp" && x[c.k] && !/^(unit|0|-|–)$/i.test(String(x[c.k]).trim()))) continue; /* baris kosong / total "0 Unit" / "(belum ada data)" */
       if (C.filter(c => x[c.k] && JUDUL.has(low(x[c.k]))).length >= 2) continue;
       if (x.usia) x.usia = wkUsia(x.usia);
       wkUsiaIsi(x);
