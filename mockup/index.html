@@ -3462,13 +3462,36 @@ function viewTargetInput() {
   return `<div class="page gut"><div class="form-head"><div><h2>Input Target ${th}</h2>
     <div class="desc">Target per proyek per bulan (unit dan Rp). Isi kolom <b>Total ${th}</b> lalu tekan Tab untuk <b>dibagi rata</b> ke 12 bulan, atau isi per bulan. Actual diambil otomatis dari Daily Sales Dashboard.${ro ? " <b>Hanya admin.chl yang bisa mengubah target.</b>" : ""}</div></div>
     <div class="btn-row"><label class="wk-opt" for="tgThIn">Tahun <select id="tgThIn" class="th-sel">${[...new Set([+todayISO().slice(0, 4) + 1, ...tahunSalesAda(), ...Object.keys(S.target || {}).map(Number)])].filter(Boolean).sort((a, c) => c - a).map(y => `<option value="${y}" ${y === th ? "selected" : ""}>${y}</option>`).join("")}</select></label>
-      <button class="btn sec" id="tgXlsIn" type="button">Ekspor Excel</button>${ro ? "" : `${adaLalu ? `<button class="btn sec" id="tgSalin" type="button">Salin dari ${th - 1}</button>` : ""}<button class="btn sec" id="tgBatal" type="button">Batalkan perubahan</button><button class="btn" id="tgSimpan" type="button">Simpan target</button>`}</div></div>
+      <button class="btn sec" id="tgXlsIn" type="button">Ekspor Excel</button>${ro ? "" : `<button class="btn sec" id="tgImp" type="button">Impor dari Excel</button><input type="file" id="tgImpFile" accept=".xlsx,.xls" hidden>`}${ro ? "" : `${adaLalu ? `<button class="btn sec" id="tgSalin" type="button">Salin dari ${th - 1}</button>` : ""}<button class="btn sec" id="tgBatal" type="button">Batalkan perubahan</button><button class="btn" id="tgSimpan" type="button">Simpan target</button>`}</div></div>
     <div class="tbl-wrap"><table class="edit tg-in"><thead><tr><th rowspan="2" class="stick">Proyek</th><th colspan="2" class="tg-tot">Total ${th}</th>${BULAN.map(x => `<th colspan="2">${x}</th>`).join("")}</tr>
       <tr><th class="tg-tot">Unit</th><th class="tg-tot">Rp</th>${BULAN.map(() => "<th>Unit</th><th>Rp</th>").join("")}</tr></thead><tbody>
       ${grup.map(gp => `<tr class="group"><td class="stick" colspan="27">${esc(gp)}</td></tr>` + semua.filter(p => p.grup === gp).map(p => { const t = tot(p.id);
         return `<tr><td class="stick proj-c">${esc(p.nama)}</td><td class="tg-tot">${totIn(p.id, 0, t[0])}</td><td class="tg-tot">${totIn(p.id, 1, t[1])}</td>${arr(p.id).map((v, i) => `<td>${inU(p.id, i, v[0])}</td><td>${inR(p.id, i, v[1])}</td>`).join("")}</tr>`; }).join("")).join("")}
       <tr class="sum"><td class="stick">${lblTotal(1)}</td><td class="tg-tot">${TT[0] ? TT[0].toLocaleString(LOC()) : "–"}</td><td class="tg-tot">${TT[1] ? rpDot(TT[1]) : "–"}</td>${T.map(v => `<td>${v[0] || "–"}</td><td>${v[1] ? rpDot(v[1]) : "–"}</td>`).join("")}</tr>
       </tbody></table></div></div>`;
+}
+/* Impor target dari Excel (format "Data Sales Budget": baris Proyek | Unit | Jan..Des | Total, lalu baris Rp) */
+function tgBacaExcel(rows, th) {
+  const low = v => String(v == null ? "" : v).replace(/\s+/g, " ").trim().toLowerCase();
+  const angka = v => typeof v === "number" ? v : (Number(String(v || "").replace(/[^0-9.,-]/g, "").replace(/\./g, "").replace(",", ".")) || 0);
+  const tahunDari = v => { if (v instanceof Date) return v.getFullYear(); if (typeof v === "number" && v > 20000 && v < 80000) return XLSX.SSF.parse_date_code(v).y; const m = String(v || "").match(/(20\d\d)/); return m ? +m[1] : null; };
+  const BLN = BULAN.map(b => b.toLowerCase().slice(0, 3)), ENG = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  /* baris judul: 12 kolom bulan (tanggal atau nama bulan) */
+  let kol = null, tahunFile = null;
+  for (const r of rows) { const idx = [];
+    (r || []).forEach((v, i) => { const t = low(v).slice(0, 3); if (v instanceof Date || (typeof v === "number" && v > 40000 && v < 80000) || BLN.includes(t) || ENG.includes(t)) idx.push(i); });
+    if (idx.length >= 12) { kol = idx.slice(0, 12); tahunFile = tahunDari(r[kol[0]]); break; } }
+  const proyek = (S.sales2.proyek || []).map(p => ({ id: p.id, nm: low(p.nama) })), hasil = {}, ketemu = [];
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i] || [], iU = r.findIndex(v => low(v) === "unit"); if (iU < 0) continue;
+    const nama = r.slice(0, iU).map(low).find(v => v && proyek.some(p => p.nm === v)) || low(r.slice(0, iU).filter(v => low(v)).pop());
+    const p = proyek.find(x => x.nm === nama); if (!p) continue;
+    const r2 = rows[i + 1] || [], c = kol || Array.from({ length: 12 }, (_, k) => iU + 1 + k);
+    const adaRp = r2.some(v => low(v) === "rp");
+    hasil[p.id] = c.map(ci => [Math.max(0, Math.round(angka(r[ci]))), adaRp ? Math.max(0, Math.round(angka(r2[ci]))) : 0]);
+    ketemu.push(p.id);
+  }
+  return { hasil, ketemu, tahunFile };
 }
 function bindTargetInput() {
   const g = id => document.getElementById(id), angka = s => Number(String(s).replace(/[^0-9]/g, "")) || 0;
@@ -3481,6 +3504,22 @@ function bindTargetInput() {
     if (+j === 0) { const dasar = Math.floor(v / 12), sisa = v - dasar * 12; a.forEach((x, i) => x[0] = dasar + (i < sisa ? 1 : 0)); }
     else { const dasar = Math.floor(v / 12), sisa = v - dasar * 12; a.forEach((x, i) => x[1] = dasar + (i === 11 ? sisa : 0)); }
     render(el.id); });
+  const fi = g("tgImpFile");
+  if (g("tgImp")) g("tgImp").onclick = () => { if (!window.XLSX) { toast("Impor Excel belum siap. Periksa koneksi internet."); return; } fi.value = ""; fi.click(); };
+  if (fi) fi.onchange = async () => {
+    const file = fi.files && fi.files[0]; if (!file) return;
+    try {
+      const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true }), nm = wb.SheetNames[0];
+      const r = tgBacaExcel(XLSX.utils.sheet_to_json(wb.Sheets[nm], { header: 1, raw: true, defval: null }), th);
+      if (!r.ketemu.length) { toast("Tidak ada target proyek yang terbaca. Pastikan ada kolom Unit/Rp dan nama proyek sama dengan di sistem."); return; }
+      const nmP = id => (S.sales2.proyek.find(p => p.id === id) || {}).nama, jum = a => a.reduce((s, v) => [s[0] + v[0], s[1] + v[1]], [0, 0]);
+      const daftar = r.ketemu.map(id => { const t = jum(r.hasil[id]); return `• ${nmP(id)}: ${t[0]} unit, ${rp(t[1])}`; }).join("\n");
+      const beda = r.tahunFile && r.tahunFile !== th ? `\n\nPerhatian: file ini untuk tahun ${r.tahunFile}, sedangkan yang dibuka tahun ${th}.` : "";
+      if (!confirm(`Terbaca dari sheet "${nm}" (${r.ketemu.length} proyek):\n${daftar}${beda}\n\nTarget ${th} proyek tersebut akan diganti dengan isi file. Lanjutkan?`)) return;
+      r.ketemu.forEach(id => tgDraft[id] = r.hasil[id]); render();
+      toast(`Target ${r.ketemu.length} proyek dimuat dari Excel. Periksa lalu klik Simpan target.`);
+    } catch (e) { toast("Gagal membaca file Excel."); }
+  };
   if (g("tgSalin")) g("tgSalin").onclick = () => { if (!confirm(`Salin target ${th - 1} ke ${th}? Isian ${th} yang sekarang akan diganti.`)) return; tgDraft = clone((S.target || {})[th - 1] || {}); render(); toast(`Target ${th - 1} disalin. Periksa lalu klik Simpan target.`); };
   if (g("tgBatal")) g("tgBatal").onclick = () => { tgDraft = null; render(); toast("Perubahan dibatalkan"); };
   if (g("tgSimpan")) g("tgSimpan").onclick = () => {
