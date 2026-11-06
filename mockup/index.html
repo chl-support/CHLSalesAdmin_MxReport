@@ -3360,9 +3360,13 @@ function pasTabel() {
     if (t.classList.contains("wk-fit") || t.classList.contains("cat-t") || t.closest(".dr-wrap")) return;
     const w = t.parentElement.clientWidth; if (!w) return;
     const baris = t.tHead && t.tHead.rows[t.tHead.rows.length - 1], kol = t.rows[t.rows.length - 1] ? t.rows[t.rows.length - 1].cells.length : 0;
-    if (Math.max(kol, baris ? baris.cells.length : 0) > 4) return; /* hanya tabel dengan sedikit kolom (mis. Master) */
+    const sedikit = Math.max(kol, baris ? baris.cells.length : 0) <= 4, isian = !!t.querySelector("input, select, textarea");
+    if (!sedikit && isian) return; /* tabel input dengan banyak kolom tetap penuh */
     t.style.width = "auto"; const n = t.offsetWidth;
-    if (n < w * 0.72) t.classList.add("lebar-isi"); else t.style.width = "";
+    if (n >= w * 0.72) { t.style.width = ""; return; }
+    if (sedikit) { t.classList.add("lebar-isi"); return; } /* mis. Master: selebar isinya */
+    /* tabel laporan yang isinya sempit (mis. Penjualan per Proyek di layar lebar): secukupnya, tidak selebar layar */
+    t.style.width = Math.min(w, Math.round(n * 1.6)) + "px";
   });
   document.querySelectorAll("#view .tbl-wrap > table").forEach(t => {
     t.style.zoom = "";
