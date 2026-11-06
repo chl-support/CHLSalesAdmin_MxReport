@@ -773,6 +773,8 @@ let SESI = null;
 const akunIni = () => SESI || null;
 const userTerbatas = () => !!(akunIni() && akunIni().proyek);
 /* Menu Daily Report Message Template hanya untuk akun admin.chl */
+/* Menu Impor dari Excel (Weekly Input Data) hanya untuk akun admin.chl */
+const bolehImporExcel = () => !!(akunIni() && String(akunIni().u || "").toLowerCase() === "admin.chl");
 const bolehDailyReport = () => !!(akunIni() && String(akunIni().u || "").toLowerCase() === "admin.chl");
 /* Label total: akun terbatas hanya melihat proyeknya sendiri, jadi bukan total CHL */
 const lblTotal = (huruf) => userTerbatas() ? (huruf ? "TOTAL" : "Total") : (huruf ? "TOTAL CHL" : "Total CHL");
@@ -2556,7 +2558,7 @@ function viewWeekly(nama, id) {
       const l = jL.filter(dlm), bt = totU(bL.filter(dlm));
       return kpi("var(--green)", "Minggu berjalan", totU(l), wkNilai(l), `${w.n ? `Minggu ke-${w.n}` : "Awal tahun"} • ${wkPendek(w.dari, w.sampai)}${bt ? ` • batal ${bt} unit` : ""}`); })()}${kpi("var(--blue)", `Penjualan ${th}`, totU(jL), wkNilai(jL), `Januari s.d ${BULAN[wkBkTh() - 1]} ${th}`)}${kpi("var(--gold)", aw < th ? `Akumulasi ${aw}–${th}` : `Akumulasi ${th}`, akum.g[0], akum.nilai, "Grand total penjualan")}${kpi("var(--red)", `Batal ${th}`, totU(bL), wkNilai(bL), `Januari s.d ${BULAN[wkBkTh() - 1]} ${th}`)}${kpi("var(--purple)", "Hold Reserved", hTot[0], wkNilai(hold), hold.length ? `${hold.length} transaksi` : "Tidak ada unit hold")}</div>
   ${!jL.length && !bL.length && !hold.length ? `<div class="wk-imp gut no-cap"><b>Belum ada transaksi ${th} untuk ${esc(nama)}.</b> ${S.role === "ADMIN" && bolehEdit(nama)
-    ? `Masukkan dari file Weekly Report: buka <a href="#${(REPORTS.find(r => r.id === "weekly").tabs.find(t => t.proyek === nama && t.label === "Input Data") || {}).id}">Input Data</a> → klik <b>Impor dari Excel</b> → pilih file → <b>Simpan data</b>.` : "Data akan tampil setelah admin mengisi Input Data."}</div>` : ""}
+    ? (bolehImporExcel() ? `Masukkan dari file Weekly Report: buka <a href="#${(REPORTS.find(r => r.id === "weekly").tabs.find(t => t.proyek === nama && t.label === "Input Data") || {}).id}">Input Data</a> → klik <b>Impor dari Excel</b> → pilih file → <b>Simpan data</b>.` : `Isi transaksinya di <a href="#${(REPORTS.find(r => r.id === "weekly").tabs.find(t => t.proyek === nama && t.label === "Input Data") || {}).id}">Input Data</a>, lalu <b>Simpan data</b>.`) : "Data akan tampil setelah admin mengisi Input Data."}</div>` : ""}
   <section class="gut"><div class="wk-h"><h2>Penjualan per minggu ${th}</h2>
     <div class="wk-opts no-cap">${(() => { /* Pilihan minggu: berlaku untuk tabel Penjualan dan Batal per minggu */
       const ada = j => thIni(j).map(wkEf), tr = new Set([...ada("jual"), ...ada("batal")]);
@@ -2634,8 +2636,8 @@ function viewWeeklyInput(nama, id) {
   const rpHead = K.filter(c => c.t === "rp").map(c => `<th class="c">${c.l}</th>`).join("");
   const idx = [...Array(nk).keys()];
   return `<div class="page gut"><div class="form-head"><div><h2>Input Data Weekly ${esc(nama)}</h2>
-    <div class="desc">Isi transaksi tahun ${th} per baris, atau ambil dari file Weekly Report dengan Impor dari Excel. Dashboard menyusunnya per minggu (Senin s.d Minggu) dan per bulan. Angka tahun ${aw} s.d ${th - 1} diisi di Rekap tahun sebelumnya. Rp dalam Rupiah penuh.</div></div>
-    <div class="btn-row"><button type="button" class="btn sec wk-tgl" data-wktambahan>${wkTambahanTampil() ? "Sembunyikan" : "Tampilkan"} kolom Sumber Info, Usia, Tgl. Lahir & Domisili</button>${lk ? "" : `<button class="btn sec" id="wkImp" type="button">Impor dari Excel</button><input type="file" id="wkImpFile" accept=".xlsx,.xls" hidden>`}<button class="btn sec" id="wkXls" type="button">Ekspor Excel</button><button class="btn sec" id="wkReset" type="button" ${lk ? "disabled" : ""}>Batalkan perubahan</button><button class="btn" id="wkSave" type="button" ${lk ? "disabled" : ""}>Simpan data</button></div></div>
+    <div class="desc">Isi transaksi tahun ${th} per baris${bolehImporExcel() ? ", atau ambil dari file Weekly Report dengan Impor dari Excel" : ""}. Dashboard menyusunnya per minggu (Senin s.d Minggu) dan per bulan. Angka tahun ${aw} s.d ${th - 1} diisi di Rekap tahun sebelumnya. Rp dalam Rupiah penuh.</div></div>
+    <div class="btn-row"><button type="button" class="btn sec wk-tgl" data-wktambahan>${wkTambahanTampil() ? "Sembunyikan" : "Tampilkan"} kolom Sumber Info, Usia, Tgl. Lahir & Domisili</button>${lk || !bolehImporExcel() ? "" : `<button class="btn sec" id="wkImp" type="button">Impor dari Excel</button><input type="file" id="wkImpFile" accept=".xlsx,.xls" hidden>`}<button class="btn sec" id="wkXls" type="button">Ekspor Excel</button><button class="btn sec" id="wkReset" type="button" ${lk ? "disabled" : ""}>Batalkan perubahan</button><button class="btn" id="wkSave" type="button" ${lk ? "disabled" : ""}>Simpan data</button></div></div>
     ${lk ? `<p class="hint">${ikonKunci} Akun Anda tidak bisa mengubah data ${esc(nama)}.</p>` : ""}
     <div class="bh">${tabel("jual")}${tabel("batal")}${tabel("hold")}${tabel("pindah")}${tabel("ganti")}
     <div class="bh-box"><h3>Rekap tahun sebelumnya</h3><div class="desc">Total per tahun dari Weekly Report lama. Baris TOTAL (${th}) dihitung otomatis dari tabel Penjualan dan Batal di atas, jadi tetap tampil walau belum ada transaksi.</div>
@@ -2810,8 +2812,8 @@ function bindWeeklyInput(nama) {
   if (!S.weekly || !S.weekly[nama] || !bolehEdit(nama)) return;
   const v = document.getElementById("view"), d = wkDraft, W = S.weekly[nama], angka = s => Number(String(s).replace(/[^0-9]/g, "")) || 0, nk = wkRpK(W).length + 1;
   const fImp = document.getElementById("wkImpFile");
-  document.getElementById("wkImp").onclick = () => { if (!window.XLSX) { toast("Impor Excel belum siap. Periksa koneksi internet."); return; } fImp.value = ""; fImp.click(); };
-  fImp.onchange = async () => {
+  const ib = document.getElementById("wkImp"); if (ib) ib.onclick = () => { if (!window.XLSX) { toast("Impor Excel belum siap. Periksa koneksi internet."); return; } fImp.value = ""; fImp.click(); };
+  if (fImp) fImp.onchange = async () => {
     const file = fImp.files && fImp.files[0]; if (!file) return;
     try {
       const wb = XLSX.read(await file.arrayBuffer(), { type: "array" }), th = tahunKe();
