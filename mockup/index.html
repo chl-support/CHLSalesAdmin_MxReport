@@ -105,6 +105,14 @@ table { width: 100%; border-collapse: collapse; }
 /* Tabel yang isinya sempit: lebar mengikuti isi, teks panjang tetap turun ke baris berikutnya */
 #view table.lebar-isi { width: auto; max-width: 100%; }
 /* Ubah password & Manajemen User */
+.pp-dd { margin: 0; }
+.pp-dd > summary { list-style: none; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px; }
+.pp-dd > summary::-webkit-details-marker { display: none; }
+.pp-dd > summary::after { content: "▾"; font-size: 12px; transition: transform .15s; }
+.pp-dd[open] > summary::after { transform: rotate(180deg); }
+.pp-dd-list { display: flex; flex-direction: column; gap: 4px; margin: 6px 0 2px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+.pp-sub { font: inherit; font-size: 13.5px; font-weight: 600; text-align: left; padding: 8px 10px; border: 0; border-radius: 6px; background: none; color: var(--ink); cursor: pointer; text-decoration: none; display: block; }
+.pp-sub:hover { background: var(--track); }
 .pw-box { width: min(440px, 100%); }
 .pw-form { display: flex; flex-direction: column; gap: 10px; }
 .pw-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 700; color: var(--ink); }
@@ -700,7 +708,6 @@ a.rcard:hover { border-color: var(--gold); }
         <a href="#laporan" data-v="laporan">PROPERTY SALES DASHBOARD</a>
         <div class="sub" id="reportMenu"></div>
         <button type="button" class="dr-side" data-dr>DAILY REPORT MESSAGE TEMPLATE</button>
-        <a class="dr-side um-side" href="#users" id="umSide" hidden>MANAJEMEN USER</a>
       </div>
     </nav>
   </aside>
@@ -718,8 +725,9 @@ a.rcard:hover { border-color: var(--gold); }
         <div class="pp-row"><span>Bahasa</span>
           <div class="pp-lang" role="group" aria-label="Bahasa"><button type="button" id="langID" aria-pressed="true">ID</button><button type="button" id="langEN" aria-pressed="false">EN</button></div></div>
         <a class="pp-btn" href="#laporan" id="gantiLaporan">Ganti Laporan</a>
-        <button class="pp-btn" id="ubahPwBtn" type="button">Ubah password</button>
-        <a class="pp-btn" href="#users" id="umBtn" hidden>Manajemen User</a>
+        <details class="pp-dd" id="ppAkun"><summary class="pp-btn">Pengaturan Akun</summary>
+          <div class="pp-dd-list"><button class="pp-sub" id="ubahPwBtn" type="button">Ubah password</button>
+          <a class="pp-sub" href="#users" id="umBtn" hidden onclick="bukaProfil(false)">Manajemen User</a></div></details>
         <button class="pp-btn" id="logoutBtn" type="button">Keluar</button>
         <hr>
         <p class="pp-help">Jika ada kendala, silakan hubungi Admin IT:</p>
@@ -3488,7 +3496,7 @@ function render(focusId) {
   document.getElementById("profRole").textContent = peran;
   document.getElementById("profAv").textContent = SESI.nama.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
   document.getElementById("resetBtn").hidden = !(SESI.role === "ADMIN" && !SESI.proyek);
-  document.getElementById("umBtn").hidden = document.getElementById("umSide").hidden = !bolehKelolaUser();
+  document.getElementById("umBtn").hidden = !bolehKelolaUser();
   document.getElementById("syncInfo").textContent = SERVER.info;
   ikutiHariIni(); /* tanggal laporan otomatis = hari ini (juga setelah lewat tengah malam) */
   rendering = true;
@@ -3590,7 +3598,7 @@ window.addEventListener("resize", () => { clearTimeout(pasHP.t); pasHP.t = setTi
 
 /* ===================== Menu profil + bahasa ===================== */
 const profBtn = document.getElementById("profBtn"), profPop = document.getElementById("profPop");
-function bukaProfil(buka) { profPop.hidden = !buka; profBtn.setAttribute("aria-expanded", String(buka)); }
+function bukaProfil(buka) { profPop.hidden = !buka; profBtn.setAttribute("aria-expanded", String(buka)); if (!buka) { const d = document.getElementById("ppAkun"); if (d) d.open = false; } }
 profBtn.onclick = e => { e.stopPropagation(); bukaProfil(profPop.hidden); };
 document.addEventListener("click", e => { if (!profPop.hidden && !profPop.contains(e.target) && e.target !== profBtn) bukaProfil(false); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !profPop.hidden) { bukaProfil(false); profBtn.focus(); } });
