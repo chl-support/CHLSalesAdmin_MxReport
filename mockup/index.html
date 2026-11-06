@@ -104,6 +104,9 @@ h2 { margin: 0; color: var(--ink); font-size: 22px; font-weight: 800; text-trans
 table { width: 100%; border-collapse: collapse; }
 /* Tabel yang isinya sempit: lebar mengikuti isi, teks panjang tetap turun ke baris berikutnya */
 #view table.lebar-isi { width: auto; max-width: 100%; }
+/* Tabel panjang: digulir di dalam kotaknya, baris judul tetap di atas */
+#view .tbl-wrap.lekat { max-height: calc(100vh - 110px); overflow: auto; overscroll-behavior: contain; }
+#view .tbl-wrap.lekat > table > thead th { position: sticky; z-index: 3; }
 .rincian { min-width: 640px; }
 .rincian thead th { background: var(--navy); color: #fff; font-weight: 700; padding: 8px 10px; }
 .rincian thead tr:first-child th { font-size: 15px; text-transform: uppercase; }
@@ -3339,7 +3342,7 @@ function render(focusId) {
     terapkanBahasa();
   } finally { rendering = false; }
   document.querySelectorAll("[data-dr]").forEach(el => { el.hidden = !bolehDailyReport(); });
-  nolStrip(); pasHP(); pasTabel(); lebarSidebar();
+  nolStrip(); pasHP(); pasTabel(); lebarSidebar(); judulLekat();
   if (focusId) { const el = document.getElementById(focusId); if (el) el.focus(); }
 }
 /* Di layar HP (< 900px) semua tab report (Dashboard, Input Data, Master, History) ditampilkan
@@ -3388,6 +3391,17 @@ function lebarSidebar() {
   const w = Math.round(Math.min(330, Math.max(220, perlu)));
   side.style.width = side.style.flexBasis = w + "px";
 }
+/* Judul tabel tetap terlihat saat digulir: tabel yang lebih tinggi dari layar digulir di dalam kotaknya, baris judul menempel di atas */
+function judulLekat() {
+  const fit = document.getElementById("view") && document.getElementById("view").classList.contains("fit");
+  document.querySelectorAll("#view .tbl-wrap").forEach(w => {
+    const t = w.querySelector(":scope > table"), th = t && t.tHead;
+    w.classList.remove("lekat"); if (th) th.querySelectorAll("th").forEach(c => c.style.top = "");
+    if (!t || !th || fit || t.offsetHeight < window.innerHeight * 0.8) return;
+    w.classList.add("lekat");
+    let atas = 0; [...th.rows].forEach(r => { r.querySelectorAll("th").forEach(c => { if (!c.style.top) c.style.top = atas + "px"; }); atas += r.getBoundingClientRect().height / (parseFloat(t.style.zoom) || 1); });
+  });
+}
 function pasTabel() {
   /* Tabel dengan sedikit kolom tidak dilebarkan penuh: selebar isinya (kecuali tabel input yang lebarnya diatur) */
   document.querySelectorAll("#view .tbl-wrap > table").forEach(t => {
@@ -3409,7 +3423,7 @@ function pasTabel() {
     if (w && n > w + 2) { const z = w / n; if (z >= 0.72) t.style.zoom = String(Math.floor(z * 1000) / 1000); }
   });
 }
-window.addEventListener("resize", () => { clearTimeout(pasHP.t); pasHP.t = setTimeout(() => { pasHP(); pasTabel(); lebarSidebar(); }, 120); });
+window.addEventListener("resize", () => { clearTimeout(pasHP.t); pasHP.t = setTimeout(() => { pasHP(); pasTabel(); lebarSidebar(); judulLekat(); }, 120); });
 
 /* ===================== Menu profil + bahasa ===================== */
 const profBtn = document.getElementById("profBtn"), profPop = document.getElementById("profPop");
