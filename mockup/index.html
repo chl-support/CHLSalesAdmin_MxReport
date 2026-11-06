@@ -1623,6 +1623,25 @@ const WK_GRUP = [["PT. Serpong Bangun Cipta", ["Banara Serpong", "Naraya Serpong
   ["PT. Serpong Bangun Lestari", ["Bio District"]],
   ["PT. Bumi Mahardhika Makmur", ["Permai Indah"]],
   ["PT. Bhakti Bangun Harmoni – The Sanctuary Collection", ["Tanglin Parc", "Newton Springs", "Orchard Riviera", "Scotts Vale"]]];
+/* ===== Format penulisan Weekly (sama untuk semua proyek) =====
+   Nama & isian: Kapital Di Awal Setiap Kata. Keterangan: kapital di awal kalimat. Singkatan tetap huruf besar. Kode unit & Tipe tidak diubah. */
+const WK_AKRONIM = new Set(["KPR", "KPA", "DP", "PT", "BI", "SPK", "PPN", "DTP", "BF", "SPU", "P3U", "PPJB", "SBUM", "BSD", "CV", "UTJ", "AJB", "IMB", "SHM", "HGB", "BPHTB", "NJOP",
+  "KTP", "NPWP", "WNA", "ATM", "TSC", "CHL", "DKI", "RT", "RW", "II", "III", "IV", "VI", "VII", "VIII", "IX", "XI", "XII", "ID", "BCA", "BRI", "BNI", "BTN", "BSI", "OCBC", "UOB", "CIMB", "SMS", "WA", "IG", "TV", "PPN-DTP", "MGM"]);
+const wkAkronim = t => t.replace(/[A-Za-z][A-Za-z0-9-]*/g, w => WK_AKRONIM.has(w.toUpperCase()) ? w.toUpperCase() : w)
+  .replace(/(\d)x\b/gi, "$1X");
+function wkKapital(v) {
+  const t = String(v == null ? "" : v).replace(/\s+/g, " ").trim(); if (!t) return t;
+  return wkAkronim(t.toLowerCase().replace(/(^|[\s(\/\-.,&+'"])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()));
+}
+function wkKalimat(v) {
+  const t = String(v == null ? "" : v).replace(/\s+/g, " ").trim(); if (!t) return t;
+  return wkAkronim(t.toLowerCase().replace(/(^|[.!?]\s+|^\(|\n)(\p{L})/gu, (m, a, b) => a + b.toUpperCase()));
+}
+const WK_FMT_KATA = ["klaster", "konsumen", "bayar", "bayarLama", "bayarBaru", "sales", "sumber", "kel", "kec", "kota", "normal"];
+function wkFormat(x) { if (!x) return x;
+  WK_FMT_KATA.forEach(k => { if (typeof x[k] === "string" && x[k]) x[k] = wkKapital(x[k]); });
+  if (typeof x.ket === "string" && x.ket) x.ket = wkKalimat(x.ket);
+  return x; }
 function seedWeekly() {
   if (!S) return false;
   S.weekly = S.weekly || {}; let ubah = false;
@@ -1648,6 +1667,9 @@ function seedWeekly() {
       try { catat(`weekly:${k}`, "Input Data", [`${k} · Data dimuat ulang dari Weekly Report Excel terbaru (${sd.jual.length} penjualan, ${sd.batal.length} batal, ${sd.hold.length} hold)`]); } catch (e) {}
     }
   });
+  /* Format penulisan sama untuk semua proyek: hanya baris yang belum sesuai yang diubah */
+  Object.keys(S.weekly).forEach(nm => { const W = S.weekly[nm]; if (!W) return;
+    ["jual", "batal", "hold", "pindah", "ganti"].forEach(j => (W[j] || []).forEach(x => { const a = JSON.stringify(x); wkFormat(x); if (JSON.stringify(x) !== a) ubah = true; })); });
   /* Usia tanpa angka di belakang koma */
   Object.keys(S.weekly).forEach(nm => ["jual", "batal", "hold", "pindah", "ganti"].forEach(j => (S.weekly[nm][j] || []).forEach(x => { if (x.usia && wkUsia(x.usia) !== x.usia) { x.usia = wkUsia(x.usia); ubah = true; } if (wkUsiaIsi(x)) ubah = true; })));
   /* Bersihkan baris yang bukan data: baris judul kolom yang terbaca sebagai data, dan baris total tanpa tanggal & teks */
@@ -2751,7 +2773,7 @@ function wkBacaExcel(rows, W, th) {
       if (!t && !C.some(c => c.t !== "rp" && x[c.k] && !/^(unit|0|-|–)$/i.test(String(x[c.k]).trim()))) continue; /* baris kosong / total "0 Unit" / "(belum ada data)" */
       if (C.filter(c => x[c.k] && JUDUL.has(low(x[c.k]))).length >= 2) continue;
       if (x.usia) x.usia = wkUsia(x.usia);
-      wkUsiaIsi(x);
+      wkUsiaIsi(x); wkFormat(x);
       out[bag].push(x); continue;
     }
     if (li >= 0) {
@@ -2796,7 +2818,7 @@ function wkBacaExcel(rows, W, th) {
       x[c.k] = c.t === "rp" ? angka(v) : c.t === "date" ? (tgl(v) || "") : c.k === "jumlah" ? Math.max(0, angka(v)) : teks(v); });
     if (low(x.unit) === "unit") x.unit = "";
     if (x.usia) x.usia = wkUsia(x.usia);
-    wkUsiaIsi(x);
+    wkUsiaIsi(x); wkFormat(x);
     if (!ada.has("unit")) delete x.unit;
     if (!t) out.lewat++;
     out[bag].push(x);
@@ -2849,6 +2871,8 @@ function bindWeeklyInput(nama) {
     else if (k === "tanggal") { r.tanggal = el.value || ""; delete r.minggu; }
     else if (el.type === "date") r[k] = el.value || "";
     else if (k === "usia") r[k] = wkUsia(el.value);
+    else if (k === "ket") r[k] = wkKalimat(el.value);
+    else if (WK_FMT_KATA.includes(k)) r[k] = wkKapital(el.value);
     else r[k] = el.value.trim();
     if (k === "lahir" || k === "tanggal") wkUsiaIsi(r);
     if (el.type === "date") return; /* tanggal: digambar ulang saat keluar dari kolom */
@@ -3064,7 +3088,7 @@ function viewMonthly() {
         L.map(e => { const buka = mnSkDetail || mnSkBuka.has(e.key), id = "mnsk-" + e.key.replace(/[^A-Za-z0-9]+/g, "-");
           const det = !buka ? "" : `<tr class="mn-txw"><td colspan="6"><div class="tbl-wrap"><table class="mn-txt"><thead><tr><th>Tgl Kontrak</th><th>Proyek</th><th>Unit</th><th>Konsumen</th><th>Tipe</th><th>Nilai Kontrak (Rp)</th><th>Sales</th></tr></thead><tbody>
             ${e.tx.slice().sort((a, c) => wkEf(c.x).localeCompare(wkEf(a.x))).map(({ x, nama }) => `<tr class="${+wkEf(x).slice(5, 7) === b ? "on" : ""}"><td class="nowrap">${x.tanggal ? ddmmyyyy(x.tanggal) : "–"}</td><td>${esc(nama)}</td><td class="nowrap">${esc(x.unit || "–")}</td><td>${esc(x.konsumen || "–")}</td><td>${esc(x.tipe || "–")}</td><td class="acc">${wkRp(x.rpInc || x.rpExc)}</td><td>${esc(x.sales || "–")}</td></tr>`).join("")}</tbody></table></div></td></tr>`;
-          return `<tr class="mn-skr${buka ? " buka" : ""}"><td class="mn-pn mn-det"><button type="button" class="mn-tg" id="${id}" data-mnsk="${esc(e.key)}" aria-expanded="${buka}" ${e.tx.length ? "" : "disabled"}><span aria-hidden="true">${buka ? "▾" : "▸"}</span> ${esc(e.d)} <small>${e.tx.length} transaksi</small></button></td>${sel(e)}</tr>${det}`; }).join(""); }).join("");
+          return `<tr class="mn-skr${buka ? " buka" : ""}"><td class="mn-pn mn-det"><button type="button" class="mn-tg" id="${id}" data-mnsk="${esc(e.key)}" aria-expanded="${buka}" ${e.tx.length ? "" : "disabled"}><span aria-hidden="true">${buka ? "▾" : "▸"}</span> ${esc(e.d === "(Belum diisi)" ? e.d : wkKapital(e.d))} <small>${e.tx.length} transaksi</small></button></td>${sel(e)}</tr>${det}`; }).join(""); }).join("");
     const chips = `<div class="mn-kc no-cap" role="group" aria-label="Kategori skema bayar"><button type="button" data-mnkat="" class="${pilih ? "" : "on"}">Semua</button>${katAda.filter(k => k !== "(Belum diisi)").map(k => `<button type="button" data-mnkat="${esc(k)}" class="${pilih === k ? "on" : ""}">${esc(k)}</button>`).join("")}</div>`;
     const tgl = `<div class="mn-uk no-cap" role="group" aria-label="Tampilan skema bayar"><button type="button" id="mnSkR" data-mnskall="0" class="${mnSkDetail ? "" : "on"}">Ringkas</button><button type="button" id="mnSkD" data-mnskall="1" class="${mnSkDetail ? "on" : ""}">Detail</button></div>`;
     return `<div class="mn-kom mn-skema"><div class="mn-kh"><h3 class="wk-sub">Skema bayar</h3><div class="mn-kr">${tgl}${chips}</div></div><div class="desc">Klik nama skema (▸) untuk melihat transaksinya, atau pilih <b>Detail</b> untuk membuka semuanya. Transaksi bulan ${BULAN[bi]} ditandai biru.</div><div class="tbl-wrap"><table class="hold-t pg-t mn-t mn-k"><thead>
