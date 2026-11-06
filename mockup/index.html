@@ -3534,14 +3534,6 @@ function bindTargetInput() {
   };
 }
 const REPORTS = [
-  { id: "bast", nama: "Monitoring BAST (PPN & Non-PPN)", menu: "MONITORING BAST (PPN & NON-PPN)", desc: "Progres BAST unit PPN DTP dan Non PPN DTP per periode dan proyek.",
-    tabs: [
-      { id: "bast", label: "Dashboard", view: viewDashboard, bind: bindDashboard },
-      { id: "bast-input", label: "Input Data", view: viewInput, bind: bindInput, admin: true },
-      { id: "bast-master", label: "Master", view: viewMaster, bind: bindMaster, admin: true, master: true },
-      { id: "bast-history", label: "History", view: () => viewHistory("bast"), bind: () => {} },
-    ],
-    meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
   { id: "penjualan", nama: "Daily Sales Dashboard", menu: "DAILY SALES DASHBOARD", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan laporan, YTD, dan akumulasi terjual. Mengikuti format Excel Daily Report.",
     tabs: [
       { id: "penjualan", label: "Dashboard", view: () => denganTahunSales(viewSales), bind: bindSales },
@@ -3568,6 +3560,14 @@ const REPORTS = [
       { id: "monthly", label: "Dashboard", view: viewMonthly, bind: bindMonthly },
     ],
     meta: () => "" },
+  { id: "bast", nama: "Monitoring BAST (PPN & Non-PPN)", menu: "MONITORING BAST (PPN & NON-PPN)", desc: "Progres BAST unit PPN DTP dan Non PPN DTP per periode dan proyek.",
+    tabs: [
+      { id: "bast", label: "Dashboard", view: viewDashboard, bind: bindDashboard },
+      { id: "bast-input", label: "Input Data", view: viewInput, bind: bindInput, admin: true },
+      { id: "bast-master", label: "Master", view: viewMaster, bind: bindMaster, admin: true, master: true },
+      { id: "bast-history", label: "History", view: () => viewHistory("bast"), bind: () => {} },
+    ],
+    meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
   { id: "target", nama: "Sales Achievement Dashboard", menu: "SALES ACHIEVEMENT DASHBOARD", desc: "Target vs Actual per proyek per bulan dan YTD. Actual dari Daily Sales Dashboard; target diisi admin.chl.",
     tabs: [
       { id: "target", label: "Dashboard", view: viewTarget, bind: bindTarget },
