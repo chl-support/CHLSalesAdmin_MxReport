@@ -121,6 +121,9 @@ table { width: 100%; border-collapse: collapse; }
 .pw-err { margin: 0; color: var(--red); font-weight: 700; font-size: 13px; }
 .um-side { display: block; text-decoration: none; margin-top: 8px; }
 .um-t td { vertical-align: middle; } .um-t td.c { text-align: center; }
+#view .um-wrap { max-width: 1180px; }
+.um-t th, .um-t td { padding: 6px 8px; }
+.um-t input[type=text] { min-width: 200px; } .um-t select { min-width: 130px; }
 .um-t .um-u { white-space: nowrap; }
 .um-t .um-b { padding: 6px 10px; font-size: 12.5px; }
 .um-t .um-del { color: var(--red); }
@@ -3451,7 +3454,7 @@ function viewUsers() {
   return `<div class="page gut"><div class="rhead"><div><div class="crumb"><a href="#laporan">Property Sales Dashboard</a> / Manajemen User</div><h2>Manajemen User</h2>
     <div class="desc">Kelola akun yang bisa masuk ke sistem. Password tidak pernah ditampilkan; gunakan <b>Reset password</b> untuk memberi password baru. Perubahan akses berlaku saat user masuk berikutnya.</div></div>
     ${umBaru ? "" : `<button type="button" class="btn" id="umTambah">Tambah user</button>`}</div>
-    <div class="tbl-wrap"><table class="edit um-t"><thead><tr><th>Username</th><th>Nama yang tampil</th><th>Peran</th><th>Akses proyek</th><th>Kunci stok</th><th>Password</th><th></th></tr></thead>
+    <div class="tbl-wrap um-wrap"><table class="edit um-t"><thead><tr><th>Username</th><th>Nama yang tampil</th><th>Peran</th><th>Akses proyek</th><th>Kunci stok</th><th>Password</th><th></th></tr></thead>
     <tbody>${L.map((x, i) => baris(x, i)).join("")}</tbody></table></div>
     <p class="hint">Admin: bisa mengisi & menyimpan data proyek yang diberi akses. Viewer: hanya melihat semua menu & Ekspor Excel. admin.chl selalu Admin dengan akses semua proyek dan tidak bisa dihapus.</p></div>`;
 }
