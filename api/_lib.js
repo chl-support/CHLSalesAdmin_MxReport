@@ -12,16 +12,24 @@ const DEFAULT_USERS = [
   {"u": "admin.permaiindah", "hash": "619ba20ee737793756076fc8b806aaaf56825db4116df7726bf674762f444d34", "nama": "Admin Permai Indah", "role": "ADMIN", "proyek": ["permai indah"], "kunciStok": true},
   {"u": "viewer.chl", "hash": "8442f9337ac9cbafb2eb2405066fbdf32a4134a87e43c7e9b0d9db787d434822", "nama": "Viewer CHL", "role": "VIEWER"}
 ];
-function users() {
+/* Starting list (used until the user list has been saved to the database by Manajemen User) */
+function usersAwal() {
   try { if (process.env.USERS_JSON) return JSON.parse(process.env.USERS_JSON); } catch (e) {}
   return DEFAULT_USERS;
 }
+const USERS_KEY = "chl-monitoring-laporan:users";
+/* User list: from the database when saved there, otherwise the starting list */
+async function users() {
+  try { const v = await kvGet(USERS_KEY); if (v) { const l = JSON.parse(v); if (Array.isArray(l) && l.length) return l; } } catch (e) {}
+  return usersAwal();
+}
+async function saveUsers(list) { return kvSet(USERS_KEY, JSON.stringify(list)); }
 const hashPw = (u, pw) => crypto.createHash("sha256").update(SALT + u + ":" + pw).digest("hex");
-function findUser(u, pw) {
-  const a = users().find(x => x.u === String(u || "").trim().toLowerCase());
+function cekPw(a, pw) { return a.hash ? crypto.timingSafeEqual(Buffer.from(a.hash), Buffer.from(hashPw(a.u, pw || ""))) : a.pw === pw; }
+async function findUser(u, pw) {
+  const a = (await users()).find(x => x.u === String(u || "").trim().toLowerCase());
   if (!a) return null;
-  const ok = a.hash ? crypto.timingSafeEqual(Buffer.from(a.hash), Buffer.from(hashPw(a.u, pw || ""))) : a.pw === pw;
-  return ok ? a : null;
+  return cekPw(a, pw) ? a : null;
 }
 const publicUser = a => ({ u: a.u, nama: a.nama, role: a.role, proyek: a.proyek || null, kunciStok: !!a.kunciStok });
 
@@ -49,6 +57,19 @@ async function sql(query, params = []) {
   return j.rows || [];
 }
 const KEY = "chl-monitoring-laporan:state";
+/* Generic key/value (same storage as the data) */
+async function kvGet(k) {
+  const kind = storageKind();
+  if (kind === "redis") return redis(["GET", k]);
+  if (kind === "postgres") { await sql("CREATE TABLE IF NOT EXISTS chl_kv (k text PRIMARY KEY, v text NOT NULL)"); const rows = await sql("SELECT v FROM chl_kv WHERE k = $1", [k]); return rows.length ? rows[0].v : null; }
+  return null;
+}
+async function kvSet(k, v) {
+  const kind = storageKind();
+  if (kind === "redis") return redis(["SET", k, v]);
+  if (kind === "postgres") { await sql("CREATE TABLE IF NOT EXISTS chl_kv (k text PRIMARY KEY, v text NOT NULL)"); return sql("INSERT INTO chl_kv (k, v) VALUES ($1, $2) ON CONFLICT (k) DO UPDATE SET v = EXCLUDED.v", [k, v]); }
+  throw Object.assign(new Error("Database belum tersambung ke proyek Vercel."), { status: 503 });
+}
 async function loadDoc() {
   const k = storageKind();
   if (k === "redis") { const v = await redis(["GET", KEY]); return v ? JSON.parse(v) : null; }
@@ -73,7 +94,7 @@ function signToken(u) {
   const body = b64(JSON.stringify({ u, exp: Date.now() + 12 * 3600e3 }));
   return body + "." + crypto.createHmac("sha256", secret()).update(body).digest("base64url");
 }
-function userFromReq(req) {
+async function userFromReq(req) {
   const t = String(req.headers.authorization || "").replace(/^Bearer /, "");
   const [body, sig] = t.split(".");
   if (!body || !sig) return null;
@@ -81,7 +102,7 @@ function userFromReq(req) {
   if (sig.length !== good.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(good))) return null;
   let p; try { p = JSON.parse(Buffer.from(body, "base64url").toString()); } catch (e) { return null; }
   if (!p.exp || p.exp < Date.now()) return null;
-  return users().find(x => x.u === p.u) || null;
+  return (await users()).find(x => x.u === p.u) || null;
 }
 
 /* ---------- what a restricted account may read: Weekly data and History of its own projects only ---------- */
@@ -179,4 +200,4 @@ async function readBody(req) {
   const chunks = []; for await (const c of req) chunks.push(c);
   const s = Buffer.concat(chunks).toString(); return s ? JSON.parse(s) : {};
 }
-module.exports = { findUser, publicUser, signToken, userFromReq, loadDoc, saveDoc, merge, forUser, send, readBody, storageKind };
+module.exports = { findUser, publicUser, signToken, userFromReq, loadDoc, saveDoc, merge, forUser, send, readBody, storageKind, users, saveUsers, hashPw, cekPw };

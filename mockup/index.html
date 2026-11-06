@@ -104,6 +104,21 @@ h2 { margin: 0; color: var(--ink); font-size: 22px; font-weight: 800; text-trans
 table { width: 100%; border-collapse: collapse; }
 /* Tabel yang isinya sempit: lebar mengikuti isi, teks panjang tetap turun ke baris berikutnya */
 #view table.lebar-isi { width: auto; max-width: 100%; }
+/* Ubah password & Manajemen User */
+.pw-box { width: min(440px, 100%); }
+.pw-form { display: flex; flex-direction: column; gap: 10px; }
+.pw-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 700; color: var(--ink); }
+.pw-form input[type=password], .pw-form input[type=text] { font: inherit; font-weight: 400; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--ink); }
+.pw-form .pw-show { flex-direction: row; align-items: center; font-weight: 600; color: var(--muted); }
+.pw-err { margin: 0; color: var(--red); font-weight: 700; font-size: 13px; }
+.um-side { display: block; text-decoration: none; margin-top: 8px; }
+.um-t td { vertical-align: middle; } .um-t td.c { text-align: center; }
+.um-t .um-u { white-space: nowrap; }
+.um-t .um-b { padding: 6px 10px; font-size: 12.5px; }
+.um-t .um-del { color: var(--red); }
+.um-t select, .um-t input[type=text], .um-t input[type=password] { width: 100%; }
+.um-dd > summary { font-weight: 600; }
+.um-dd > summary[aria-disabled] { pointer-events: none; opacity: .75; }
 /* Viewer: mode lihat saja */
 .ro-note { margin-top: 12px; padding: 9px 14px; border-radius: 8px; background: var(--blue-soft); color: var(--ink); font-size: 13px; border-left: 4px solid var(--blue); }
 #view .ro:disabled { opacity: 1; color: var(--ink); background: var(--bg); cursor: default; -webkit-text-fill-color: var(--ink); }
@@ -685,6 +700,7 @@ a.rcard:hover { border-color: var(--gold); }
         <a href="#laporan" data-v="laporan">PROPERTY SALES DASHBOARD</a>
         <div class="sub" id="reportMenu"></div>
         <button type="button" class="dr-side" data-dr>DAILY REPORT MESSAGE TEMPLATE</button>
+        <a class="dr-side um-side" href="#users" id="umSide" hidden>MANAJEMEN USER</a>
       </div>
     </nav>
   </aside>
@@ -702,6 +718,8 @@ a.rcard:hover { border-color: var(--gold); }
         <div class="pp-row"><span>Bahasa</span>
           <div class="pp-lang" role="group" aria-label="Bahasa"><button type="button" id="langID" aria-pressed="true">ID</button><button type="button" id="langEN" aria-pressed="false">EN</button></div></div>
         <a class="pp-btn" href="#laporan" id="gantiLaporan">Ganti Laporan</a>
+        <button class="pp-btn" id="ubahPwBtn" type="button">Ubah password</button>
+        <a class="pp-btn" href="#users" id="umBtn" hidden>Manajemen User</a>
         <button class="pp-btn" id="logoutBtn" type="button">Keluar</button>
         <hr>
         <p class="pp-help">Jika ada kendala, silakan hubungi Admin IT:</p>
@@ -733,6 +751,20 @@ a.rcard:hover { border-color: var(--gold); }
       <button type="button" class="btn sec" id="drShare">Bagikan</button>
       <button type="button" class="btn" id="drWA">Kirim ke WhatsApp</button>
     </div>
+  </div>
+</div>
+<div class="dr-wrap" id="pwWrap" hidden>
+  <div class="dr-box pw-box" role="dialog" aria-modal="true" aria-labelledby="pwTitle">
+    <div class="dr-head"><h2 id="pwTitle">Ubah password</h2><button type="button" class="dr-x" id="pwClose" aria-label="Tutup">×</button></div>
+    <p class="desc" id="pwDesc"></p>
+    <form id="pwForm" class="pw-form" autocomplete="off">
+      <label id="pwLamaL">Password lama<input type="password" id="pwLama" autocomplete="current-password"></label>
+      <label>Password baru<input type="password" id="pwBaru" autocomplete="new-password" minlength="6"></label>
+      <label>Ulangi password baru<input type="password" id="pwUlang" autocomplete="new-password" minlength="6"></label>
+      <label class="pw-show"><input type="checkbox" id="pwLihat"> Tampilkan password</label>
+      <p class="pw-err" id="pwErr" hidden></p>
+      <div class="dr-act"><span class="dr-sp"></span><button type="button" class="btn sec" id="pwBatal">Batal</button><button type="submit" class="btn" id="pwSimpan">Simpan password</button></div>
+    </form>
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -3258,14 +3290,6 @@ function bindMonthly() {
   document.querySelectorAll("[data-mnskall]").forEach(x => x.onclick = () => { mnSkDetail = x.dataset.mnskall === "1"; mnSkBuka = new Set(); render(x.id); });
 }
 const REPORTS = [
-  { id: "penjualan", nama: "Daily Sales Dashboard", menu: "DAILY SALES DASHBOARD", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan laporan, YTD, dan akumulasi terjual. Mengikuti format Excel Daily Report.",
-    tabs: [
-      { id: "penjualan", label: "Dashboard", view: () => denganTahunSales(viewSales), bind: bindSales },
-      { id: "penjualan-input", label: "Input Data", view: viewSalesInput, bind: bindSalesInput, admin: true },
-      { id: "penjualan-master", label: "Master", view: viewSalesMaster, bind: bindSalesMaster, admin: true, master: true },
-      { id: "penjualan-history", label: "History", view: () => viewHistory("penjualan"), bind: () => {} },
-    ],
-    meta: () => { const T = hitungSales().tot; return `Laporan ${ddmmyyyy(S.sales2.tanggal)} · ${T.bln[0]} unit bulan ini · ${rp(T.bln[1])}`; } },
   { id: "bast", nama: "Monitoring BAST (PPN & Non-PPN)", menu: "MONITORING BAST (PPN & NON-PPN)", desc: "Progres BAST unit PPN DTP dan Non PPN DTP per periode dan proyek.",
     tabs: [
       { id: "bast", label: "Dashboard", view: viewDashboard, bind: bindDashboard },
@@ -3274,6 +3298,14 @@ const REPORTS = [
       { id: "bast-history", label: "History", view: () => viewHistory("bast"), bind: () => {} },
     ],
     meta: () => { const d = dates()[0]; if (!d) return "Belum ada laporan"; const G = hitung(d).grand; return `Laporan ${ddmmyyyy(d)} · ${G[0] + G[2]} / ${G[1] + G[3]} unit BAST`; } },
+  { id: "penjualan", nama: "Daily Sales Dashboard", menu: "DAILY SALES DASHBOARD", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan laporan, YTD, dan akumulasi terjual. Mengikuti format Excel Daily Report.",
+    tabs: [
+      { id: "penjualan", label: "Dashboard", view: () => denganTahunSales(viewSales), bind: bindSales },
+      { id: "penjualan-input", label: "Input Data", view: viewSalesInput, bind: bindSalesInput, admin: true },
+      { id: "penjualan-master", label: "Master", view: viewSalesMaster, bind: bindSalesMaster, admin: true, master: true },
+      { id: "penjualan-history", label: "History", view: () => viewHistory("penjualan"), bind: () => {} },
+    ],
+    meta: () => { const T = hitungSales().tot; return `Laporan ${ddmmyyyy(S.sales2.tanggal)} · ${T.bln[0]} unit bulan ini · ${rp(T.bln[1])}`; } },
   { id: "weekly", subMenu: true, nama: "Weekly Sales Dashboard", menu: "WEEKLY SALES DASHBOARD", desc: "",
     /* Tiap proyek punya tab Dashboard, Input Data, History; isi tiap tab kosong (dibangun sendiri) di <div id="…-view"> */
     /* Dikelompokkan per PT; judul PT tampil tebal di menu sidebar */
@@ -3315,7 +3347,7 @@ function findTab(v) { for (const r of REPORTS) for (const t of r.tabs) if (t.id 
 function current() {
   let v = location.hash.slice(1);
   if (v === "dashboard") v = "bast"; else if (v === "input") v = "bast-input"; else if (v === "master") v = "bast-master";
-  if (!(v === "laporan" || findTab(v))) v = "laporan";
+  if (!(v === "laporan" || v === "users" || findTab(v))) v = "laporan";
   const ft = findTab(v);
   if (ft && ((ft.t.admin && S.role !== "ADMIN" && !viewerLihat()) || (ft.t.master && userTerbatas()))) { v = ft.r.tabs[0].id; history.replaceState(null, "", "#" + v); }
   return v;
@@ -3345,6 +3377,103 @@ function kunciViewer(view) {
   const nav = view.querySelector(".rtabs");
   if (nav && !view.querySelector(".ro-note")) nav.insertAdjacentHTML("afterend", `<div class="ro-note gut"><span aria-hidden="true">👁</span> <b>Mode lihat saja (Viewer)</b>: data tidak bisa diubah. Ekspor Excel tetap bisa dipakai.</div>`);
 }
+/* ===== Ubah password (semua akun) & Manajemen User (admin.chl) ===== */
+const bolehKelolaUser = () => !!(SESI && String(SESI.u || "").toLowerCase() === "admin.chl");
+let pwUntuk = null; /* null = password sendiri; selain itu username yang direset (oleh admin.chl) */
+function bukaPw(untuk) {
+  pwUntuk = untuk || null; bukaProfil(false);
+  const w = document.getElementById("pwWrap");
+  document.getElementById("pwTitle").textContent = pwUntuk ? `Reset password: ${pwUntuk}` : "Ubah password";
+  document.getElementById("pwDesc").textContent = pwUntuk ? "Isi password baru untuk user ini (minimal 6 karakter). Beritahukan password baru ke pemilik akun." : `Akun ${SESI.u}. Password baru minimal 6 karakter.`;
+  document.getElementById("pwLamaL").hidden = !!pwUntuk;
+  ["pwLama", "pwBaru", "pwUlang"].forEach(id => { const e = document.getElementById(id); e.value = ""; e.type = "password"; });
+  document.getElementById("pwLihat").checked = false; document.getElementById("pwErr").hidden = true;
+  w.hidden = false; setTimeout(() => document.getElementById(pwUntuk ? "pwBaru" : "pwLama").focus(), 30);
+}
+function tutupPw() { document.getElementById("pwWrap").hidden = true; }
+document.getElementById("ubahPwBtn").onclick = () => bukaPw(null);
+document.getElementById("pwClose").onclick = document.getElementById("pwBatal").onclick = tutupPw;
+document.getElementById("pwWrap").addEventListener("click", e => { if (e.target.id === "pwWrap") tutupPw(); });
+document.getElementById("pwLihat").onchange = e => ["pwLama", "pwBaru", "pwUlang"].forEach(id => document.getElementById(id).type = e.target.checked ? "text" : "password");
+document.getElementById("pwForm").onsubmit = async e => {
+  e.preventDefault();
+  const lama = document.getElementById("pwLama").value, baru = document.getElementById("pwBaru").value, ulang = document.getElementById("pwUlang").value, err = document.getElementById("pwErr");
+  const salah = t => { err.textContent = t; err.hidden = false; };
+  if (!pwUntuk && !lama) return salah("Isi password lama.");
+  if (baru.length < 6) return salah("Password baru minimal 6 karakter.");
+  if (baru !== ulang) return salah("Ulangi password baru belum sama.");
+  const btn = document.getElementById("pwSimpan"); btn.disabled = true;
+  try {
+    const r = await api("POST", "/api/users", pwUntuk ? { action: "reset", u: pwUntuk, baru } : { action: "password", lama, baru });
+    if (!r.ok) return salah(r.data.error || "Gagal menyimpan password.");
+    tutupPw(); toast(pwUntuk ? `Password ${pwUntuk} sudah direset` : "Password berhasil diubah. Gunakan password baru saat masuk berikutnya.");
+  } catch (x) { if (x.message !== "401") salah("Tidak bisa terhubung ke server. Coba lagi."); }
+  finally { btn.disabled = false; }
+};
+/* Manajemen User */
+let umList = null, umMuat = false, umBaru = false;
+function umProyekSemua() {
+  const n = new Set(); ((S.sales2 || {}).proyek || []).forEach(p => n.add(p.nama)); (S.proyek || []).forEach(p => n.add(p.nama));
+  WK_GRUP.forEach(([, l]) => l.forEach(x => n.add(x)));
+  return [...n].filter(Boolean);
+}
+async function umAmbil() {
+  umMuat = true;
+  try { const r = await api("GET", "/api/users"); umList = r.ok ? r.data.users : []; if (!r.ok) toast(r.data.error || "Gagal memuat daftar user."); }
+  catch (e) { umList = umList || []; }
+  umMuat = false; if (current() === "users") render();
+}
+function viewUsers() {
+  if (!bolehKelolaUser()) return `<div class="page gut"><div class="empty">Hanya admin.chl yang bisa membuka Manajemen User.</div></div>`;
+  if (!umList) { if (!umMuat) umAmbil(); return `<div class="page gut"><h2>Manajemen User</h2><div class="desc" style="margin-top:8px">Memuat daftar user…</div></div>`; }
+  const P = umProyekSemua();
+  const akses = (x, i) => { const sel = x.proyek ? new Set(x.proyek) : null, lbl = !sel ? "Semua proyek" : sel.size === 1 ? P.find(n => sel.has(n.toLowerCase())) || [...sel][0] : `${sel.size} proyek`;
+    const dis = x.u === "admin.chl" || x.role === "VIEWER";
+    return `<details class="dr-dd um-dd" ${dis ? "" : ""}><summary${dis ? ' aria-disabled="true"' : ""}>${esc(x.role === "VIEWER" ? "Semua (lihat saja)" : lbl)}</summary>${dis ? "" : `<div class="dr-dd-list">
+      <label class="dr-all"><input type="checkbox" data-umall="${i}" ${sel ? "" : "checked"}> Semua proyek</label>
+      ${P.map(n => `<label><input type="checkbox" data-ump="${i}" value="${esc(n.toLowerCase())}" ${sel && sel.has(n.toLowerCase()) ? "checked" : ""}> ${esc(n)}</label>`).join("")}</div>`}</details>`; };
+  const baris = (x, i) => `<tr data-umrow="${i}"><td class="um-u">${x.baru ? `<input type="text" id="umu-${i}" data-umf="u" value="${esc(x.u || "")}" placeholder="mis. admin.proyek">` : `<b>${esc(x.u)}</b>`}</td>
+    <td><input type="text" id="umn-${i}" data-umf="nama" value="${esc(x.nama || "")}" placeholder="Nama yang tampil"></td>
+    <td><select id="umr-${i}" data-umf="role" ${x.u === "admin.chl" ? "disabled" : ""}><option value="ADMIN" ${x.role !== "VIEWER" ? "selected" : ""}>Admin</option><option value="VIEWER" ${x.role === "VIEWER" ? "selected" : ""}>Viewer (lihat saja)</option></select></td>
+    <td>${akses(x, i)}</td>
+    <td class="c"><input type="checkbox" id="umk-${i}" data-umf="kunciStok" ${x.kunciStok ? "checked" : ""} ${x.proyek && x.role !== "VIEWER" ? "" : "disabled"} title="Admin proyek tidak bisa mengubah total stok"></td>
+    <td>${x.baru ? `<input type="password" id="umpw-${i}" data-umf="pw" placeholder="Password (min. 6)" autocomplete="new-password">` : `<button type="button" class="btn sec um-b" data-umreset="${esc(x.u)}">Reset password</button>`}</td>
+    <td class="nowrap"><button type="button" class="btn um-b" data-umsave="${i}">Simpan</button>${x.u === "admin.chl" ? "" : x.baru ? ` <button type="button" class="btn sec um-b" data-umbatal="${i}">Batal</button>` : ` <button type="button" class="btn sec um-b um-del" data-umdel="${esc(x.u)}">Hapus</button>`}</td></tr>`;
+  const L = umList.slice(); if (umBaru) L.push(umBaru);
+  return `<div class="page gut"><div class="rhead"><div><div class="crumb"><a href="#laporan">Property Sales Dashboard</a> / Manajemen User</div><h2>Manajemen User</h2>
+    <div class="desc">Kelola akun yang bisa masuk ke sistem. Password tidak pernah ditampilkan; gunakan <b>Reset password</b> untuk memberi password baru. Perubahan akses berlaku saat user masuk berikutnya.</div></div>
+    ${umBaru ? "" : `<button type="button" class="btn" id="umTambah">Tambah user</button>`}</div>
+    <div class="tbl-wrap"><table class="edit um-t"><thead><tr><th>Username</th><th>Nama yang tampil</th><th>Peran</th><th>Akses proyek</th><th>Kunci stok</th><th>Password</th><th></th></tr></thead>
+    <tbody>${L.map((x, i) => baris(x, i)).join("")}</tbody></table></div>
+    <p class="hint">Admin: bisa mengisi & menyimpan data proyek yang diberi akses. Viewer: hanya melihat semua menu & Ekspor Excel. admin.chl selalu Admin dengan akses semua proyek dan tidak bisa dihapus.</p></div>`;
+}
+function bindUsers() {
+  const v = document.getElementById("view"); if (!umList) return;
+  const L = umList.slice(); if (umBaru) L.push(umBaru);
+  const t = document.getElementById("umTambah"); if (t) t.onclick = () => { umBaru = { baru: true, u: "", nama: "", role: "ADMIN", proyek: null }; render(); setTimeout(() => { const e = document.getElementById("umu-" + umList.length); if (e) e.focus(); }, 30); };
+  v.querySelectorAll("[data-umrow]").forEach(tr => {
+    const i = +tr.dataset.umrow, x = L[i];
+    tr.querySelectorAll("[data-umf]").forEach(el => el.onchange = () => { const f = el.dataset.umf;
+      if (f === "kunciStok") x.kunciStok = el.checked; else if (f === "pw") x.pw = el.value; else x[f] = el.value.trim();
+      if (f === "role") render(); });
+    tr.querySelectorAll("[data-ump]").forEach(el => el.onchange = () => { const s = new Set(x.proyek || []); el.checked ? s.add(el.value) : s.delete(el.value); x.proyek = s.size ? [...s] : null; render(); setTimeout(() => { const d = document.querySelector(`[data-umrow="${i}"] details`); if (d) d.open = true; }, 0); });
+    tr.querySelectorAll("[data-umall]").forEach(el => el.onchange = () => { x.proyek = null; render(); });
+  });
+  v.querySelectorAll("[data-umsave]").forEach(bt => bt.onclick = async () => {
+    const x = L[+bt.dataset.umsave]; bt.disabled = true;
+    try {
+      const r = await api("POST", "/api/users", { action: "simpan", user: { u: x.u, nama: x.nama, role: x.role, proyek: x.role === "VIEWER" ? null : x.proyek, kunciStok: !!x.kunciStok }, baru: x.baru ? x.pw : undefined });
+      if (!r.ok) { toast(r.data.error || "Gagal menyimpan user."); bt.disabled = false; return; }
+      umList = r.data.users; umBaru = false; render(); toast(`User ${x.u} disimpan`);
+    } catch (e) { bt.disabled = false; }
+  });
+  v.querySelectorAll("[data-umbatal]").forEach(bt => bt.onclick = () => { umBaru = false; render(); });
+  v.querySelectorAll("[data-umreset]").forEach(bt => bt.onclick = () => bukaPw(bt.dataset.umreset));
+  v.querySelectorAll("[data-umdel]").forEach(bt => bt.onclick = async () => {
+    const u = bt.dataset.umdel; if (!confirm(`Hapus user ${u}? User ini tidak bisa masuk lagi.`)) return;
+    try { const r = await api("POST", "/api/users", { action: "hapus", u }); if (!r.ok) return toast(r.data.error || "Gagal menghapus user."); umList = r.data.users; render(); toast(`User ${u} dihapus`); } catch (e) {}
+  });
+}
 function render(focusId) {
   if (rendering) return;
   const masuk = !!SESI;
@@ -3359,6 +3488,7 @@ function render(focusId) {
   document.getElementById("profRole").textContent = peran;
   document.getElementById("profAv").textContent = SESI.nama.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase();
   document.getElementById("resetBtn").hidden = !(SESI.role === "ADMIN" && !SESI.proyek);
+  document.getElementById("umBtn").hidden = document.getElementById("umSide").hidden = !bolehKelolaUser();
   document.getElementById("syncInfo").textContent = SERVER.info;
   ikutiHariIni(); /* tanggal laporan otomatis = hari ini (juga setelah lewat tengah malam) */
   rendering = true;
@@ -3369,6 +3499,7 @@ function render(focusId) {
     const view = document.getElementById("view"), ft = findTab(v);
     view.dataset.rep = ft ? ft.r.id : "";
     if (ft) { view.innerHTML = reportFrame(ft.r, ft.t, ft.t.view()); ft.t.bind(); if (viewerLihat() && ft.t.admin) kunciViewer(view); }
+    else if (v === "users") { view.innerHTML = viewUsers(); bindUsers(); }
     else view.innerHTML = viewLaporan();
     renderMenu(v);
     terapkanBahasa();

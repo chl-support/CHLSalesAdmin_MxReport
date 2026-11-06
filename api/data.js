@@ -1,6 +1,6 @@
 const { userFromReq, loadDoc, saveDoc, merge, forUser, send, readBody } = require("./_lib");
 module.exports = async (req, res) => {
-  const user = userFromReq(req);
+  const user = await userFromReq(req);
   if (!user) return send(res, 401, { error: "Sesi berakhir. Silakan masuk lagi." });
   try {
     if (req.method === "GET") {
