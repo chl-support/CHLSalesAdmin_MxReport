@@ -3575,8 +3575,11 @@ function judulGeser() {
   view.querySelectorAll(".tbl-wrap > table").forEach(t => {
     const th = t.tHead; if (!th) return;
     if (fit) { th.style.transform = ""; th.classList.remove("beku"); return; }
-    const z = parseFloat(t.style.zoom) || 1, r = t.getBoundingClientRect(), h = th.getBoundingClientRect().height;
-    const geser = r.top < atas && r.bottom - h * 1.5 > atas ? (atas - r.top) / z : 0;
+    /* hanya tabel yang berisi data (minimal 3 baris); tabel kosong/pendek tidak ikut supaya tidak menutupi isi di bawahnya */
+    const body = [...t.tBodies].flatMap(b => [...b.rows]).filter(r => !r.querySelector("td[colspan]") || r.cells.length > 1);
+    if (body.length < 3) { th.style.transform = ""; th.classList.remove("beku"); return; }
+    const z = parseFloat(t.style.zoom) || 1, r = t.getBoundingClientRect(), h = th.getBoundingClientRect().height, akhir = body[body.length - 1].getBoundingClientRect().height;
+    const geser = r.top < atas && r.bottom - h - akhir > atas ? (atas - r.top) / z : 0;
     th.style.transform = geser ? `translateY(${geser}px)` : ""; th.classList.toggle("beku", !!geser);
   });
 }
