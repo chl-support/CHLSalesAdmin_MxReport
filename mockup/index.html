@@ -141,6 +141,10 @@ tr.row-cat .cat-cb { color: var(--purple); }
 /* Freeze panes: judul tabel yang sedang menempel */
 #view .tbl-wrap > table > thead { position: relative; z-index: 4; }
 #view .tbl-wrap > table > thead.beku th { box-shadow: 0 2px 0 rgba(0,0,0,.08); }
+/* judul bagian yang ikut menempel: latar putih menutupi baris yang lewat di bawahnya */
+#view .beku-h { position: relative; z-index: 5; box-shadow: 0 -12px 0 var(--bg), 0 12px 0 var(--bg); }
+#view .beku-h:not(.bh-filter) { background: var(--bg); }
+#view .tbl-wrap > table > thead.beku { box-shadow: 0 -14px 0 var(--bg); }
 .rincian { min-width: 640px; }
 .rincian thead th { background: var(--navy); color: #fff; font-weight: 700; padding: 8px 10px; }
 .rincian thead tr:first-child th { font-size: 15px; text-transform: uppercase; }
@@ -3572,15 +3576,26 @@ function judulGeser() {
   const view = document.getElementById("view"); if (!view) return;
   const fit = view.classList.contains("fit"), bar = document.querySelector(".topbar");
   const atas = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+  view.querySelectorAll(".beku-h").forEach(e => { e.style.transform = ""; e.classList.remove("beku-h"); });
   view.querySelectorAll(".tbl-wrap > table").forEach(t => {
     const th = t.tHead; if (!th) return;
-    if (fit) { th.style.transform = ""; th.classList.remove("beku"); return; }
+    const lepas = () => { th.style.transform = ""; th.classList.remove("beku"); };
+    lepas(); /* ukur dari posisi normal */
+    if (fit) return;
     /* hanya tabel yang berisi data (minimal 3 baris); tabel kosong/pendek tidak ikut supaya tidak menutupi isi di bawahnya */
     const body = [...t.tBodies].flatMap(b => [...b.rows]).filter(r => !r.querySelector("td[colspan]") || r.cells.length > 1);
-    if (body.length < 3) { th.style.transform = ""; th.classList.remove("beku"); return; }
-    const z = parseFloat(t.style.zoom) || 1, r = t.getBoundingClientRect(), h = th.getBoundingClientRect().height, akhir = body[body.length - 1].getBoundingClientRect().height;
-    const geser = r.top < atas && r.bottom - h - akhir > atas ? (atas - r.top) / z : 0;
-    th.style.transform = geser ? `translateY(${geser}px)` : ""; th.classList.toggle("beku", !!geser);
+    if (body.length < 3) return lepas();
+    /* Judul bagian (judul kotak, keterangan, bar filter) ikut menempel bersama judul tabel */
+    const wrap = t.parentElement, kotak = wrap.closest(".bh-box");
+    let kepala = [];
+    if (kotak) { let el = wrap; while (el.parentElement && el.parentElement !== kotak) el = el.parentElement;
+      for (let c = kotak.firstElementChild; c && c !== el; c = c.nextElementSibling) kepala.push(c); }
+    const z = parseFloat(t.style.zoom) || 1, r = t.getBoundingClientRect(), thR = th.getBoundingClientRect(), akhir = body[body.length - 1].getBoundingClientRect().height;
+    const mulai = kepala.length ? kepala[0].getBoundingClientRect().top : thR.top, tinggi = thR.bottom - mulai;
+    const d = mulai < atas && r.bottom - tinggi - akhir > atas ? atas - mulai : 0;
+    if (!d) return lepas();
+    kepala.forEach(e => { e.style.transform = `translateY(${d}px)`; e.classList.add("beku-h"); });
+    th.style.transform = `translateY(${d / z}px)`; th.classList.add("beku");
   });
 }
 { let jalan = false; const f = () => { if (jalan) return; jalan = true; requestAnimationFrame(() => { jalan = false; judulGeser(); }); };
