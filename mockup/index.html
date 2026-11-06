@@ -138,9 +138,9 @@ tr.row-cat td { background: var(--grey-soft) !important; }
 tr.row-cat input:not([type=checkbox]), tr.row-cat select, tr.row-cat textarea { color: var(--muted); font-style: italic; text-decoration: line-through; text-decoration-color: rgba(120,120,120,.5); }
 tr.row-cat .cat-cb { color: var(--purple); }
 .cat-badge { font-size: 10.5px; font-weight: 800; color: var(--purple); margin-right: 4px; }
-/* Tabel panjang: digulir di dalam kotaknya, baris judul tetap di atas */
-#view .tbl-wrap.lekat { max-height: calc(100vh - 110px); overflow: auto; overscroll-behavior: contain; }
-#view .tbl-wrap.lekat > table > thead th { position: sticky; z-index: 3; }
+/* Freeze panes: judul tabel yang sedang menempel */
+#view .tbl-wrap > table > thead { position: relative; z-index: 4; }
+#view .tbl-wrap > table > thead.beku th { box-shadow: 0 2px 0 rgba(0,0,0,.08); }
 .rincian { min-width: 640px; }
 .rincian thead th { background: var(--navy); color: #fff; font-weight: 700; padding: 8px 10px; }
 .rincian thead tr:first-child th { font-size: 15px; text-transform: uppercase; }
@@ -3563,16 +3563,25 @@ function lebarSidebar() {
   side.style.width = side.style.flexBasis = w + "px";
 }
 /* Judul tabel tetap terlihat saat digulir: tabel yang lebih tinggi dari layar digulir di dalam kotaknya, baris judul menempel di atas */
+/* Freeze panes: saat halaman digulir, baris judul tabel ikut turun dan menempel di bawah bilah atas (semua tabel yang punya judul) */
 function judulLekat() {
-  const fit = document.getElementById("view") && document.getElementById("view").classList.contains("fit");
-  document.querySelectorAll("#view .tbl-wrap").forEach(w => {
-    const t = w.querySelector(":scope > table"), th = t && t.tHead;
-    w.classList.remove("lekat"); if (th) th.querySelectorAll("th").forEach(c => c.style.top = "");
-    if (!t || !th || fit || t.offsetHeight < window.innerHeight * 0.8) return;
-    w.classList.add("lekat");
-    let atas = 0; [...th.rows].forEach(r => { r.querySelectorAll("th").forEach(c => { if (!c.style.top) c.style.top = atas + "px"; }); atas += r.getBoundingClientRect().height / (parseFloat(t.style.zoom) || 1); });
+  document.querySelectorAll("#view .tbl-wrap.lekat").forEach(w => w.classList.remove("lekat"));
+  judulGeser();
+}
+function judulGeser() {
+  const view = document.getElementById("view"); if (!view) return;
+  const fit = view.classList.contains("fit"), bar = document.querySelector(".topbar");
+  const atas = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+  view.querySelectorAll(".tbl-wrap > table").forEach(t => {
+    const th = t.tHead; if (!th) return;
+    if (fit) { th.style.transform = ""; th.classList.remove("beku"); return; }
+    const z = parseFloat(t.style.zoom) || 1, r = t.getBoundingClientRect(), h = th.getBoundingClientRect().height;
+    const geser = r.top < atas && r.bottom - h * 1.5 > atas ? (atas - r.top) / z : 0;
+    th.style.transform = geser ? `translateY(${geser}px)` : ""; th.classList.toggle("beku", !!geser);
   });
 }
+{ let jalan = false; const f = () => { if (jalan) return; jalan = true; requestAnimationFrame(() => { jalan = false; judulGeser(); }); };
+  window.addEventListener("scroll", f, { passive: true }); window.addEventListener("resize", f); }
 function pasTabel() {
   /* Tabel dengan sedikit kolom tidak dilebarkan penuh: selebar isinya (kecuali tabel input yang lebarnya diatur) */
   document.querySelectorAll("#view .tbl-wrap > table").forEach(t => {
