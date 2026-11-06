@@ -104,6 +104,9 @@ h2 { margin: 0; color: var(--ink); font-size: 22px; font-weight: 800; text-trans
 table { width: 100%; border-collapse: collapse; }
 /* Tabel yang isinya sempit: lebar mengikuti isi, teks panjang tetap turun ke baris berikutnya */
 #view table.lebar-isi { width: auto; max-width: 100%; }
+/* Viewer: mode lihat saja */
+.ro-note { margin-top: 12px; padding: 9px 14px; border-radius: 8px; background: var(--blue-soft); color: var(--ink); font-size: 13px; border-left: 4px solid var(--blue); }
+#view .ro:disabled { opacity: 1; color: var(--ink); background: var(--bg); cursor: default; -webkit-text-fill-color: var(--ink); }
 /* Baris "Catatan saja": abu-abu & miring, tidak dihitung */
 td.del-c { white-space: nowrap; }
 .cat-cb { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: var(--muted); margin-right: 4px; cursor: pointer; vertical-align: middle; }
@@ -786,6 +789,8 @@ const userTerbatas = () => !!(akunIni() && akunIni().proyek);
 /* Menu Daily Report Message Template hanya untuk akun admin.chl */
 /* Menu Impor dari Excel (Weekly Input Data) hanya untuk akun admin.chl */
 const bolehImporExcel = () => !!(akunIni() && String(akunIni().u || "").toLowerCase() === "admin.chl");
+/* Viewer: boleh melihat semua menu (termasuk Input Data & Master) dalam mode lihat saja + Ekspor Excel */
+const viewerLihat = () => !!(SESI && SESI.role !== "ADMIN");
 const bolehDailyReport = () => !!(akunIni() && String(akunIni().u || "").toLowerCase() === "admin.chl");
 /* Label total: akun terbatas hanya melihat proyeknya sendiri, jadi bukan total CHL */
 const lblTotal = (huruf) => userTerbatas() ? (huruf ? "TOTAL" : "Total") : (huruf ? "TOTAL CHL" : "Total CHL");
@@ -3296,7 +3301,7 @@ function viewLaporan() {
       <div class="rcard soon"><h3>Report lainnya</h3><p>Report berikutnya akan muncul di sini dengan format yang sama: dashboard, input data, dan master.</p></div></div></div>`;
 }
 function reportFrame(r, tab, inner) {
-  const tabs = r.tabs.filter(t => (!t.admin || S.role === "ADMIN") && !(t.master && userTerbatas()));
+  const tabs = r.tabs.filter(t => (!t.admin || S.role === "ADMIN" || viewerLihat()) && !(t.master && userTerbatas()));
   if (r.subMenu) { const pt = tabs.filter(t => t.proyek === tab.proyek);
     return `<div class="page gut"><div class="rhead"><div><div class="crumb"><a href="#laporan">Property Sales Dashboard</a> / ${esc(r.nama)}</div><h2>${esc(r.nama)}</h2>
     <div class="desc" style="font-size:15px;font-weight:700;color:var(--ink);margin-top:4px">${esc(tab.proyek)}</div></div>${r.id === "weekly" ? cekPeringatan(tab.proyek) : ""}</div>
@@ -3312,7 +3317,7 @@ function current() {
   if (v === "dashboard") v = "bast"; else if (v === "input") v = "bast-input"; else if (v === "master") v = "bast-master";
   if (!(v === "laporan" || findTab(v))) v = "laporan";
   const ft = findTab(v);
-  if (ft && ((ft.t.admin && S.role !== "ADMIN") || (ft.t.master && userTerbatas()))) { v = ft.r.tabs[0].id; history.replaceState(null, "", "#" + v); }
+  if (ft && ((ft.t.admin && S.role !== "ADMIN" && !viewerLihat()) || (ft.t.master && userTerbatas()))) { v = ft.r.tabs[0].id; history.replaceState(null, "", "#" + v); }
   return v;
 }
 function renderMenu(v) {
@@ -3332,6 +3337,14 @@ function renderMenu(v) {
   });
 }
 let rendering = false;
+/* Mode lihat saja untuk Viewer di Input Data & Master: semua isian dikunci, tombol ubah disembunyikan; Ekspor Excel, filter & tampilan tetap bisa */
+function kunciViewer(view) {
+  const boleh = "#sXls, #wkXls, #xlsBtn, #mnXls, #rpDetail, #rpM, #tglIn, #wkMg, #wkTh, #wkHanyaIsi, [data-wktambahan], [data-wkbln], [data-wkmore], [data-wkall], [data-wkless], [data-fbh], [data-fbhreset]";
+  view.querySelectorAll("input, select, textarea").forEach(el => { if (!el.matches(boleh)) { el.disabled = true; el.classList.add("ro"); } });
+  view.querySelectorAll("button").forEach(b => { if (!b.matches(boleh) && !/ekspor excel/i.test(b.textContent)) b.hidden = true; });
+  const nav = view.querySelector(".rtabs");
+  if (nav && !view.querySelector(".ro-note")) nav.insertAdjacentHTML("afterend", `<div class="ro-note gut"><span aria-hidden="true">👁</span> <b>Mode lihat saja (Viewer)</b>: data tidak bisa diubah. Ekspor Excel tetap bisa dipakai.</div>`);
+}
 function render(focusId) {
   if (rendering) return;
   const masuk = !!SESI;
@@ -3355,7 +3368,7 @@ function render(focusId) {
   try {
     const view = document.getElementById("view"), ft = findTab(v);
     view.dataset.rep = ft ? ft.r.id : "";
-    if (ft) { view.innerHTML = reportFrame(ft.r, ft.t, ft.t.view()); ft.t.bind(); }
+    if (ft) { view.innerHTML = reportFrame(ft.r, ft.t, ft.t.view()); ft.t.bind(); if (viewerLihat() && ft.t.admin) kunciViewer(view); }
     else view.innerHTML = viewLaporan();
     renderMenu(v);
     terapkanBahasa();
