@@ -138,13 +138,6 @@ tr.row-cat td { background: var(--grey-soft) !important; }
 tr.row-cat input:not([type=checkbox]), tr.row-cat select, tr.row-cat textarea { color: var(--muted); font-style: italic; text-decoration: line-through; text-decoration-color: rgba(120,120,120,.5); }
 tr.row-cat .cat-cb { color: var(--purple); }
 .cat-badge { font-size: 10.5px; font-weight: 800; color: var(--purple); margin-right: 4px; }
-/* Freeze panes: judul tabel yang sedang menempel */
-#view .tbl-wrap > table > thead { position: relative; z-index: 4; }
-#view .tbl-wrap > table > thead.beku th { box-shadow: 0 2px 0 rgba(0,0,0,.08); }
-/* judul bagian yang ikut menempel: latar putih menutupi baris yang lewat di bawahnya */
-#view .beku-h { position: relative; z-index: 5; box-shadow: 0 -12px 0 var(--bg), 0 12px 0 var(--bg); }
-#view .beku-h:not(.bh-filter) { background: var(--bg); }
-#view .tbl-wrap > table > thead.beku { box-shadow: 0 -14px 0 var(--bg); }
 .rincian { min-width: 640px; }
 .rincian thead th { background: var(--navy); color: #fff; font-weight: 700; padding: 8px 10px; }
 .rincian thead tr:first-child th { font-size: 15px; text-transform: uppercase; }
@@ -3517,7 +3510,7 @@ function render(focusId) {
     terapkanBahasa();
   } finally { rendering = false; }
   document.querySelectorAll("[data-dr]").forEach(el => { el.hidden = !bolehDailyReport(); });
-  nolStrip(); pasHP(); pasTabel(); lebarSidebar(); judulLekat();
+  nolStrip(); pasHP(); pasTabel(); lebarSidebar();
   if (focusId) { const el = document.getElementById(focusId); if (el) el.focus(); }
 }
 /* Di layar HP (< 900px) semua tab report (Dashboard, Input Data, Master, History) ditampilkan
@@ -3566,40 +3559,6 @@ function lebarSidebar() {
   const w = Math.round(Math.min(330, Math.max(220, perlu)));
   side.style.width = side.style.flexBasis = w + "px";
 }
-/* Judul tabel tetap terlihat saat digulir: tabel yang lebih tinggi dari layar digulir di dalam kotaknya, baris judul menempel di atas */
-/* Freeze panes: saat halaman digulir, baris judul tabel ikut turun dan menempel di bawah bilah atas (semua tabel yang punya judul) */
-function judulLekat() {
-  document.querySelectorAll("#view .tbl-wrap.lekat").forEach(w => w.classList.remove("lekat"));
-  judulGeser();
-}
-function judulGeser() {
-  const view = document.getElementById("view"); if (!view) return;
-  const fit = view.classList.contains("fit"), bar = document.querySelector(".topbar");
-  const atas = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
-  view.querySelectorAll(".beku-h").forEach(e => { e.style.transform = ""; e.classList.remove("beku-h"); });
-  view.querySelectorAll(".tbl-wrap > table").forEach(t => {
-    const th = t.tHead; if (!th) return;
-    const lepas = () => { th.style.transform = ""; th.classList.remove("beku"); };
-    lepas(); /* ukur dari posisi normal */
-    if (fit) return;
-    /* hanya tabel yang berisi data (minimal 3 baris); tabel kosong/pendek tidak ikut supaya tidak menutupi isi di bawahnya */
-    const body = [...t.tBodies].flatMap(b => [...b.rows]).filter(r => !r.querySelector("td[colspan]") || r.cells.length > 1);
-    if (body.length < 3) return lepas();
-    /* Judul bagian (judul kotak, keterangan, bar filter) ikut menempel bersama judul tabel */
-    const wrap = t.parentElement, kotak = wrap.closest(".bh-box");
-    let kepala = [];
-    if (kotak) { let el = wrap; while (el.parentElement && el.parentElement !== kotak) el = el.parentElement;
-      for (let c = kotak.firstElementChild; c && c !== el; c = c.nextElementSibling) kepala.push(c); }
-    const z = parseFloat(t.style.zoom) || 1, r = t.getBoundingClientRect(), thR = th.getBoundingClientRect(), akhir = body[body.length - 1].getBoundingClientRect().height;
-    const mulai = kepala.length ? kepala[0].getBoundingClientRect().top : thR.top, tinggi = thR.bottom - mulai;
-    const d = mulai < atas && r.bottom - tinggi - akhir > atas ? atas - mulai : 0;
-    if (!d) return lepas();
-    kepala.forEach(e => { e.style.transform = `translateY(${d}px)`; e.classList.add("beku-h"); });
-    th.style.transform = `translateY(${d / z}px)`; th.classList.add("beku");
-  });
-}
-{ let jalan = false; const f = () => { if (jalan) return; jalan = true; requestAnimationFrame(() => { jalan = false; judulGeser(); }); };
-  window.addEventListener("scroll", f, { passive: true }); window.addEventListener("resize", f); }
 function pasTabel() {
   /* Tabel dengan sedikit kolom tidak dilebarkan penuh: selebar isinya (kecuali tabel input yang lebarnya diatur) */
   document.querySelectorAll("#view .tbl-wrap > table").forEach(t => {
@@ -3621,7 +3580,7 @@ function pasTabel() {
     if (w && n > w + 2) { const z = w / n; if (z >= 0.72) t.style.zoom = String(Math.floor(z * 1000) / 1000); }
   });
 }
-window.addEventListener("resize", () => { clearTimeout(pasHP.t); pasHP.t = setTimeout(() => { pasHP(); pasTabel(); lebarSidebar(); judulLekat(); }, 120); });
+window.addEventListener("resize", () => { clearTimeout(pasHP.t); pasHP.t = setTimeout(() => { pasHP(); pasTabel(); lebarSidebar(); }, 120); });
 
 /* ===================== Menu profil + bahasa ===================== */
 const profBtn = document.getElementById("profBtn"), profPop = document.getElementById("profPop");
