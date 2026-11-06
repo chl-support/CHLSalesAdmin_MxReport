@@ -458,6 +458,8 @@ select.th-sel { font: inherit; font-size: 13px; font-weight: 700; padding: 4px 8
 @keyframes cekDenyut { 0%, 100% { box-shadow: 0 4px 14px rgba(192,57,43,.35); } 50% { box-shadow: 0 4px 22px rgba(192,57,43,.65); } }
 @media (prefers-reduced-motion: reduce) { .cek-btn { animation: none; } }
 .mn-skema { margin-bottom: 18px; }
+.mn-sal td, .mn-sal th { text-align: right; } .mn-sal td.mn-pn, .mn-sal th.mn-pn { text-align: left; }
+.mn-sal tr.mn-pct td { color: var(--blue); font-weight: 700; font-size: 12.5px; }
 .mn-kr { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .mn-kr .mn-uk { margin-left: 0; }
 .mn-tg { font: inherit; background: none; border: 0; padding: 0; cursor: pointer; color: var(--ink); text-align: left; display: inline-flex; gap: 6px; align-items: baseline; }
@@ -3083,6 +3085,36 @@ function mnCek(P, th, b) {
       <tr><th>Unit</th><th>Rp M</th><th>Unit</th><th>Rp M</th><th>Daily</th><th>Weekly</th><th>Daily</th><th>Weekly</th></tr></thead>
       <tbody>${rows}</tbody></table></div></section>`;
 }
+/* Inhouse vs Agen: dari kolom Sales di Weekly ("Inhouse" / "In House" = Inhouse, lainnya = Agen). Angka = unit penjualan per bulan */
+const mnInhouse = x => /in\s*-?\s*house/i.test(String(x.sales || ""));
+function mnSaluranData(P, th) {
+  const thIni = +todayISO().slice(0, 4), nol = () => ({ ih: Array(12).fill(0), ag: Array(12).fill(0), lalu: [0, 0], adaLalu: false });
+  const o = nol();
+  P.forEach(p => { const W = S.weekly && S.weekly[p.nama]; if (!W) return;
+    [["jual", 1]].forEach(([j, tanda]) => wkHit(W[j]).forEach(x => { const t = wkEf(x), y = +t.slice(0, 4), m = +t.slice(5, 7), u = (+x.jumlah || 0) * tanda, k = mnInhouse(x) ? 0 : 1;
+      if (!u || !y) return;
+      if (y === th) (k ? o.ag : o.ih)[m - 1] += u;
+      else if (y < th) { o.lalu[k] += u; o.adaLalu = true; } })); });
+  return o;
+}
+function mnSaluranTbl(P, th, bi) {
+  const o = mnSaluranData(P, th), ada = o.ih.some(Boolean) || o.ag.some(Boolean) || o.adaLalu;
+  const tot = o.ih.map((v, i) => v + o.ag[i]), sum = a => a.reduce((x, y) => x + y, 0);
+  const n = v => v ? v.toLocaleString(LOC()) : "–", pc = (a, t) => t > 0 ? idn(a / t * 100, 1) + "%" : "–";
+  const sel = (v, i) => `<td class="${i === bi ? "on" : ""}">${n(v)}</td>`;
+  const lalu = o.adaLalu ? (a => `<td>${n(a)}</td>`) : () => "";
+  const T = { ih: sum(o.ih), ag: sum(o.ag) }; T.t = T.ih + T.ag;
+  const L = { ih: o.lalu[0], ag: o.lalu[1] }; L.t = L.ih + L.ag;
+  return `<section class="gut"><h2>Penjualan Inhouse vs Agen per bulan ${th}</h2>
+    <div class="desc">Unit penjualan per bulan (tanggal kontrak). Inhouse/Agen dari kolom <b>Sales</b> di Weekly Sales Dashboard (berisi "Inhouse" = Inhouse, lainnya = Agen). % = Inhouse atau Agen ÷ Total terjual.</div>
+    ${ada ? `<div class="tbl-wrap"><table class="hold-t pg-t mn-t mn-sal"><thead><tr><th class="mn-pn"></th>${o.adaLalu ? `<th>s.d. Des '${String(th - 1).slice(2)}</th>` : ""}${BULAN.map((x, i) => `<th class="${i === bi ? "on" : ""}">${x.slice(0, 3)} '${String(th).slice(2)}</th>`).join("")}<th>Total ${th}</th></tr></thead><tbody>
+      <tr><td class="mn-pn">Inhouse</td>${lalu(L.ih)}${o.ih.map(sel).join("")}<td class="tot">${n(T.ih)}</td></tr>
+      <tr><td class="mn-pn">Agen</td>${lalu(L.ag)}${o.ag.map(sel).join("")}<td class="tot">${n(T.ag)}</td></tr>
+      <tr class="t"><td class="mn-pn">TOTAL</td>${lalu(L.t)}${tot.map(sel).join("")}<td class="tot">${n(T.t)}</td></tr>
+      <tr class="mn-pct"><td class="mn-pn">% Inhouse</td>${o.adaLalu ? `<td>${pc(L.ih, L.t)}</td>` : ""}${o.ih.map((v, i) => `<td class="${i === bi ? "on" : ""}">${pc(v, tot[i])}</td>`).join("")}<td class="tot">${pc(T.ih, T.t)}</td></tr>
+      <tr class="mn-pct"><td class="mn-pn">% Agen</td>${o.adaLalu ? `<td>${pc(L.ag, L.t)}</td>` : ""}${o.ag.map((v, i) => `<td class="${i === bi ? "on" : ""}">${pc(v, tot[i])}</td>`).join("")}<td class="tot">${pc(T.ag, T.t)}</td></tr>
+    </tbody></table></div>` : `<div class="empty" style="margin-top:12px">Belum ada data Weekly untuk proyek yang dipilih.</div>`}</section>`;
+}
 function viewMonthly() {
   const th = mnTh(), hari = S.sales2.tanggal, bk = mnBk(), b = Math.min(mnBulan || bk, 12), bi = b - 1;
   const { semua, P } = mnData(th);
@@ -3199,6 +3231,7 @@ function viewMonthly() {
     <div class="mn-leg"><span><i class="mn-j"></i>Penjualan</span><span><i class="mn-b"></i>Batal</span><span class="desc">Arahkan kursor / sentuh bulan untuk rincian, klik untuk memilih bulan.</span>
       <span class="mn-uk no-cap" role="group" aria-label="Tampilan grafik"><button type="button" data-mnuk="unit" class="${mnUkur === "nilai" ? "" : "on"}">Unit</button><button type="button" data-mnuk="nilai" class="${mnUkur === "nilai" ? "on" : ""}">Nilai (Rp M)</button></span></div>
     <div class="mn-cw">${grafik}</div></section>
+  ${mnSaluranTbl(P, th, bi)}
   <section class="gut"><h2>Ringkasan ${BULAN[bi]} ${th} per proyek</h2><div class="desc">Angka sama dengan Daily Sales Dashboard • nilai dalam miliar rupiah.</div>${ringkas}</section>
   ${mnCek(P, th, b)}
   <section class="gut"><h2>Unit terjual per bulan ${th}</h2>${tblBulan((p, i) => p.jual[i].u, n, "unit")}</section>
@@ -3254,6 +3287,11 @@ function exportMonthlyExcel() {
       if (k !== "(Belum diisi)") L.forEach(e => aoa.push(["   " + e.d, e.b, rpC(e.bv), e.y, rpC(e.yv), pc(e.y)])); });
     const t = jm(R); aoa.push(["TOTAL", t[0], rpC(t[1]), t[2], rpC(t[3]), pc(t[2])], [], []); }
   kom("Sumber informasi", x => mnSumber(x.sumber));
+  { const o = mnSaluranData(P, th), tot = o.ih.map((v, i) => v + o.ag[i]), sum = a => a.reduce((x, y) => x + y, 0), pc = (a, t) => ({ v: t ? a / t : 0, t: "n", z: "0.0%" });
+    aoa.push([`PENJUALAN INHOUSE VS AGEN PER BULAN ${th} (unit penjualan)`], ["", ...(o.adaLalu ? [`s.d. Des ${th - 1}`] : []), ...BULAN, `Total ${th}`]);
+    const L = o.lalu, lt = L[0] + L[1];
+    aoa.push(["Inhouse", ...(o.adaLalu ? [L[0]] : []), ...o.ih, sum(o.ih)], ["Agen", ...(o.adaLalu ? [L[1]] : []), ...o.ag, sum(o.ag)], ["TOTAL", ...(o.adaLalu ? [lt] : []), ...tot, sum(tot)],
+      ["% Inhouse", ...(o.adaLalu ? [pc(L[0], lt)] : []), ...o.ih.map((v, i) => pc(v, tot[i])), pc(sum(o.ih), sum(tot))], ["% Agen", ...(o.adaLalu ? [pc(L[1], lt)] : []), ...o.ag.map((v, i) => pc(v, tot[i])), pc(sum(o.ag), sum(tot))], [], []); }
   const ws = aoaSheet(aoa);
   ws["!cols"] = [34, ...Array(13).fill(15)].map(w => ({ wch: w }));
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, `${BULAN[bi]} ${th}`);
