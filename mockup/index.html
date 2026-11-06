@@ -525,6 +525,20 @@ select.th-sel { font: inherit; font-size: 13px; font-weight: 700; padding: 4px 8
 .mn-uk button { font: inherit; font-size: 12.5px; font-weight: 700; border: 0; background: var(--bg); color: var(--muted); padding: 5px 12px; cursor: pointer; }
 .mn-uk button.on { background: var(--navy); color: #fff; }
 @media (max-width: 640px) { .mn-ch { height: 220px; grid-template-columns: 34px 1fr; } .mn-bars { padding: 0 6%; gap: 1px; } .mn-bar em { font-size: 10px; } .mn-x { font-size: 10.5px; } .mn-tip { min-width: 180px; font-size: 11.5px; } }
+/* ===== Sales Achievement ===== */
+.tg-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+.tg-ok { background: var(--green-soft); color: var(--green); } .tg-dekat { background: var(--gold-soft); color: var(--gold-ink, var(--gold)); }
+.tg-kurang { background: var(--red-soft); color: var(--red); } .tg-na { background: var(--grey-soft); color: var(--muted); }
+.kpi .pct .tg-badge { font-size: 14px; vertical-align: middle; }
+.tg-mini { display: inline-block; min-width: 46px; padding: 1px 6px; border-radius: 6px; font-size: 11.5px; font-weight: 800; }
+.tg-t td.c, .tg-m td.c { text-align: center; }
+.mn-bar.tg-bt, .mn-leg i.tg-bt, .mn-tip i.tg-bt { background: #b8c3d3; } .mn-bar.tg-ba, .mn-leg i.tg-ba, .mn-tip i.tg-ba { background: #2a6fc0; }
+.mn-bar em.tg-ok, .mn-bar em.tg-dekat, .mn-bar em.tg-kurang { background: none; }
+.mn-bar em.tg-ok { color: var(--green); } .mn-bar em.tg-dekat { color: var(--gold-ink, var(--gold)); } .mn-bar em.tg-kurang { color: var(--red); }
+.tg-legst { margin-left: auto; display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.tg-in th.tg-tot, .tg-in td.tg-tot { background: var(--gold-soft); }
+.tg-in input { width: 100%; min-width: 64px; text-align: right; }
+.tg-in td.tg-tot input { min-width: 90px; font-weight: 700; }
 /* Kolom tambahan (Sumber Informasi, Usia, Tgl. Lahir, Domisili): warna ungu tersendiri */
 .wk-t th.c-tmb, .wk-in th.c-tmb { background: var(--purple); }
 .wk-t td.c-tmb, .wk-in td.c-tmb { background: var(--purple-soft); }
@@ -3006,7 +3020,7 @@ function mnData(th) {
     const bt = s2L("batal").filter(b => b.proyekId === p.id && +String(b.tanggal).slice(0, 4) === th);
     const batal = BULAN.map((_, i) => { const l = bt.filter(b => +b.tanggal.slice(5, 7) === i + 1); return { u: l.length, v: l.reduce((a, b) => a + (b.rp || 0), 0), l }; });
     const hd = th >= yNow ? s2L("hold").filter(h => h.proyekId === p.id) : [];
-    return { grup: x.grup, nama: x.nama, adaWk: !!W, jual, batal, hold: hd, holdU: hd.length, holdV: hd.reduce((a, h) => a + (h.tandaJadi || 0), 0) }; }) };
+    return { id: p.id, grup: x.grup, nama: x.nama, adaWk: !!W, jual, batal, hold: hd, holdU: hd.length, holdV: hd.reduce((a, h) => a + (h.tandaJadi || 0), 0) }; }) };
 }
 /* Cek kesesuaian: Daily Sales vs Weekly per proyek (penjualan & batal Jan s.d bulan terpilih, hold saat ini) */
 function mnCekList(P, th, b) {
@@ -3296,6 +3310,186 @@ function bindMonthly() {
     mnSkBuka.has(k) ? mnSkBuka.delete(k) : mnSkBuka.add(k); render(x.id); });
   document.querySelectorAll("[data-mnskall]").forEach(x => x.onclick = () => { mnSkDetail = x.dataset.mnskall === "1"; mnSkBuka = new Set(); render(x.id); });
 }
+/* ===================== Sales Achievement Dashboard (Target vs Actual) =====================
+   Actual = Daily Sales Dashboard (unit & Rp per proyek per bulan). Target = diisi admin.chl di tab Input Data (per proyek per bulan). */
+let tgTahun = null, tgBulan = 0, tgProyek = "", tgUkur = "unit", tgDraft = null, tgDraftTh = null;
+const bolehTarget = () => !!(SESI && String(SESI.u || "").toLowerCase() === "admin.chl");
+const tgNol = () => Array.from({ length: 12 }, () => [0, 0]);
+const tgTh = () => tgTahun && tgTahun < +todayISO().slice(0, 4) ? tgTahun : tahunKe();
+const tgBk = () => tgTahun && tgTahun < +todayISO().slice(0, 4) ? 12 : bulanKe();
+const tgArr = (th, id) => { const a = ((S.target || {})[th] || {})[id]; return Array.isArray(a) && a.length === 12 ? a : tgNol(); };
+const tgPct = (a, t) => t > 0 ? a / t * 100 : null;
+const tgStat = p => p == null ? { c: "tg-na", t: "Belum ada target" } : p >= 100 ? { c: "tg-ok", t: "Tercapai" } : p >= 80 ? { c: "tg-dekat", t: "Mendekati" } : { c: "tg-kurang", t: "Di bawah target" };
+const tgPctTxt = p => p == null ? "–" : idn(p, p >= 1000 ? 0 : 1) + "%";
+/* Proyek yang terlihat oleh akun ini, dengan Actual & Target per bulan */
+function tgData(th) {
+  const simpan = mnProyek; mnProyek = null; let P; try { P = mnData(th).P; } finally { mnProyek = simpan; }
+  const semua = P.map(p => ({ ...p, tg: tgArr(th, p.id) }));
+  const pilih = semua.filter(p => !tgProyek || tgProyek === p.nama || tgProyek === "pt:" + p.grup);
+  return { semua, P: pilih };
+}
+const tgSum = (P, f) => P.reduce((a, p) => { const v = f(p); return [a[0] + v[0], a[1] + v[1]]; }, [0, 0]);
+const tgAct = (p, i) => [p.jual[i].u, p.jual[i].v], tgTgt = (p, i) => [+p.tg[i][0] || 0, +p.tg[i][1] || 0];
+const tgRange = (f, a, b) => p => { let s = [0, 0]; for (let i = a; i < b; i++) { const v = f(p, i); s = [s[0] + v[0], s[1] + v[1]]; } return s; };
+function viewTarget() {
+  const th = tgTh(), bk = tgBk(), b = Math.min(tgBulan || bk, 12), bi = b - 1, nilai = tgUkur === "nilai", k = nilai ? 1 : 0;
+  const { semua, P } = tgData(th);
+  if (!semua.length) return `<div class="page gut"><div class="empty">Belum ada proyek yang bisa ditampilkan.</div></div>`;
+  const fmt = v => nilai ? (v ? idn(M(v)) : "–") : (v ? v.toLocaleString(LOC()) : "–"), sat = nilai ? "Rp M" : "unit";
+  const T = { bA: tgSum(P, p => tgAct(p, bi)), bT: tgSum(P, p => tgTgt(p, bi)), yA: tgSum(P, tgRange(tgAct, 0, b)), yT: tgSum(P, tgRange(tgTgt, 0, b)), tT: tgSum(P, tgRange(tgTgt, 0, 12)), tA: tgSum(P, tgRange(tgAct, 0, 12)) };
+  const adaTarget = T.tT[0] || T.tT[1];
+  const kpi = (c, lbl, v, sub, note) => `<div class="kpi" style="--c:${c}"><div class="lbl">${lbl}</div><div class="val num">${nilai ? `${idn(M(v[1]))} <small>M</small>` : `${v[0].toLocaleString(LOC())} <small>unit</small>`}</div><div class="pct num">${sub}</div><div class="note">${note}</div></div>`;
+  const pB = tgPct(T.bA[k], T.bT[k]), pY = tgPct(T.yA[k], T.yT[k]), pT = tgPct(T.tA[k], T.tT[k]);
+  const sisa = [Math.max(0, T.tT[0] - T.tA[0]), Math.max(0, T.tT[1] - T.tA[1])], sisaBln = Math.max(1, 12 - bk);
+  const butuh = [Math.ceil(sisa[0] / sisaBln), sisa[1] / sisaBln];
+  const pctBadge = p => `<span class="tg-badge ${tgStat(p).c}">${tgPctTxt(p)}</span>`;
+  /* Grafik Target vs Actual per bulan */
+  const grafik = (() => {
+    const v = BULAN.map((_, i) => { const a = tgSum(P, p => tgAct(p, i)), t = tgSum(P, p => tgTgt(p, i)); return [t[k], a[k], tgPct(a[k], t[k])]; });
+    const mx0 = Math.max(0, ...v.flatMap(x => [x[0], x[1]])) / (nilai ? 1e9 : 1);
+    const kasar = (mx0 || 1) / 4, e = Math.pow(10, Math.floor(Math.log10(kasar))), f = kasar / e;
+    const step0 = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * e, step = nilai ? step0 : Math.max(1, Math.round(step0));
+    const top = Math.max(step, Math.ceil(mx0 / step) * step), ticks = []; for (let g = 0; g <= top + 1e-9; g += step) ticks.push(g);
+    const pct = x => ((nilai ? x / 1e9 : x) / top * 100).toFixed(2) + "%";
+    return `<div class="mn-ch tg-ch"><div class="mn-yax">${ticks.map(g => `<span style="bottom:${(g / top * 100).toFixed(2)}%">${nilai ? idn(g, g % 1 ? 1 : 0) : g}</span>`).join("")}</div>
+      <div class="mn-plot"><div class="mn-ga">${ticks.map(g => `<i class="mn-gl${g ? "" : " nol"}" style="bottom:${(g / top * 100).toFixed(2)}%"></i>`).join("")}</div><div class="mn-cols">
+      ${v.map(([t, a, p], i) => `<button type="button" class="mn-col${i === bi ? " on" : ""}${i + 1 <= bk ? "" : " nanti"}" data-tgb="${i + 1}" aria-label="${BULAN[i]}: target ${fmt(t)}, actual ${fmt(a)}">
+        <span class="mn-bars"><span class="mn-bar tg-bt${t ? "" : " nol"}" style="height:${t ? pct(t) : 0}"></span><span class="mn-bar tg-ba${a ? "" : " nol"}" style="height:${a ? pct(a) : 0}">${p != null && i + 1 <= bk ? `<em class="${tgStat(p).c}">${tgPctTxt(p)}</em>` : ""}</span></span>
+        <span class="mn-x">${BULAN[i].slice(0, 3)}</span>
+        <div class="mn-tip" role="tooltip"><b>${BULAN[i]} ${th}</b><div><i class="tg-bt"></i>Target <span>${fmt(t)} ${sat}</span></div><div><i class="tg-ba"></i>Actual <span>${fmt(a)} ${sat}</span></div><div class="mn-tn">Pencapaian <span>${tgPctTxt(p)}</span></div></div></button>`).join("")}</div></div></div>`;
+  })();
+  /* Tabel per proyek */
+  const grupP = [...new Set(P.map(p => p.grup))];
+  const sel = (t, a) => { const p = tgPct(a, t); return `<td class="num">${fmt(t)}</td><td class="num">${fmt(a)}</td><td class="num ${a - t > 0 ? "up" : a - t < 0 ? "down" : ""}">${t || a ? (a === t ? "0" : (a - t > 0 ? "+" : "−") + fmt(Math.abs(a - t))) : "–"}</td><td class="c">${pctBadge(p)}</td>`; };
+  const baris = p => { const bA = tgAct(p, bi), bT = tgTgt(p, bi), yA = tgRange(tgAct, 0, b)(p), yT = tgRange(tgTgt, 0, b)(p), tT = tgRange(tgTgt, 0, 12)(p), tA = tgRange(tgAct, 0, 12)(p);
+    return `<td class="mn-pn">${esc(p.nama)}</td>${sel(bT[k], bA[k])}${sel(yT[k], yA[k])}<td class="num tot">${fmt(tT[k])}</td><td class="num">${fmt(Math.max(0, tT[k] - tA[k]))}</td>`; };
+  const tbl = `<div class="tbl-wrap"><table class="hold-t pg-t mn-t tg-t"><thead>
+    <tr><th rowspan="2" class="mn-pn">Proyek</th><th colspan="4">${BULAN[bi]} ${th} (${sat})</th><th colspan="4">YTD Jan s.d ${BULAN[bi].slice(0, 3)} (${sat})</th><th rowspan="2">Target<br>${th}</th><th rowspan="2">Sisa<br>target</th></tr>
+    <tr><th>Target</th><th>Actual</th><th>Selisih</th><th>%</th><th>Target</th><th>Actual</th><th>Selisih</th><th>%</th></tr></thead><tbody>
+    ${grupP.map(g => `<tr class="mn-pt"><td colspan="11">${esc(g)}</td></tr>` + P.filter(p => p.grup === g).map(p => `<tr>${baris(p)}</tr>`).join("")).join("")}
+    <tr class="t"><td class="mn-pn">Total</td>${sel(T.bT[k], T.bA[k])}${sel(T.yT[k], T.yA[k])}<td class="num tot">${fmt(T.tT[k])}</td><td class="num">${fmt(Math.max(0, T.tT[k] - T.tA[k]))}</td></tr></tbody></table></div>`;
+  /* Tabel bulanan: % pencapaian per proyek per bulan */
+  const bulanan = `<div class="tbl-wrap"><table class="hold-t pg-t mn-t tg-m"><thead><tr><th class="mn-pn">Proyek</th>${BULAN.map((x, i) => `<th class="${i === bi ? "on" : ""}">${x.slice(0, 3)}</th>`).join("")}<th>YTD</th></tr></thead><tbody>
+    ${grupP.map(g => `<tr class="mn-pt"><td colspan="14">${esc(g)}</td></tr>` + P.filter(p => p.grup === g).map(p => `<tr><td class="mn-pn">${esc(p.nama)}</td>${BULAN.map((_, i) => { const t = tgTgt(p, i)[k], a = tgAct(p, i)[k], pc = tgPct(a, t);
+      return `<td class="c${i === bi ? " on" : ""}" title="Target ${fmt(t)} • Actual ${fmt(a)}">${i + 1 <= bk || a ? (t ? `<span class="tg-mini ${tgStat(pc).c}">${tgPctTxt(pc)}</span>` : a ? `<small>${fmt(a)}</small>` : "–") : "–"}</td>`; }).join("")}
+      <td class="c">${pctBadge(tgPct(tgRange(tgAct, 0, b)(p)[k], tgRange(tgTgt, 0, b)(p)[k]))}</td></tr>`).join("")).join("")}</tbody></table></div>`;
+  /* Peringkat pencapaian YTD */
+  const rank = P.map(p => ({ p, pc: tgPct(tgRange(tgAct, 0, b)(p)[k], tgRange(tgTgt, 0, b)(p)[k]) })).filter(x => x.pc != null).sort((a, c) => c.pc - a.pc);
+  const opsiBln = BULAN.slice(0, Math.max(bk, b)).map((x, i) => `<option value="${i + 1}" ${i === bi ? "selected" : ""}>${x} ${th}</option>`).reverse().join("");
+  const tahunAda = [...new Set([...tahunSalesAda(), ...Object.keys(S.target || {}).map(Number)])].filter(Boolean).sort((a, c) => c - a);
+  const opsiPr = `<option value="">Semua proyek</option>` + [...new Set(semua.map(p => p.grup))].map(g => { const L = semua.filter(p => p.grup === g);
+    return `<optgroup label="${esc(g)}">${L.length > 1 ? `<option value="pt:${esc(g)}" ${tgProyek === "pt:" + g ? "selected" : ""}>Semua ${esc(g)}</option>` : ""}${L.map(p => `<option value="${esc(p.nama)}" ${tgProyek === p.nama ? "selected" : ""}>${esc(p.nama)}</option>`).join("")}</optgroup>`; }).join("");
+  const namaF = !tgProyek ? "Semua proyek" : tgProyek.startsWith("pt:") ? tgProyek.slice(3) : tgProyek;
+  return `<div class="page cap" id="capTarget">
+  <div class="hero"><div class="tabs"><span class="tab">Sales Achievement</span><span class="tab">${panjang(S.sales2.tanggal)}</span></div>
+    <div class="hero-body gut"><h1>Sales Achievement</h1><div class="sub">Target vs Actual • ${BULAN[bi]} ${th} • ${esc(namaF)} • Actual dari Daily Sales Dashboard</div></div></div>
+  <div class="mn-ctl gut no-cap"><label class="wk-opt" for="tgTh">Tahun <select id="tgTh" class="th-sel">${tahunAda.map(y => `<option value="${y}" ${y === th ? "selected" : ""}>${y}</option>`).join("")}</select></label>
+    <label class="wk-opt" for="tgBln">Bulan <select id="tgBln">${opsiBln}</select></label>
+    <label class="wk-opt" for="tgPr">Proyek <select id="tgPr">${opsiPr}</select></label>
+    <span class="mn-uk" role="group" aria-label="Satuan"><button type="button" data-tguk="unit" class="${nilai ? "" : "on"}">Unit</button><button type="button" data-tguk="nilai" class="${nilai ? "on" : ""}">Nilai (Rp M)</button></span>
+    <span class="mn-act"><button type="button" class="btn sec" id="tgKirim">Kirim ringkasan</button><button type="button" class="btn sec" id="tgShot" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button><button type="button" class="btn sec" id="tgXls">Ekspor Excel</button></span></div>
+  ${adaTarget ? "" : `<div class="wk-imp gut no-cap"><b>Target ${th} belum diisi.</b> ${bolehTarget() ? `Isi di <a href="#target-input">Input Data</a> (per proyek per bulan, atau isi total setahun lalu Bagi rata).` : "Target diisi oleh admin.chl."}</div>`}
+  <div class="kpis wk-kpis gut">
+    ${kpi("var(--blue)", `Actual ${BULAN[bi]}`, T.bA, `${pctBadge(pB)} dari target`, `Target ${fmt(T.bT[k])} ${sat}`)}
+    ${kpi("var(--green)", `Actual YTD ${th}`, T.yA, `${pctBadge(pY)} dari target`, `Target Jan s.d ${BULAN[bi]}: ${fmt(T.yT[k])} ${sat}`)}
+    ${kpi("var(--gold)", `Target ${th}`, T.tT, `${pctBadge(pT)} tercapai`, `Actual setahun ${fmt(T.tA[k])} ${sat}`)}
+    ${kpi("var(--red)", "Sisa target", sisa, pT == null ? "–" : `${idn(Math.max(0, 100 - pT), 1)}% lagi`, `Sampai Desember ${th}`)}
+    ${kpi("var(--purple)", "Kebutuhan / bulan", butuh, `${sisaBln} bulan tersisa`, "Agar target setahun tercapai")}
+  </div>
+  <section class="gut"><h2>Target vs Actual per bulan ${th}</h2>
+    <div class="mn-leg"><span><i class="tg-bt"></i>Target</span><span><i class="tg-ba"></i>Actual</span><span class="desc">Angka di atas batang = % pencapaian. Klik bulan untuk memilih.</span>
+      <span class="tg-legst"><span class="tg-badge tg-ok">≥100% Tercapai</span><span class="tg-badge tg-dekat">80–99% Mendekati</span><span class="tg-badge tg-kurang">&lt;80% Di bawah</span></span></div>
+    <div class="mn-cw">${grafik}</div></section>
+  <section class="gut"><h2>Pencapaian per proyek</h2><div class="desc">Selisih = Actual − Target. Sisa target = Target ${th} − Actual ${th}.</div>${tbl}</section>
+  <section class="gut"><h2>Pencapaian per bulan ${th} (%)</h2><div class="desc">Arahkan kursor ke sel untuk melihat Target dan Actual.</div>${bulanan}</section>
+  <section class="gut"><h2>Peringkat pencapaian YTD</h2>${rank.length ? `<div class="bars">${rank.map((x, i) => `<div class="bar-row"><span class="nm">${i + 1}. ${esc(x.p.nama)}</span>
+      <div class="track"><div class="fill" style="--c:${x.pc >= 100 ? "var(--green)" : x.pc >= 80 ? "var(--gold)" : "var(--red)"};width:${Math.min(100, x.pc).toFixed(1)}%"></div></div><span class="u num">${tgPctTxt(x.pc)}</span><span class="p num">${tgStat(x.pc).t}</span></div>`).join("")}</div>` : `<div class="empty" style="margin-top:12px">Belum ada target yang diisi.</div>`}</section>
+</div>`;
+}
+function teksTarget() {
+  return denganID(() => {
+    const th = tgTh(), b = Math.min(tgBulan || tgBk(), 12), bi = b - 1, { P } = tgData(th), bln = BULAN[bi];
+    const baris = (nm, bA, bT, yA, yT) => `*${nm} :*\n${bln} : ${fU(bA[0])}/${fU(bT[0])} Unit (${tgPctTxt(tgPct(bA[0], bT[0]))}) • ${fM(bA[1])}/${fM(bT[1])} M (${tgPctTxt(tgPct(bA[1], bT[1]))})\nYTD : ${fU(yA[0])}/${fU(yT[0])} Unit (${tgPctTxt(tgPct(yA[0], yT[0]))}) • ${fM(yA[1])}/${fM(yT[1])} M (${tgPctTxt(tgPct(yA[1], yT[1]))})`;
+    const out = P.map(p => baris(p.nama, tgAct(p, bi), tgTgt(p, bi), tgRange(tgAct, 0, b)(p), tgRange(tgTgt, 0, b)(p)));
+    if (P.length > 1) out.push(baris(tgProyek ? "Total" : "Total CHL", tgSum(P, p => tgAct(p, bi)), tgSum(P, p => tgTgt(p, bi)), tgSum(P, tgRange(tgAct, 0, b)), tgSum(P, tgRange(tgTgt, 0, b))));
+    return `Sales Achievement (Actual/Target)\n${bln} ${th}\nData per ${ddmmyyyy(S.sales2.tanggal)}\n\n${out.join("\n\n")}`;
+  });
+}
+function exportTargetExcel() {
+  if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
+  const th = tgTh(), b = Math.min(tgBulan || tgBk(), 12), bi = b - 1, { P } = tgData(th), RP = "#,##0", rpC = v => ({ v: v || 0, t: "n", z: RP }), pc = (a, t) => ({ v: t ? a / t : 0, t: "n", z: "0.0%" });
+  const aoa = [["SALES ACHIEVEMENT (TARGET VS ACTUAL)"], [`${BULAN[bi]} ${th} • data per ${ddmmyyyy(S.sales2.tanggal)} • Actual dari Daily Sales Dashboard • Rp = Rupiah penuh`], [],
+    ["Proyek", `Target ${BULAN[bi]} (unit)`, `Actual ${BULAN[bi]} (unit)`, "% unit", `Target ${BULAN[bi]} (Rp)`, `Actual ${BULAN[bi]} (Rp)`, "% Rp", "Target YTD (unit)", "Actual YTD (unit)", "% unit", "Target YTD (Rp)", "Actual YTD (Rp)", "% Rp", `Target ${th} (unit)`, `Target ${th} (Rp)`]];
+  const row = (nm, bT, bA, yT, yA, tT) => [nm, bT[0], bA[0], pc(bA[0], bT[0]), rpC(bT[1]), rpC(bA[1]), pc(bA[1], bT[1]), yT[0], yA[0], pc(yA[0], yT[0]), rpC(yT[1]), rpC(yA[1]), pc(yA[1], yT[1]), tT[0], rpC(tT[1])];
+  [...new Set(P.map(p => p.grup))].forEach(g => { aoa.push([g]); P.filter(p => p.grup === g).forEach(p => aoa.push(row("   " + p.nama, tgTgt(p, bi), tgAct(p, bi), tgRange(tgTgt, 0, b)(p), tgRange(tgAct, 0, b)(p), tgRange(tgTgt, 0, 12)(p)))); });
+  aoa.push(row("TOTAL", tgSum(P, p => tgTgt(p, bi)), tgSum(P, p => tgAct(p, bi)), tgSum(P, tgRange(tgTgt, 0, b)), tgSum(P, tgRange(tgAct, 0, b)), tgSum(P, tgRange(tgTgt, 0, 12))), [], []);
+  [["UNIT", 0], ["NILAI (Rp)", 1]].forEach(([lbl, k]) => {
+    aoa.push([`TARGET VS ACTUAL PER BULAN ${th} – ${lbl}`], ["Proyek", "", ...BULAN, "Total"]);
+    P.forEach(p => { const t = BULAN.map((_, i) => tgTgt(p, i)[k]), a = BULAN.map((_, i) => tgAct(p, i)[k]), f = v => k ? rpC(v) : v;
+      aoa.push([p.nama, "Target", ...t.map(f), f(t.reduce((x, y) => x + y, 0))], ["", "Actual", ...a.map(f), f(a.reduce((x, y) => x + y, 0))]); });
+    aoa.push([]);
+  });
+  const ws = aoaSheet(aoa); ws["!cols"] = [{ wch: 32 }, ...Array(16).fill({ wch: 15 })];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, `${BULAN[bi]} ${th}`);
+  XLSX.writeFile(wb, `Sales_Achievement_${th}-${String(b).padStart(2, "0")}.xlsx`); toast("File Excel diunduh");
+}
+function bindTarget() {
+  const g = id => document.getElementById(id);
+  if (g("tgTh")) g("tgTh").onchange = e => { const y = +e.target.value; tgTahun = y === +todayISO().slice(0, 4) ? null : y; tgBulan = 0; render(); };
+  if (g("tgBln")) g("tgBln").onchange = e => { tgBulan = +e.target.value; render(); };
+  if (g("tgPr")) g("tgPr").onchange = e => { tgProyek = e.target.value; render(); };
+  document.querySelectorAll("[data-tguk]").forEach(x => x.onclick = () => { tgUkur = x.dataset.tguk; render(); });
+  document.querySelectorAll("[data-tgb]").forEach(x => x.onclick = () => { tgBulan = +x.dataset.tgb; render(); });
+  if (g("tgXls")) g("tgXls").onclick = () => denganID(() => exportTargetExcel());
+  if (g("tgKirim")) g("tgKirim").onclick = () => bukaKirimTeks("Sales Achievement Report", teksTarget);
+  if (g("tgShot")) g("tgShot").onclick = e => menuGambar(e.currentTarget, "capTarget", `Sales_Achievement_${BULAN[Math.min(tgBulan || tgBk(), 12) - 1]}_${tgTh()}.png`);
+}
+/* ---- Input Data target (admin.chl) ---- */
+function viewTargetInput() {
+  const th = tgTh(), ro = !bolehTarget();
+  if (!tgDraft || tgDraftTh !== th) { tgDraft = clone((S.target || {})[th] || {}); tgDraftTh = th; }
+  const { semua } = tgData(th), grup = [...new Set(semua.map(p => p.grup))];
+  const arr = id => tgDraft[id] = Array.isArray(tgDraft[id]) && tgDraft[id].length === 12 ? tgDraft[id] : tgNol();
+  const tot = id => arr(id).reduce((a, v) => [a[0] + (+v[0] || 0), a[1] + (+v[1] || 0)], [0, 0]);
+  const inU = (id, i, v) => `<input type="number" min="0" step="1" id="tgi-${id}-${i}-0" data-tgi="${id}:${i}:0" value="${v || ""}" placeholder="–" ${ro ? "disabled" : ""}>`;
+  const inR = (id, i, v) => `<input type="text" inputmode="numeric" id="tgi-${id}-${i}-1" data-tgi="${id}:${i}:1" value="${v ? rpDot(v) : ""}" placeholder="–" ${ro ? "disabled" : ""}>`;
+  const totIn = (id, j, v) => `<input type="${j ? "text" : "number"}" ${j ? 'inputmode="numeric"' : 'min="0" step="1"'} id="tgt-${id}-${j}" data-tgtot="${id}:${j}" value="${v ? (j ? rpDot(v) : v) : ""}" placeholder="–" title="Isi total setahun lalu tekan Tab: dibagi rata ke 12 bulan" ${ro ? "disabled" : ""}>`;
+  const T = semua.reduce((a, p) => { arr(p.id).forEach((v, i) => { a[i][0] += +v[0] || 0; a[i][1] += +v[1] || 0; }); return a; }, tgNol()), TT = T.reduce((a, v) => [a[0] + v[0], a[1] + v[1]], [0, 0]);
+  const adaLalu = !!(S.target || {})[th - 1];
+  return `<div class="page gut"><div class="form-head"><div><h2>Input Target ${th}</h2>
+    <div class="desc">Target per proyek per bulan (unit dan Rp). Isi kolom <b>Total ${th}</b> lalu tekan Tab untuk <b>dibagi rata</b> ke 12 bulan, atau isi per bulan. Actual diambil otomatis dari Daily Sales Dashboard.${ro ? " <b>Hanya admin.chl yang bisa mengubah target.</b>" : ""}</div></div>
+    <div class="btn-row"><label class="wk-opt" for="tgThIn">Tahun <select id="tgThIn" class="th-sel">${[...new Set([+todayISO().slice(0, 4) + 1, ...tahunSalesAda(), ...Object.keys(S.target || {}).map(Number)])].filter(Boolean).sort((a, c) => c - a).map(y => `<option value="${y}" ${y === th ? "selected" : ""}>${y}</option>`).join("")}</select></label>
+      <button class="btn sec" id="tgXlsIn" type="button">Ekspor Excel</button>${ro ? "" : `${adaLalu ? `<button class="btn sec" id="tgSalin" type="button">Salin dari ${th - 1}</button>` : ""}<button class="btn sec" id="tgBatal" type="button">Batalkan perubahan</button><button class="btn" id="tgSimpan" type="button">Simpan target</button>`}</div></div>
+    <div class="tbl-wrap"><table class="edit tg-in"><thead><tr><th rowspan="2" class="stick">Proyek</th><th colspan="2" class="tg-tot">Total ${th}</th>${BULAN.map(x => `<th colspan="2">${x}</th>`).join("")}</tr>
+      <tr><th class="tg-tot">Unit</th><th class="tg-tot">Rp</th>${BULAN.map(() => "<th>Unit</th><th>Rp</th>").join("")}</tr></thead><tbody>
+      ${grup.map(gp => `<tr class="group"><td class="stick" colspan="27">${esc(gp)}</td></tr>` + semua.filter(p => p.grup === gp).map(p => { const t = tot(p.id);
+        return `<tr><td class="stick proj-c">${esc(p.nama)}</td><td class="tg-tot">${totIn(p.id, 0, t[0])}</td><td class="tg-tot">${totIn(p.id, 1, t[1])}</td>${arr(p.id).map((v, i) => `<td>${inU(p.id, i, v[0])}</td><td>${inR(p.id, i, v[1])}</td>`).join("")}</tr>`; }).join("")).join("")}
+      <tr class="sum"><td class="stick">${lblTotal(1)}</td><td class="tg-tot">${TT[0] ? TT[0].toLocaleString(LOC()) : "–"}</td><td class="tg-tot">${TT[1] ? rpDot(TT[1]) : "–"}</td>${T.map(v => `<td>${v[0] || "–"}</td><td>${v[1] ? rpDot(v[1]) : "–"}</td>`).join("")}</tr>
+      </tbody></table></div></div>`;
+}
+function bindTargetInput() {
+  const g = id => document.getElementById(id), angka = s => Number(String(s).replace(/[^0-9]/g, "")) || 0;
+  if (g("tgThIn")) g("tgThIn").onchange = e => { const y = +e.target.value; tgTahun = y === +todayISO().slice(0, 4) ? null : y; if (y > +todayISO().slice(0, 4)) tgTahun = y; tgDraft = null; render(); };
+  if (g("tgXlsIn")) g("tgXlsIn").onclick = () => denganID(() => exportTargetExcel());
+  if (!bolehTarget()) return;
+  const th = tgTh(), arr = id => tgDraft[id] = Array.isArray(tgDraft[id]) && tgDraft[id].length === 12 ? tgDraft[id] : tgNol();
+  document.querySelectorAll("[data-tgi]").forEach(el => el.onchange = () => { const [id, i, j] = el.dataset.tgi.split(":"); arr(id)[+i][+j] = angka(el.value); render(el.id); });
+  document.querySelectorAll("[data-tgtot]").forEach(el => el.onchange = () => { const [id, j] = el.dataset.tgtot.split(":"), v = angka(el.value), a = arr(id);
+    if (+j === 0) { const dasar = Math.floor(v / 12), sisa = v - dasar * 12; a.forEach((x, i) => x[0] = dasar + (i < sisa ? 1 : 0)); }
+    else { const dasar = Math.floor(v / 12), sisa = v - dasar * 12; a.forEach((x, i) => x[1] = dasar + (i === 11 ? sisa : 0)); }
+    render(el.id); });
+  if (g("tgSalin")) g("tgSalin").onclick = () => { if (!confirm(`Salin target ${th - 1} ke ${th}? Isian ${th} yang sekarang akan diganti.`)) return; tgDraft = clone((S.target || {})[th - 1] || {}); render(); toast(`Target ${th - 1} disalin. Periksa lalu klik Simpan target.`); };
+  if (g("tgBatal")) g("tgBatal").onclick = () => { tgDraft = null; render(); toast("Perubahan dibatalkan"); };
+  if (g("tgSimpan")) g("tgSimpan").onclick = () => {
+    const lama = (S.target || {})[th] || {}, nmP = id => (S.sales2.proyek.find(p => String(p.id) === String(id)) || {}).nama || id, ub = [];
+    const jum = a => (a || []).reduce((s, v) => [s[0] + (+v[0] || 0), s[1] + (+v[1] || 0)], [0, 0]);
+    new Set([...Object.keys(lama), ...Object.keys(tgDraft)]).forEach(id => { const a = jum(lama[id]), b = jum(tgDraft[id]);
+      if (JSON.stringify(lama[id] || null) !== JSON.stringify(tgDraft[id] || null)) ub.push(`${nmP(id)}: target ${th} ${a[0]} → ${b[0]} unit (${rp(a[1])} → ${rp(b[1])})`); });
+    S.target = S.target || {}; S.target[th] = clone(tgDraft);
+    if (ub.length) catat("target", "Input Data", ub);
+    save(); tgDraft = null; render(); toast(ub.length ? "Target disimpan" : "Tidak ada perubahan");
+  };
+}
 const REPORTS = [
   { id: "bast", nama: "Monitoring BAST (PPN & Non-PPN)", menu: "MONITORING BAST (PPN & NON-PPN)", desc: "Progres BAST unit PPN DTP dan Non PPN DTP per periode dan proyek.",
     tabs: [
@@ -3329,6 +3523,13 @@ const REPORTS = [
   { id: "monthly", nama: "Monthly Sales Dashboard", menu: "MONTHLY SALES DASHBOARD", desc: "Rekap penjualan, batal, dan hold per bulan untuk semua proyek. Angka dari Daily Sales Dashboard; rincian skema bayar dan sumber informasi dari Weekly Sales Dashboard.",
     tabs: [
       { id: "monthly", label: "Dashboard", view: viewMonthly, bind: bindMonthly },
+    ],
+    meta: () => "" },
+  { id: "target", nama: "Sales Achievement Dashboard", menu: "SALES ACHIEVEMENT DASHBOARD", desc: "Target vs Actual per proyek per bulan dan YTD. Actual dari Daily Sales Dashboard; target diisi admin.chl.",
+    tabs: [
+      { id: "target", label: "Dashboard", view: viewTarget, bind: bindTarget },
+      { id: "target-input", label: "Input Data", view: viewTargetInput, bind: bindTargetInput, admin: true },
+      { id: "target-history", label: "History", view: () => viewHistory("target"), bind: () => {} },
     ],
     meta: () => "" },
 ];

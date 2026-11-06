@@ -141,6 +141,9 @@ function forUser(state, user) {
     Object.keys(state.laporan || {}).forEach(d => { const r = (state.laporan[d] || []).filter(x => bids.has(x.proyekId)); if (r.length) out.laporan[d] = r; });
   }
   if (state.weekly) { out.weekly = {}; Object.keys(state.weekly).forEach(k => { if (ok(k)) out.weekly[k] = state.weekly[k]; }); }
+  /* Sales Achievement: target per tahun per proyek (id Daily Sales) */
+  if (state.target) { const ids = new Set(((state.sales2 || {}).proyek || []).filter(p => ok(p.nama)).map(p => String(p.id))); out.target = {};
+    Object.keys(state.target).forEach(y => { out.target[y] = {}; Object.keys(state.target[y] || {}).forEach(id => { if (ids.has(String(id))) out.target[y][id] = state.target[y][id]; }); }); }
   if (Array.isArray(state.history)) out.history = state.history.filter(h => historyVisible(h, user, names))
     .map(h => /^weekly:/.test(h.report) ? h : Object.assign({}, h, { items: (h.items || []).filter(t => itemVisible(t, user, names)) }));
   return out;
@@ -148,6 +151,8 @@ function forUser(state, user) {
 /* ---------- merge: restricted admins only change their own projects ---------- */
 const low = s => String(s || "").trim().toLowerCase();
 function merge(old, inc, user) {
+  /* Target Sales Achievement hanya boleh diubah oleh admin.chl */
+  if (user.u !== "admin.chl" && inc) { if (old && old.target) inc.target = old.target; else delete inc.target; }
   if (!user.proyek) return inc;
   const ok = nama => user.proyek.includes(low(nama));
   const out = JSON.parse(JSON.stringify(old));
