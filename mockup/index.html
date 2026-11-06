@@ -370,6 +370,8 @@ table { width: 100%; border-collapse: collapse; }
 .wk-opt { font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; }
 .wk-opts { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
 .btn.wk-tgl { font-size: 12.5px; padding: 6px 10px; }
+/* Sisa unit/nilai belum terjual di kolom Akumulasi terjual */
+table.rincian small.sisa, table.rincian tr.grand small.sisa { color: var(--green); font-weight: 700; }
 /* Master Proyek Penjualan: tabel tidak selebar layar */
 .sm-box, #view .master { max-width: 960px; }
 .sm-t { min-width: 640px; }
@@ -1758,16 +1760,19 @@ function viewSales() {
         <div class="track"><div class="fill" style="--c:${COLORS[i % 4]};width:${max ? x[k][1] / max * 100 : 0}%"></div></div>
         <span class="u num">${x[k][0]} unit</span><span class="p num">${rp(x[k][1])}</span></div>`).join("")}</div></section>`;
   };
+  /* Sisa belum terjual = total stok - akumulasi terjual */
+  const sisaU = x => { const v = Math.max(0, x.stok[0] - x.akum[0]); return `<small class="sisa">sisa ${v ? v.toLocaleString(LOC()) + " unit" : "habis"}</small>`; };
+  const sisaR = x => { const v = Math.max(0, x.stok[1] - x.akum[1]); return `<small class="sisa">sisa ${v ? idn(M(v)) : "–"}</small>`; };
   let tbl = `<thead><tr><th rowspan="2" style="text-align:center">Proyek</th><th colspan="2">${esc(bln)}</th><th colspan="2">YTD ${esc(BULAN[m - 1])}</th><th colspan="2">Akumulasi terjual</th></tr>
     <tr><th>Unit</th><th>Rp M</th><th>Unit</th><th>Rp M</th><th>Unit</th><th>Rp M</th></tr></thead><tbody>`;
   kelompok(rows).forEach((g, i) => {
     tbl += `<tr class="group" style="--gc:${COLORS[i % 4]}"><td colspan="7">${esc(g.nama)}</td></tr>`;
     g.rows.forEach(x => tbl += `<tr><td class="proj">${esc(x.p.nama)}</td><td>${uN(x.bln[0])}</td><td>${rpN(x.bln[1])}</td><td>${uN(x.ytd[0])}</td><td>${rpN(x.ytd[1])}</td>
-      <td class="tot">${uN(x.akum[0])}<small>dari ${x.stok[0].toLocaleString(LOC())}</small></td><td class="tot">${rpN(x.akum[1])}<small>dari ${idn(M(x.stok[1]))}</small></td></tr>`
+      <td class="tot">${uN(x.akum[0])}<small>dari ${x.stok[0].toLocaleString(LOC())}</small>${sisaU(x)}</td><td class="tot">${rpN(x.akum[1])}<small>dari ${idn(M(x.stok[1]))}</small>${sisaR(x)}</td></tr>`
       + (x.p.catatan && x.p.catatanTampil !== false ? `<tr class="subnote"><td colspan="7">↳ ${esc(x.p.catatan)}</td></tr>` : ""));
   });
   tbl += `<tr class="grand"><td class="proj">${lblTotal()}</td><td>${T.bln[0]}</td><td>${rpN(T.bln[1])}</td><td>${T.ytd[0]}</td><td>${rpN(T.ytd[1])}</td>
-    <td>${T.akum[0].toLocaleString(LOC())}<small>dari ${T.stok[0].toLocaleString(LOC())}</small></td><td>${rpN(T.akum[1])}<small>dari ${idn(M(T.stok[1]))}</small></td></tr></tbody>`;
+    <td>${T.akum[0].toLocaleString(LOC())}<small>dari ${T.stok[0].toLocaleString(LOC())}</small>${sisaU(T)}</td><td>${rpN(T.akum[1])}<small>dari ${idn(M(T.stok[1]))}</small>${sisaR(T)}</td></tr></tbody>`;
   const pctU = T.stok[0] ? T.akum[0] / T.stok[0] * 100 : 0, pctR = T.stok[1] ? T.akum[1] / T.stok[1] * 100 : 0;
   const y = tahunKe(), batalBln = (S.sales2.batal || []).filter(x => +x.tanggal.slice(0, 4) === y && +x.tanggal.slice(5, 7) === m);
   const batalRp = batalBln.reduce((a, x) => a + (x.rp || 0), 0), hold = S.sales2.hold || [], holdTj = hold.reduce((a, x) => a + (x.tandaJadi || 0), 0);
