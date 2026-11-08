@@ -540,6 +540,9 @@ select.th-sel { font: inherit; font-size: 13px; font-weight: 700; padding: 4px 8
 .mn-bar em.tg-ok { color: var(--green); } .mn-bar em.tg-dekat { color: var(--gold-ink, var(--gold)); } .mn-bar em.tg-kurang { color: var(--red); }
 .tg-legst { margin-left: auto; display: inline-flex; gap: 6px; flex-wrap: wrap; }
 .tg-in th.tg-tot, .tg-in td.tg-tot { background: var(--gold-soft); }
+.tg-info { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 10px; font-size: 13px; color: var(--ink); }
+.tg-info label { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.tg-info input[type=date] { font: inherit; font-weight: 400; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--ink); }
 .tg-in thead th.tg-tot { color: var(--ink); font-weight: 800; }
 .tg-in td.proj-c, .tg-in thead tr:first-child th:first-child { min-width: 190px; width: 190px; white-space: nowrap; text-align: left; font-weight: 700; }
 .tg-in tr.group td { background: #d9e0ea; background: color-mix(in srgb, var(--navy) 16%, var(--bg)); text-align: left; font-weight: 800; font-size: 12.5px; text-transform: uppercase; letter-spacing: .02em; color: var(--ink); padding: 7px 10px; }
@@ -3354,7 +3357,9 @@ function bindMonthly() {
 }
 /* ===================== Sales Achievement Dashboard (Target vs Actual) =====================
    Actual = Daily Sales Dashboard (unit & Rp per proyek per bulan). Target = diisi admin.chl di tab Input Data (per proyek per bulan). */
-let tgTahun = null, tgBulan = 0, tgProyek = "", tgUkur = "unit", tgDraft = null, tgDraftTh = null;
+let tgTahun = null, tgBulan = 0, tgProyek = "", tgUkur = "unit", tgDraft = null, tgDraftTh = null, tgInfo = null;
+/* Tanggal penerimaan data budget & tanggal aktif (berlaku mulai), per tahun */
+const tgInfoTh = th => ((S.targetInfo || {})[th]) || {};
 const bolehTarget = () => !!(SESI && String(SESI.u || "").toLowerCase() === "admin.chl");
 const tgNol = () => Array.from({ length: 12 }, () => [0, 0]);
 const tgTh = () => tgTahun && tgTahun < +todayISO().slice(0, 4) ? tgTahun : tahunKe();
@@ -3424,7 +3429,7 @@ function viewTarget() {
   const namaF = !tgProyek ? "Semua proyek" : tgProyek.startsWith("pt:") ? tgProyek.slice(3) : tgProyek;
   return `<div class="page cap" id="capTarget">
   <div class="hero"><div class="tabs"><span class="tab">Sales Achievement</span><span class="tab">${panjang(S.sales2.tanggal)}</span></div>
-    <div class="hero-body gut"><h1>Sales Achievement</h1><div class="sub">Target vs Actual • ${BULAN[bi]} ${th} • ${esc(namaF)} • Actual dari Daily Sales Dashboard</div></div></div>
+    <div class="hero-body gut"><h1>Sales Achievement</h1><div class="sub">Target vs Actual • ${BULAN[bi]} ${th} • ${esc(namaF)} • Actual dari Daily Sales Dashboard${(() => { const f = tgInfoTh(th); return f.terima || f.aktif ? ` • Budget diterima ${f.terima ? ddmmyyyy(f.terima) : "–"}, aktif ${f.aktif ? ddmmyyyy(f.aktif) : "–"}` : ""; })()}</div></div></div>
   <div class="mn-ctl gut no-cap"><label class="wk-opt" for="tgTh">Tahun <select id="tgTh" class="th-sel">${tahunAda.map(y => `<option value="${y}" ${y === th ? "selected" : ""}>${y}</option>`).join("")}</select></label>
     <label class="wk-opt" for="tgBln">Bulan <select id="tgBln">${opsiBln}</select></label>
     <label class="wk-opt" for="tgPr">Proyek <select id="tgPr">${opsiPr}</select></label>
@@ -3460,7 +3465,9 @@ function teksTarget() {
 function exportTargetExcel() {
   if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
   const th = tgTh(), b = Math.min(tgBulan || tgBk(), 12), bi = b - 1, { P } = tgData(th), RP = "#,##0", rpC = v => ({ v: v || 0, t: "n", z: RP }), pc = (a, t) => ({ v: t ? a / t : 0, t: "n", z: "0.0%" });
-  const aoa = [["SALES ACHIEVEMENT (TARGET VS ACTUAL)"], [`${BULAN[bi]} ${th} • data per ${ddmmyyyy(S.sales2.tanggal)} • Actual dari Daily Sales Dashboard • Rp = Rupiah penuh`], [],
+  const inf = tgInfoTh(th);
+  const aoa = [["SALES ACHIEVEMENT (TARGET VS ACTUAL)"], [`${BULAN[bi]} ${th} • data per ${ddmmyyyy(S.sales2.tanggal)} • Actual dari Daily Sales Dashboard • Rp = Rupiah penuh`],
+    [`Tanggal penerimaan data budget: ${inf.terima ? ddmmyyyy(inf.terima) : "-"} • Tanggal aktif: ${inf.aktif ? ddmmyyyy(inf.aktif) : "-"}`], [],
     ["Proyek", `Target ${BULAN[bi]} (unit)`, `Actual ${BULAN[bi]} (unit)`, "% unit", `Target ${BULAN[bi]} (Rp)`, `Actual ${BULAN[bi]} (Rp)`, "% Rp", "Target YTD (unit)", "Actual YTD (unit)", "% unit", "Target YTD (Rp)", "Actual YTD (Rp)", "% Rp", `Target ${th} (unit)`, `Target ${th} (Rp)`]];
   const row = (nm, bT, bA, yT, yA, tT) => [nm, bT[0], bA[0], pc(bA[0], bT[0]), rpC(bT[1]), rpC(bA[1]), pc(bA[1], bT[1]), yT[0], yA[0], pc(yA[0], yT[0]), rpC(yT[1]), rpC(yA[1]), pc(yA[1], yT[1]), tT[0], rpC(tT[1])];
   [...new Set(P.map(p => p.grup))].forEach(g => { aoa.push([g]); P.filter(p => p.grup === g).forEach(p => aoa.push(row("   " + p.nama, tgTgt(p, bi), tgAct(p, bi), tgRange(tgTgt, 0, b)(p), tgRange(tgAct, 0, b)(p), tgRange(tgTgt, 0, 12)(p)))); });
@@ -3489,7 +3496,7 @@ function bindTarget() {
 /* ---- Input Data target (admin.chl) ---- */
 function viewTargetInput() {
   const th = tgTh(), ro = !bolehTarget();
-  if (!tgDraft || tgDraftTh !== th) { tgDraft = clone((S.target || {})[th] || {}); tgDraftTh = th; }
+  if (!tgDraft || tgDraftTh !== th) { tgDraft = clone((S.target || {})[th] || {}); tgDraftTh = th; tgInfo = { terima: "", aktif: "", ...clone(tgInfoTh(th)) }; }
   const { semua } = tgData(th), grup = [...new Set(semua.map(p => p.grup))];
   const arr = id => tgDraft[id] = Array.isArray(tgDraft[id]) && tgDraft[id].length === 12 ? tgDraft[id] : tgNol();
   const tot = id => arr(id).reduce((a, v) => [a[0] + (+v[0] || 0), a[1] + (+v[1] || 0)], [0, 0]);
@@ -3499,7 +3506,9 @@ function viewTargetInput() {
   const T = semua.reduce((a, p) => { arr(p.id).forEach((v, i) => { a[i][0] += +v[0] || 0; a[i][1] += +v[1] || 0; }); return a; }, tgNol()), TT = T.reduce((a, v) => [a[0] + v[0], a[1] + v[1]], [0, 0]);
   const adaLalu = !!(S.target || {})[th - 1];
   return `<div class="page gut"><div class="form-head"><div><h2>Input Target ${th}</h2>
-    <div class="desc">Target per proyek per bulan (unit dan Rp). Isi kolom <b>Total ${th}</b> lalu tekan Tab untuk <b>dibagi rata</b> ke 12 bulan, atau isi per bulan. Actual diambil otomatis dari Daily Sales Dashboard.${ro ? " <b>Hanya admin.chl yang bisa mengubah target.</b>" : ""}</div></div>
+    <div class="desc">Target per proyek per bulan (unit dan Rp). Isi kolom <b>Total ${th}</b> lalu tekan Tab untuk <b>dibagi rata</b> ke 12 bulan, atau isi per bulan. Actual diambil otomatis dari Daily Sales Dashboard.${ro ? " <b>Hanya admin.chl yang bisa mengubah target.</b>" : ""}</div>
+    <div class="tg-info">${ro ? `<span>Tanggal penerimaan data budget: <b>${tgInfo.terima ? ddmmyyyy(tgInfo.terima) : "–"}</b></span><span>Tanggal aktif: <b>${tgInfo.aktif ? ddmmyyyy(tgInfo.aktif) : "–"}</b></span>`
+      : `<label for="tgTerima">Tanggal penerimaan data budget <input type="date" id="tgTerima" value="${tgInfo.terima || ""}"></label><label for="tgAktif">Tanggal aktif (berlaku mulai) <input type="date" id="tgAktif" value="${tgInfo.aktif || ""}"></label>`}</div></div>
     <div class="btn-row"><label class="wk-opt" for="tgThIn">Tahun <select id="tgThIn" class="th-sel">${[...new Set([+todayISO().slice(0, 4) + 1, ...tahunSalesAda(), ...Object.keys(S.target || {}).map(Number)])].filter(Boolean).sort((a, c) => c - a).map(y => `<option value="${y}" ${y === th ? "selected" : ""}>${y}</option>`).join("")}</select></label>
       <button class="btn sec" id="tgXlsIn" type="button">Ekspor Excel</button>${ro ? "" : `<button class="btn sec" id="tgImp" type="button">Impor dari Excel</button><input type="file" id="tgImpFile" accept=".xlsx,.xls" hidden>`}${ro ? "" : `${adaLalu ? `<button class="btn sec" id="tgSalin" type="button">Salin dari ${th - 1}</button>` : ""}<button class="btn sec" id="tgBatal" type="button">Batalkan perubahan</button><button class="btn" id="tgSimpan" type="button">Simpan target</button>`}</div></div>
     <div class="tbl-wrap"><table class="edit tg-in"><thead><tr><th rowspan="2" class="stick">Proyek</th><th colspan="2" class="tg-tot">Total ${th}</th>${BULAN.map(x => `<th colspan="2">${x}</th>`).join("")}</tr>
@@ -3555,10 +3564,14 @@ function bindTargetInput() {
       const daftar = r.ketemu.map(id => { const t = jum(r.hasil[id]); return `• ${nmP(id)}: ${t[0]} unit, ${rp(t[1])}`; }).join("\n");
       const beda = r.tahunFile && r.tahunFile !== th ? `\n\nPerhatian: file ini untuk tahun ${r.tahunFile}, sedangkan yang dibuka tahun ${th}.` : "";
       if (!confirm(`Terbaca dari sheet "${nm}" (${r.ketemu.length} proyek):\n${daftar}${beda}\n\nTarget ${th} proyek tersebut akan diganti dengan isi file. Lanjutkan?`)) return;
-      r.ketemu.forEach(id => tgDraft[id] = r.hasil[id]); render();
+      r.ketemu.forEach(id => tgDraft[id] = r.hasil[id]);
+      if (!tgInfo.terima) tgInfo.terima = todayISO(); if (!tgInfo.aktif) tgInfo.aktif = tgInfo.terima;
+      render();
       toast(`Target ${r.ketemu.length} proyek dimuat dari Excel. Periksa lalu klik Simpan target.`);
     } catch (e) { toast("Gagal membaca file Excel."); }
   };
+  if (g("tgTerima")) g("tgTerima").onchange = g("tgTerima").oninput = e => { tgInfo.terima = e.target.value || ""; };
+  if (g("tgAktif")) g("tgAktif").onchange = g("tgAktif").oninput = e => { tgInfo.aktif = e.target.value || ""; };
   if (g("tgSalin")) g("tgSalin").onclick = () => { if (!confirm(`Salin target ${th - 1} ke ${th}? Isian ${th} yang sekarang akan diganti.`)) return; tgDraft = clone((S.target || {})[th - 1] || {}); render(); toast(`Target ${th - 1} disalin. Periksa lalu klik Simpan target.`); };
   if (g("tgBatal")) g("tgBatal").onclick = () => { tgDraft = null; render(); toast("Perubahan dibatalkan"); };
   if (g("tgSimpan")) g("tgSimpan").onclick = () => {
@@ -3566,6 +3579,10 @@ function bindTargetInput() {
     const jum = a => (a || []).reduce((s, v) => [s[0] + (+v[0] || 0), s[1] + (+v[1] || 0)], [0, 0]);
     new Set([...Object.keys(lama), ...Object.keys(tgDraft)]).forEach(id => { const a = jum(lama[id]), b = jum(tgDraft[id]);
       if (JSON.stringify(lama[id] || null) !== JSON.stringify(tgDraft[id] || null)) ub.push(`${nmP(id)}: target ${th} ${a[0]} → ${b[0]} unit (${rp(a[1])} → ${rp(b[1])})`); });
+    const infoLama = tgInfoTh(th);
+    if ((infoLama.terima || "") !== (tgInfo.terima || "")) ub.push(`Tanggal penerimaan data budget ${th}: ${infoLama.terima ? ddmmyyyy(infoLama.terima) : "–"} → ${tgInfo.terima ? ddmmyyyy(tgInfo.terima) : "–"}`);
+    if ((infoLama.aktif || "") !== (tgInfo.aktif || "")) ub.push(`Tanggal aktif budget ${th}: ${infoLama.aktif ? ddmmyyyy(infoLama.aktif) : "–"} → ${tgInfo.aktif ? ddmmyyyy(tgInfo.aktif) : "–"}`);
+    S.targetInfo = S.targetInfo || {}; S.targetInfo[th] = { terima: tgInfo.terima || "", aktif: tgInfo.aktif || "" };
     S.target = S.target || {}; S.target[th] = clone(tgDraft);
     if (ub.length) catat("target", "Input Data", ub);
     save(); tgDraft = null; render(); toast(ub.length ? "Target disimpan" : "Tidak ada perubahan");

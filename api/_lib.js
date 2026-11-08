@@ -152,7 +152,7 @@ function forUser(state, user) {
 const low = s => String(s || "").trim().toLowerCase();
 function merge(old, inc, user) {
   /* Target Sales Achievement hanya boleh diubah oleh admin.chl */
-  if (user.u !== "admin.chl" && inc) { if (old && old.target) inc.target = old.target; else delete inc.target; }
+  if (user.u !== "admin.chl" && inc) { ["target", "targetInfo"].forEach(k => { if (old && old[k]) inc[k] = old[k]; else delete inc[k]; }); }
   if (!user.proyek) return inc;
   const ok = nama => user.proyek.includes(low(nama));
   const out = JSON.parse(JSON.stringify(old));
