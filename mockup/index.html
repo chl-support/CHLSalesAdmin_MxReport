@@ -626,7 +626,7 @@ select.th-sel { font: inherit; font-size: 13px; font-weight: 700; padding: 4px 8
 .wk-more { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
 .wk-imp { margin-top: 16px; padding: 12px 16px; border: 1px solid var(--gold); border-left-width: 4px; border-radius: 6px; background: var(--gold-soft); color: var(--ink); font-size: 14px; }
 .wk-imp a { color: var(--blue); font-weight: 700; }
-.kpis.wk-kpis, #view.fit .kpis.wk-kpis { grid-template-columns: repeat(5, 1fr); }
+.kpis.wk-kpis, #view.fit .kpis.wk-kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 @media (max-width: 760px) { #view:not(.fit) .kpis.wk-kpis { grid-template-columns: 1fr 1fr; } }
 .wk-in td.proj-c { white-space: nowrap; font-weight: 700; }
 .wk-rkin td.proj-c { white-space: normal; line-height: 1.25; }
@@ -2727,7 +2727,12 @@ function viewWeekly(nama, id) {
   <div class="kpis wk-kpis gut">${(() => { /* Minggu berjalan: minggu (Senin–Minggu) yang memuat tanggal laporan */
       const w = mg.find(x => hari >= x.dari && hari <= x.sampai) || mg[mg.length - 1], dlm = x => wkEf(x) >= w.dari && wkEf(x) <= w.sampai;
       const l = jL.filter(dlm), bt = totU(bL.filter(dlm));
-      return kpi("var(--green)", "Minggu berjalan", totU(l), wkNilai(l), `${w.n ? `Minggu ke-${w.n}` : "Awal tahun"} • ${wkPendek(w.dari, w.sampai)}${bt ? ` • batal ${bt} unit` : ""}`); })()}${kpi("var(--blue)", `Penjualan ${th}`, totU(jL), wkNilai(jL), `Januari s.d ${BULAN[wkBkTh() - 1]} ${th}`)}${kpi("var(--gold)", aw < th ? `Akumulasi ${aw}–${th}` : `Akumulasi ${th}`, akum.g[0], akum.nilai, "Grand total penjualan")}${kpi("var(--red)", `Batal ${th}`, totU(bL), wkNilai(bL), `Januari s.d ${BULAN[wkBkTh() - 1]} ${th}`)}${kpi("var(--purple)", "Hold Reserved", hTot[0], wkNilai(hold), hold.length ? `${hold.length} transaksi` : "Tidak ada unit hold")}</div>
+      return kpi("var(--green)", "Minggu berjalan", totU(l), wkNilai(l), `${w.n ? `Minggu ke-${w.n}` : "Awal tahun"} • ${wkPendek(w.dari, w.sampai)}${bt ? ` • batal ${bt} unit` : ""}`); })()}${kpi("var(--blue)", `Penjualan ${th}`, totU(jL), wkNilai(jL), `Januari s.d ${BULAN[wkBkTh() - 1]} ${th}`)}${kpi("var(--gold)", aw < th ? `Akumulasi ${aw}–${th}` : `Akumulasi ${th}`, akum.g[0], akum.nilai, "Grand total penjualan")}${kpi("var(--red)", `Batal ${th}`, totU(bL), wkNilai(bL), `Januari s.d ${BULAN[wkBkTh() - 1]} ${th}`)}${kpi("var(--purple)", "Hold Reserved", hTot[0], wkNilai(hold), hold.length ? `${hold.length} transaksi` : "Tidak ada unit hold")}${(() => {
+      /* Stock awal & sisa unit: dari Daily Sales Dashboard (total stock − akumulasi terjual) */
+      const p = (S.sales2.proyek || []).find(x => String(x.nama).trim().toLowerCase() === String(nama).trim().toLowerCase()); if (!p) return "";
+      const r = hitungSales([p]).rows[0]; if (!r || !r.stok) return "";
+      const sisa = [Math.max(0, r.stok[0] - r.akum[0]), Math.max(0, r.stok[1] - r.akum[1])];
+      return kpi("var(--navy)", "Stock awal", r.stok[0], r.stok[1], "Total stock (Daily Sales Dashboard)") + kpi("var(--teal, #0f8a8a)", "Sisa unit", sisa[0], sisa[1], `Stock awal − akumulasi terjual ${r.akum[0].toLocaleString(LOC())} unit`); })()}</div>
   ${!jL.length && !bL.length && !hold.length ? `<div class="wk-imp gut no-cap"><b>Belum ada transaksi ${th} untuk ${esc(nama)}.</b> ${S.role === "ADMIN" && bolehEdit(nama)
     ? (bolehImporExcel() ? `Masukkan dari file Weekly Report: buka <a href="#${(REPORTS.find(r => r.id === "weekly").tabs.find(t => t.proyek === nama && t.label === "Input Data") || {}).id}">Input Data</a> → klik <b>Impor dari Excel</b> → pilih file → <b>Simpan data</b>.` : `Isi transaksinya di <a href="#${(REPORTS.find(r => r.id === "weekly").tabs.find(t => t.proyek === nama && t.label === "Input Data") || {}).id}">Input Data</a>, lalu <b>Simpan data</b>.`) : "Data akan tampil setelah admin mengisi Input Data."}</div>` : ""}
   <section class="gut"><div class="wk-h"><h2>Penjualan per minggu ${th}</h2>
