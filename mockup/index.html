@@ -2432,7 +2432,10 @@ function teksDailyReport(bagian = "semua") {
     const pindahHari = s2L("pindah").filter(x => x.tanggal === tgl && dipilih(x)), gantiHari = s2L("ganti").filter(x => x.tanggal === tgl && dipilih(x));
     const teksPindah = l => `*Pindah Unit : ${l.length} Unit (${l.map(b => `${b.kodeLama || "?"} → ${b.kode || "?"}`).join(" & ")})*`;
     const teksGanti = l => `*Ganti Bayar : ${l.length} Unit (${l.map(b => `${b.kode || "?"} : ${b.bayarLama || "?"} → ${b.bayarBaru || "?"}`).join(" & ")})*`;
-    const teksHold = l => `*Hold Reserved : ${l.reduce((a, b) => a + (+b.jumlah || 1), 0)} Unit (${l.map(b => b.unit || b.kode || "?").join(" & ")})*`;
+    /* Hold Reserved: kode unit + tanda jadi (dari baris hold, atau dari Hold Reserved di Daily Sales dengan kode yang sama) */
+    const tjHold = b => { const k = String(b.unit || b.kode || "").toUpperCase().replace(/\s+/g, ""); if (+b.tandaJadi) return +b.tandaJadi;
+      const d = (S.sales2.hold || []).find(h => String(h.kode || "").toUpperCase().replace(/\s+/g, "") === k && +h.tandaJadi); return d ? +d.tandaJadi : 0; };
+    const teksHold = l => `*Hold Reserved : ${l.reduce((a, b) => a + (+b.jumlah || 1), 0)} Unit (${l.map(b => { const tj = tjHold(b); return `${b.unit || b.kode || "?"}${tj ? " " + rpPendek(tj) : ""}`; }).join(" & ")})*`;
     /* Perubahan dari Weekly Sales Dashboard (Hold Reserved, Pindah Unit, Ganti Cara Bayar) bertanggal sama dengan tanggal report.
        Baris yang sudah tercatat di Daily (kode sama) tidak dihitung dua kali. */
     const kd = v => String(v || "").toUpperCase().replace(/\s+/g, "");
@@ -2713,7 +2716,9 @@ const WK_PG = {
       { k: "bayarBaru", l: "Skema Bayar Baru", t: "tx" }, { k: "harga", l: "Harga Unit<br>(Rp)", x: "Harga Unit (Rp)", t: "rp" },
       { k: "konsumen", l: "Konsumen", t: "tx" }, { k: "sales", l: "Sales", t: "tx" }, { k: "ket", l: "Keterangan", t: "ket" }, ...WK_KOL_TMB()] },
 };
-const wkKolBag = (W, j, layar) => { const K = WK_PG[j] ? WK_PG[j].kol(W) : wkKolom(W); return layar ? K.filter(c => wkTambahanTampil() || !WK_TAMBAHAN.includes(c.k)) : K; };
+const WK_KOL_RES = { k: "tandaJadi", l: "Nilai Reserved<br>(Rp)", x: "Nilai Reserved (Rp)", t: "rp" };
+const wkKolHold = K => { const i = K.findIndex(c => c.k === "rpExc"); const o = K.slice(); o.splice(i < 0 ? o.length : i + 1, 0, WK_KOL_RES); return o; };
+const wkKolBag = (W, j, layar) => { const K = WK_PG[j] ? WK_PG[j].kol(W) : j === "hold" ? wkKolHold(wkKolom(W)) : wkKolom(W); return layar ? K.filter(c => wkTambahanTampil() || !WK_TAMBAHAN.includes(c.k)) : K; };
 /* [unit, Rp kolom-kolom rp sesuai urutan wkRpK] */
 const wkSum = (l, W) => { const rk = wkRpK(W); return l.reduce((a, x) => [a[0] + (+x.jumlah || 0), ...rk.map((k, i) => a[i + 1] + (x[k] || 0))], [0, ...rk.map(() => 0)]); };
 /* Nilai di kartu: Rp termasuk PPN; jika kosong (mis. rumah subsidi) pakai Rp tidak termasuk PPN */
@@ -2790,10 +2795,11 @@ function viewWeekly(nama, id) {
     <h3 class="wk-sub">Rekap penjualan</h3>${rekapTbl("jual", aw < th ? `Grand Total ${aw} s.d ${th}` : `Grand Total ${th}`)}</section>
   <section class="gut"><h2>Batal per minggu ${th}</h2>${mingguTbl("batal")}
     <h3 class="wk-sub">Rekap batal</h3>${rekapTbl("batal", "Grand Total")}</section>
-  <section class="gut"><h2>Hold Reserved</h2>
-    <div class="tbl-wrap"><table class="hold-t pg-t wk-t ${K.length > 8 ? "wk-lebar" : ""}">${kepala("", WK_BAG.hold.tgl)}<tbody>
-    ${hold.map(x => `<tr>${baris(x)}</tr>`).join("") || `<tr><td colspan="${K.length + 1}" style="text-align:center;color:var(--muted)">Tidak ada unit hold saat ini.</td></tr>`}
-    ${hold.length ? `<tr class="t"><td>Total</td>${K.map(c => c.k === "jumlah" ? `<td class="nowrap">${hTot[0]} Unit</td>` : c.t === "rp" ? `<td class="acc${c.k === "sbum" ? " c-sbum" : ""}">${wkRp(hTot[rk.indexOf(c.k) + 1])}</td>` : "<td></td>").join("")}</tr>` : ""}</tbody></table></div></section>
+  ${(() => { const KH = wkKolBag(W, "hold", true), tot = c => c.k === "tandaJadi" ? hold.reduce((a, x) => a + (+x.tandaJadi || 0), 0) : hTot[rk.indexOf(c.k) + 1];
+    return `<section class="gut"><h2>Hold Reserved</h2>
+    <div class="tbl-wrap"><table class="hold-t pg-t wk-t ${KH.length > 8 ? "wk-lebar" : ""}"><thead><tr><th>${WK_BAG.hold.tgl.replace(" ", "<br>")}</th>${KH.map(c => `<th class="${c.t === "rp" ? "c" : ""}${c.k === "sbum" ? " c-sbum" : ""}${wkTmb(c)}">${KH.length > 8 && c.ls ? c.ls : c.l}</th>`).join("")}</tr></thead><tbody>
+    ${hold.map(x => `<tr><td class="nowrap">${x.tanggal ? ddmmyyyy(x.tanggal) : "–"}</td>${KH.map(c => sel(c, x)).join("")}</tr>`).join("") || `<tr><td colspan="${KH.length + 1}" style="text-align:center;color:var(--muted)">Tidak ada unit hold saat ini.</td></tr>`}
+    ${hold.length ? `<tr class="t"><td>Total</td>${KH.map(c => c.k === "jumlah" ? `<td class="nowrap">${hTot[0]} Unit</td>` : c.t === "rp" ? `<td class="acc${c.k === "sbum" ? " c-sbum" : ""}">${wkRp(tot(c))}</td>` : "<td></td>").join("")}</tr>` : ""}</tbody></table></div></section>`; })()}
   ${Object.keys(WK_PG).map(j => { const C = wkKolBag(W, j, true), l = wkHit(W[j]).filter(x => +(x.tanggal || "").slice(0, 4) === th).sort(wkUrut);
     if (!l.length) return "";
     const cel = (c, x) => c.t === "rp" ? `<td class="acc">${wkRp(x[c.k])}</td>` : c.t === "ket" ? `<td class="ket">${esc(x[c.k] || "")}</td>` : c.t === "date" ? `<td class="nowrap${wkTmb(c)}">${x[c.k] ? ddmmyyyy(x[c.k]) : "–"}</td>` : `<td class="${wkTmb(c).trim()}">${esc(x[c.k] || "–")}</td>`;
@@ -2904,11 +2910,11 @@ function exportWeeklyExcel(nama) {
   bagian("jual", "Minggu Ke -", aw < th ? `Grand Total ${aw} s.d ${th}` : `Grand Total ${th}`);
   bagian("batal", "Batal", "GRAND TOTAL");
   const hold = urut(W.hold);
-  aoa.push(kepala("Hold Reserved", WK_BAG.hold.tgl));
-  const h0 = aoa.length + 1;
-  hold.forEach(x => aoa.push(["", ...isi(x)]));
+  aoa.push([...kepala("Hold Reserved", WK_BAG.hold.tgl), "Nilai Reserved (Rp)"]);
+  const h0 = aoa.length + 1, cRes = 2 + kol.length;
+  hold.forEach(x => aoa.push(["", ...isi(x), rpC(x.tandaJadi)]));
   if (!hold.length) aoa.push(["", "(belum ada data)"]);
-  aoa.push(total("TOTAL", h0, aoa.length));
+  { const t = total("TOTAL", h0, aoa.length); t[cRes] = fm(`SUM(${huruf(cRes)}${h0}:${huruf(cRes)}${aoa.length})`, RP); aoa.push(t); }
   Object.keys(WK_PG).forEach(j => { const C = WK_PG[j].kol(W), l = urut(W[j]);
     aoa.push([], [], [WK_PG[j].judul, "Tanggal", ...C.map(c => (c.x || c.l).replace("<br>", " "))]);
     const r0 = aoa.length + 1;
@@ -3065,7 +3071,7 @@ function bindWeeklyInput(nama) {
   v.querySelectorAll("[data-wkcat]").forEach(el => el.onchange = () => { const [j, id] = el.dataset.wkcat.split(":"), r = (d[j] || []).find(x => x.id === +id); if (!r) return;
     if (el.checked) r.catatan = true; else delete r.catatan; render(el.id); });
   v.querySelectorAll("[data-wkdel]").forEach(b => b.onclick = () => { const [j, id] = b.dataset.wkdel.split(":"); d[j] = d[j].filter(x => x.id !== +id); render(); });
-  const rpKeys = new Set([...wkRpK(W), "hargaLama", "harga"]);
+  const rpKeys = new Set([...wkRpK(W), "hargaLama", "harga", "tandaJadi"]);
   v.querySelectorAll("[data-wk]").forEach(el => el.onchange = () => {
     const r = (d[el.dataset.wk] || []).find(x => x.id === +el.dataset.id), k = el.dataset.f; if (!r) return;
     if (rpKeys.has(k)) { r[k] = angka(el.value); if (k === "rpInc" && !r.rpExc && W.ppnOto !== false) r.rpExc = Math.round(r.rpInc / 1.11); }
