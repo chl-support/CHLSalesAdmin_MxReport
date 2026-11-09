@@ -177,7 +177,8 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-lgd { position: absolute; top: 10px; right: 10px; z-index: 6; background: rgba(255,255,255,.95); border: 1px solid #0d2a57; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: #0f2140; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,.15); pointer-events: none; }
 .ms-lgd b { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 2px; }
 .ms-lgd span { display: flex; align-items: center; gap: 8px; } .ms-lgd i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.45); flex: none; }
-.ms-lgd em { font-style: normal; font-weight: 700; margin-left: auto; padding-left: 12px; }
+.ms-lgd em { font-style: normal; font-weight: 700; margin-left: auto; padding-left: 14px; min-width: 26px; text-align: right; }
+.ms-lgd small { font-size: 12px; color: #5d6878; min-width: 46px; text-align: right; } .ms-lgd .ms-lgd-t { border-top: 1px solid #dfe4ec; padding-top: 4px; margin-top: 2px; font-weight: 700; padding-left: 20px; }
 .ms-map { position: relative; container-type: inline-size; min-width: 100%; }
 .ms-map img { display: block; width: 100%; user-select: none; -webkit-user-select: none; }
 .ms-map.atur { cursor: crosshair; }
@@ -3703,7 +3704,7 @@ function msPeta(nama, H) {
   const T = msAtur === nama ? msTitik : ((H && H.D.titik) || {}), units = H ? H.units : [];
   const dots = units.filter(u => T[u.k] && (msAtur === nama || !msSembunyi.has(u.st))).map(u => msDot(u, T[u.k])).join("");
   /* Legenda warna di dalam gambar (pojok kanan atas, tetap terlihat saat digeser/diperbesar) */
-  const lg = H ? `<div class="ms-lgd" aria-label="Legenda warna"><b>Legenda</b>${msAda(H).map(s => `<span><i style="background:${MS_ST[s].c}"></i>${MS_ST[s].t}<em>${H.n[s]}</em></span>`).join("")}</div>` : "";
+  const lg = H ? `<div class="ms-lgd" aria-label="Legenda warna"><b>Legenda</b>${msAda(H).map(s => `<span><i style="background:${MS_ST[s].c}"></i>${MS_ST[s].t}<em>${H.n[s]}</em><small>${idn(H.n[s] / (H.units.length || 1) * 100, 1)}%</small></span>`).join("")}<span class="ms-lgd-t">Total<em>${H.units.length}</em><small>100%</small></span></div>` : "";
   return `<div class="ms-wrap">${lg}<div class="ms-scroll" id="msScroll"><div class="ms-map ${msAtur === nama ? "atur" : ""}" id="msMap" style="width:${msZoom * 100}%;--msd:${msUkuran(nama)}"><img src="${img}" alt="Siteplan ${esc(nama)}" draggable="false">${dots}</div></div></div>`;
 }
 const msDot = (u, p) => `<button type="button" class="ms-dot st-${u.st} ${msAtur && msPilih === u.k ? "on" : ""}" style="left:${p[0]}%;top:${p[1]}%" data-msk="${esc(u.k)}" title="${esc(u.k)} • ${MS_ST[u.st].t}" aria-label="${esc(u.k)}, ${MS_ST[u.st].t}"></button>`;
@@ -3864,11 +3865,11 @@ function msEksporGambar(nama) {
   const im = new Image(); im.onload = () => { const W = im.naturalWidth, Hh = im.naturalHeight, c = document.createElement("canvas"); c.width = W; c.height = Hh; const x = c.getContext("2d");
     x.drawImage(im, 0, 0); const r = W * 0.0058, T = H.D.titik || {};
     H.units.forEach(u => { const p = T[u.k]; if (!p) return; x.beginPath(); x.arc(p[0] / 100 * W, p[1] / 100 * Hh, r, 0, Math.PI * 2); x.fillStyle = MS_ST[u.st].c; x.fill(); x.lineWidth = r * 0.35; x.strokeStyle = "#fff"; x.stroke(); });
-    const S2 = msAda(H), fs = Math.round(W * 0.012), pad = fs * 0.8, bw = fs * 17, bh = pad * 2 + fs * 1.5 * (S2.length + 1);
+    const S2 = msAda(H), fs = Math.round(W * 0.012), pad = fs * 0.8, bw = fs * 21, bh = pad * 2 + fs * 1.5 * (S2.length + 1);
     x.fillStyle = "rgba(255,255,255,.93)"; x.fillRect(pad, Hh - bh - pad, bw, bh); x.strokeStyle = "#0d2a57"; x.lineWidth = 2; x.strokeRect(pad, Hh - bh - pad, bw, bh);
     x.font = `700 ${fs}px sans-serif`; x.fillStyle = "#0d2a57"; x.fillText(`Status per ${ddmmyyyy(todayISO())}`, pad * 2, Hh - bh - pad + pad + fs);
     S2.forEach((s, i) => { const yy = Hh - bh - pad + pad + fs * 1.5 * (i + 1) + fs; x.beginPath(); x.arc(pad * 2 + fs * 0.45, yy - fs * 0.35, fs * 0.45, 0, Math.PI * 2); x.fillStyle = MS_ST[s].c; x.fill();
-      x.fillStyle = "#0f2140"; x.font = `600 ${fs}px sans-serif`; x.fillText(`${MS_ST[s].t}: ${H.n[s]}`, pad * 2 + fs * 1.4, yy); });
+      x.fillStyle = "#0f2140"; x.font = `600 ${fs}px sans-serif`; x.fillText(`${MS_ST[s].t}: ${H.n[s]} (${idn(H.n[s] / H.units.length * 100, 1)}%)`, pad * 2 + fs * 1.4, yy); });
     const a = document.createElement("a"); a.href = c.toDataURL("image/png"); a.download = `Siteplan_${nama.replace(/\s+/g, "_")}_${todayISO()}.png`; a.click(); toast("Gambar diunduh"); };
   im.src = src;
 }
