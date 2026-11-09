@@ -3704,7 +3704,7 @@ function msPeta(nama, H) {
   const T = msAtur === nama ? msTitik : ((H && H.D.titik) || {}), units = H ? H.units : [];
   const dots = units.filter(u => T[u.k] && (msAtur === nama || !msSembunyi.has(u.st))).map(u => msDot(u, T[u.k])).join("");
   /* Legenda warna di dalam gambar (pojok kanan atas, tetap terlihat saat digeser/diperbesar) */
-  const lg = H ? `<div class="ms-lgd" aria-label="Unit Status Legend"><b>Unit Status Legend</b>${msAda(H).map(s => `<span><i style="background:${MS_ST[s].c}"></i>${MS_ST[s].t}<em>${H.n[s]}</em><small>${idn(H.n[s] / (H.units.length || 1) * 100, 1)}%</small></span>`).join("")}<span class="ms-lgd-t">Total<em>${H.units.length}</em><small>100%</small></span></div>` : "";
+  const lg = H ? `<div class="ms-lgd" aria-label="Unit Status Legend"><b>Unit Status Legend</b>${msAda(H).map(s => `<span><i style="background:${MS_ST[s].c}"></i>${MS_ST[s].t}<em>${H.n[s]}</em><small>${idn(H.n[s] / (H.units.length || 1) * 100, 1)}%</small></span>`).join("")}</div>` : "";
   return `<div class="ms-wrap">${lg}<div class="ms-scroll" id="msScroll"><div class="ms-map ${msAtur === nama ? "atur" : ""}" id="msMap" style="width:${msZoom * 100}%;--msd:${msUkuran(nama)}"><img src="${img}" alt="Siteplan ${esc(nama)}" draggable="false">${dots}</div></div></div>`;
 }
 const msDot = (u, p) => `<button type="button" class="ms-dot st-${u.st} ${msAtur && msPilih === u.k ? "on" : ""}" style="left:${p[0]}%;top:${p[1]}%" data-msk="${esc(u.k)}" title="${esc(u.k)} • ${MS_ST[u.st].t}" aria-label="${esc(u.k)}, ${MS_ST[u.st].t}"></button>`;
