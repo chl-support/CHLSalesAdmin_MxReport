@@ -188,7 +188,7 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-dot.on { outline: 3px solid #0d2a57; outline-offset: 2px; z-index: 2; }
 .ms-pop { position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 14px)); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.2); padding: 9px 12px; font-size: 12.5px; line-height: 1.5; min-width: 210px; max-width: 300px; pointer-events: none; }
 .ms-pill { color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; margin-left: 4px; } .ms-src { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
-.ms-srv { color: var(--muted); font-style: italic; }
+.ms-srv { color: var(--muted); font-style: italic; } .ms-srv.err { color: var(--red); font-weight: 700; font-style: normal; }
 .ms-note { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
 .ms-aturw { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 12px; align-items: start; }
 .ms-side { max-height: 80vh; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 12.5px; background: var(--bg); }
@@ -3688,6 +3688,30 @@ function msTitikEf(nama) {
   return Object.assign(o, D.titik || {});
 }
 let msImg = {}, msMuat = new Set(), msZoom = 1, msSembunyi = new Set(), msAtur = null, msPilih = null, msTitik = null, msScroll = null;
+/* Master Stock disimpan per proyek di server (/api/stok), terpisah dari data utama */
+let msStokSt = {}, msStokInfo = {}, msUkT = null;
+function msMuatStok(nama) {
+  if (msStokSt[nama]) return; msStokSt[nama] = "muat";
+  api("GET", "/api/stok?p=" + encodeURIComponent(nama)).then(r => {
+    if (!r.ok) { msStokSt[nama] = "gagal"; msStokInfo[nama] = r.data.error || "Gagal memuat data stock dari server"; return; }
+    S.stok = S.stok || {};
+    if (r.data.data) { S.stok[nama] = r.data.data; msStokInfo[nama] = "Tersimpan di server"; }
+    else { const lama = (S.stokLama || {})[nama] || S.stok[nama]; /* data lama (sebelum disimpan terpisah) dipindahkan sekali */
+      if (lama && (lama.units || []).length) { S.stok[nama] = lama; if (bolehEdit(nama)) msSimpanStok(nama); } else delete S.stok[nama]; }
+    msStokSt[nama] = "ok"; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  }).catch(() => { msStokSt[nama] = "gagal"; msStokInfo[nama] = "Server tidak bisa diakses"; })
+    .finally(() => { const ft = findTab(current()); if (ft && ft.t.stock === nama) render(); });
+}
+async function msSimpanStok(nama, pesan) {
+  const D = msData(nama); if (!D) return false;
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  try { const r = await api("POST", "/api/stok", { p: nama, data: D });
+    if (!r.ok) throw new Error(r.data.error || "Gagal menyimpan");
+    msStokInfo[nama] = `Tersimpan di server • ${jam()}`; if (pesan) toast(pesan); }
+  catch (e) { if (e.message === "401") return false; msStokInfo[nama] = "GAGAL disimpan ke server: " + e.message; toast("Master Stock GAGAL disimpan ke server: " + e.message); }
+  const el = document.querySelector(".ms-srv"); if (el) el.textContent = "• " + msStokInfo[nama];
+  return /^Tersimpan/.test(msStokInfo[nama]);
+}
 const MS_ZOOM = [0.5, 0.75, 1, 1.5, 2, 3, 4];
 /* Ukuran titik (persen lebar gambar), bisa disesuaikan admin dan tersimpan per proyek */
 const MS_UKURAN = [0.4, 0.5, 0.6, 0.75, 0.9, 1.1, 1.3, 1.6];
@@ -3732,14 +3756,15 @@ function msRekapBlok(units) {
   return Object.values(g);
 }
 function viewStock(nama) {
+  if (SERVER.on && msStokSt[nama] !== "ok" && msStokSt[nama] !== "gagal") { msMuatStok(nama); return `<div class="page gut"><div class="empty" style="margin-top:20px">Memuat data Master Stock ${esc(nama)}…</div></div>`; }
   const H = msHitung(nama), ed = bolehEdit(nama), D = msData(nama), atur = msAtur === nama;
   const n0 = v => v ? v.toLocaleString(LOC()) : "–";
   const alat = `<div class="btn-row">${H ? `<button class="btn sec" id="msXls" type="button">Ekspor Excel</button>${msImg[nama] && D && Object.keys(msTitikEf(nama)).length ? `<button class="btn sec" id="msPng" type="button">Ekspor gambar</button>` : ""}` : ""}
     ${ed && !atur ? `<button class="btn sec" id="msUp" type="button">${msImg[nama] ? "Ganti siteplan" : "Unggah siteplan"}</button><input type="file" id="msUpFile" accept="image/png,image/jpeg,image/webp" hidden>
-      <button class="btn sec" id="msImp" type="button">Impor Excel stock</button><button class="btn" id="msSave" type="button" title="Simpan data Master Stock ke server sekarang">Simpan</button><input type="file" id="msImpFile" accept=".xlsx,.xls" hidden>
+      <button class="btn sec" id="msImp" type="button">Impor Excel stock</button><input type="file" id="msImpFile" accept=".xlsx,.xls" hidden>
       ${H && msImg[nama] ? `<button class="btn" id="msAturBtn" type="button">Atur titik unit</button>` : ""}` : ""}</div>`;
   const info = D && D.units && D.units.length ? `Status per <b>${D.tanggal ? ddmmyyyy(D.tanggal) : "–"}</b> dari Excel stock${D.file ? ` (${esc(D.file)})` : ""}. Transaksi Weekly setelah tanggal itu ikut memperbarui status.` : "Belum ada data stock.";
-  const infoSrv = ed ? ` <span class="ms-srv">• ${esc(SERVER.info || "")}</span>` : "";
+  const infoSrv = ed && msStokInfo[nama] ? ` <span class="ms-srv ${/GAGAL/.test(msStokInfo[nama]) ? "err" : ""}">• ${esc(msStokInfo[nama])}</span>` : "";
   if (!H) return `<div class="page gut"><div class="form-head"><div><h2>Master Stock ${esc(nama)}</h2><div class="desc">${info}${infoSrv}</div></div>${alat}</div>
     <div class="empty" style="margin-top:14px">Belum ada data Master Stock untuk ${esc(nama)}.${ed ? " Tekan <b>Impor Excel stock</b> (kolom Code, Address/Blok, Type, Build, Land, Status), lalu <b>Unggah siteplan</b>." : ""}</div>
     <div style="margin-top:14px">${msPeta(nama, null)}</div></div>`;
@@ -3814,18 +3839,13 @@ function bindStock(nama) {
         <div class="ms-src">Status dari ${esc(u.dari)}${u.stAsli && u.dari === "Excel" ? ` (${esc(u.stAsli)})` : ""}</div></div>`); };
   }
   if (!bolehEdit(nama)) return;
-  /* Simpan sekarang ke server (biasanya otomatis; tombol ini untuk memastikan) */
-  if (g("msSave")) g("msSave").onclick = async () => {
-    if (!SERVER.on) { toast("Server tidak tersambung. Data hanya tersimpan di browser ini; coba muat ulang halaman."); return; }
-    clearTimeout(SERVER.kirimT); await kirim();
-    toast(/^Tersimpan/.test(SERVER.info) ? `Master Stock ${nama} tersimpan di server` : (SERVER.info || "Gagal menyimpan ke server")); };
   /* Ubah status langsung di daftar unit (Manual). Transaksi Weekly sesudah tanggal ini tetap memperbarui status. */
   v.querySelectorAll("[data-msst]").forEach(sel => sel.onchange = () => { const D = msData(nama), u = D && D.units.find(x => x.k === sel.dataset.msst); if (!u) return;
     const lama = (H.units.find(x => x.k === u.k) || u).st; if (lama === sel.value) return;
     u.st = sel.value; u.stAsli = "Manual"; u.mTgl = todayISO();
-    catat(`weekly:${nama}`, "Master Stock", [`Status ${u.k}: ${MS_ST[lama].t} → ${MS_ST[u.st].t} (diubah manual)`]); save(); toast(`Status ${u.k} disimpan`); render(); });
+    catat(`weekly:${nama}`, "Master Stock", [`Status ${u.k}: ${MS_ST[lama].t} → ${MS_ST[u.st].t} (diubah manual)`]); save(); msSimpanStok(nama, `Status ${u.k} tersimpan di server`); render(); });
   v.querySelectorAll("[data-msuk]").forEach(b => b.onclick = () => { const D = msData(nama); if (!D) return; const i = MS_UKURAN.indexOf(msUkuran(nama)), j = Math.max(0, Math.min(MS_UKURAN.length - 1, (i < 0 ? 2 : i) + +b.dataset.msuk));
-    D.ukuran = MS_UKURAN[j]; const m = g("msMap"); if (m) m.style.setProperty("--msd", D.ukuran); save();
+    D.ukuran = MS_UKURAN[j]; const m = g("msMap"); if (m) m.style.setProperty("--msd", D.ukuran); clearTimeout(msUkT); msUkT = setTimeout(() => msSimpanStok(nama), 600);
     v.querySelectorAll("[data-msuk]").forEach(x => x.disabled = (+x.dataset.msuk < 0 && j === 0) || (+x.dataset.msuk > 0 && j === MS_UKURAN.length - 1)); });
   const up = g("msUpFile");
   if (g("msUp")) g("msUp").onclick = () => { up.value = ""; up.click(); };
@@ -3834,7 +3854,7 @@ function bindStock(nama) {
       const r = await api("POST", "/api/siteplan", { p: nama, img });
       if (!r.ok) { toast(r.data.error || "Gagal mengunggah siteplan"); return; }
       msImg[nama] = img; S.stok = S.stok || {}; S.stok[nama] = Object.assign({ units: [], titik: {} }, S.stok[nama] || {}, { imgAt: new Date().toISOString() });
-      catat(`weekly:${nama}`, "Master Stock", [`Gambar siteplan ${nama} diunggah (${file.name})`]); save(); toast("Siteplan tersimpan"); render();
+      catat(`weekly:${nama}`, "Master Stock", [`Gambar siteplan ${nama} diunggah (${file.name})`]); save(); await msSimpanStok(nama); toast("Siteplan tersimpan di server"); render();
     } catch (e) { toast("Gagal mengunggah: " + (e.message || e)); } };
   const fi = g("msImpFile");
   if (g("msImp")) g("msImp").onclick = () => { if (!window.XLSX) { toast("Impor Excel belum siap. Periksa koneksi internet."); return; } fi.value = ""; fi.click(); };
@@ -3849,7 +3869,7 @@ function bindStock(nama) {
       const ubah = r.units.filter(u => stLama[u.k] && stLama[u.k] !== u.st).map(u => `${u.k}: ${MS_ST[stLama[u.k]].t} → ${MS_ST[u.st].t}`);
       S.stok = S.stok || {}; S.stok[nama] = Object.assign({ titik: {} }, lama, { tanggal: r.tgl || todayISO(), file: file.name, units: r.units });
       catat(`weekly:${nama}`, "Master Stock", [`Impor Excel stock ${file.name} (status per ${ddmmyyyy(S.stok[nama].tanggal)}): ${ring}`, ...ubah.slice(0, 60), ...(ubah.length > 60 ? [`…dan ${ubah.length - 60} perubahan lain`] : [])]);
-      save(); toast("Master Stock tersimpan"); render();
+      save(); render(); msSimpanStok(nama, `Master Stock ${nama} tersimpan di server (${r.units.length} unit)`);
     } catch (e) { toast("Gagal membaca Excel: " + (e.message || e)); } };
   if (g("msAturBtn")) g("msAturBtn").onclick = () => { msAtur = nama; msTitik = clone(msTitikEf(nama)); msSembunyi.clear();
     const urut = H.units.map(u => u.k); msPilih = urut.find(k => !msTitik[k]) || urut[0]; render(); };
@@ -3873,7 +3893,7 @@ function bindStock(nama) {
   g("msSimpan").onclick = () => { const D = msData(nama), lama = msTitikEf(nama), k = urut.filter(x => JSON.stringify(lama[x]) !== JSON.stringify(msTitik[x]));
     D.titik = msTitik; msAtur = null; msTitik = null;
     if (k.length) catat(`weekly:${nama}`, "Master Stock", [`Posisi titik unit di siteplan diubah: ${k.length} unit (${k.slice(0, 20).join(", ")}${k.length > 20 ? ", …" : ""})`]);
-    save(); toast("Posisi titik tersimpan"); render(); };
+    save(); render(); msSimpanStok(nama, "Posisi titik tersimpan di server"); };
 }
 function msEksporExcel(nama) {
   if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
@@ -4438,7 +4458,7 @@ side.addEventListener("click", e => { if (e.target.closest("a")) setMenu(false);
 
 /* ===================== Sinkron dengan database server ===================== */
 const SERVER = { on: false, versi: null, terakhir: "", kirimT: null, sibuk: false, info: "Menghubungkan ke server…" };
-const LOKAL = ["role", "rpMode", "showCatatan", "lang", "wkTambahanOff"];
+const LOKAL = ["role", "rpMode", "showCatatan", "lang", "wkTambahanOff", "stok", "stokLama"];
 const dataBersama = () => { const o = {}; Object.keys(S).forEach(k => { if (!LOKAL.includes(k)) o[k] = S[k]; }); return o; };
 async function api(metode, url, body) {
   const r = await fetch(url, { method: metode, headers: Object.assign({ "Content-Type": "application/json" }, SESI && SESI.token ? { Authorization: "Bearer " + SESI.token } : {}),
@@ -4448,7 +4468,7 @@ async function api(metode, url, body) {
   return { status: r.status, ok: r.ok, data: j };
 }
 function terapkan(st, versi) {
-  const simpan = { role: S.role, rpMode: S.rpMode, showCatatan: S.showCatatan, lang: S.lang, wkTambahanOff: S.wkTambahanOff };
+  const simpan = { role: S.role, rpMode: S.rpMode, showCatatan: S.showCatatan, lang: S.lang, wkTambahanOff: S.wkTambahanOff, stok: S.stok, stokLama: st.stok || S.stokLama };
   S = Object.assign({}, st, simpan); SERVER.versi = versi; SERVER.terakhir = JSON.stringify(dataBersama());
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
 }
