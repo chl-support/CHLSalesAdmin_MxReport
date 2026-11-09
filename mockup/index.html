@@ -457,6 +457,8 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .wk-t td.nowrap { white-space: nowrap; }
 .wk-t td.ket { min-width: 170px; }
 .wk-t th, .wk-rk th, .wk-in th { white-space: nowrap; vertical-align: middle; }
+/* Judul kolom tabel Input Data Weekly di tengah */
+.wk-in thead th { text-align: center; }
 .wk-t th.c { text-align: center; }
 .wk-rk th.c, .wk-in th.c { text-align: center; }
 .wk-t td.wk { white-space: nowrap; vertical-align: top; }
@@ -2824,7 +2826,7 @@ function bindWeekly() {
 let wkDraft = null, wkDraftNama = null;
 const WK_LIHAT = 5;
 /* Lebar kolom tetap di tabel Input Data; kolom tanpa lebar (Klaster, Konsumen, Skema Bayar, Sales, Keterangan) berbagi sisa lebar */
-const WK_COLW = { ppnDtp: "100px", rpNet: "110px", normal: "92px", bayarLama: "13%", bayarBaru: "13%", sumber: "110px", usia: "52px", kel: "124px", kec: "124px", kota: "124px", hargaLama: "112px", harga: "112px", kodeLama: "104px", kode: "104px", jumlah: "50px", unit: "96px", tipe: "72px", bayar: "13%", rpInc: "110px", rpExc: "110px", sbum: "86px", ppjb: "110px", usia: "48px", lahir: "118px", sales: "11%", klaster: "100px", konsumen: "130px", ket: "11%" };
+const WK_COLW = { tandaJadi: "96px", ppnDtp: "100px", rpNet: "110px", normal: "92px", bayarLama: "13%", bayarBaru: "13%", sumber: "110px", usia: "52px", kel: "104px", kec: "104px", kota: "104px", hargaLama: "112px", harga: "112px", kodeLama: "104px", kode: "104px", jumlah: "50px", unit: "96px", tipe: "56px", bayar: "13%", rpInc: "110px", rpExc: "110px", sbum: "86px", ppjb: "110px", usia: "48px", lahir: "108px", sales: "11%", klaster: "100px", konsumen: "130px", ket: "11%" };
 let wkTampil = {};
 const wkT = j => wkTampil[j] = wkTampil[j] || { bulan: "", n: WK_LIHAT };
 const wkLoad = nama => { wkDraft = clone(S.weekly[nama]); wkDraftNama = nama; wkTampil = {}; };
@@ -2924,7 +2926,7 @@ function exportWeeklyExcel(nama) {
     C.slice(1).forEach((c, i) => { const col = huruf(3 + i); tot.push(c.t === "rp" ? fm(`SUM(${col}${r0}:${col}${r1})`, RP) : ""); });
     aoa.push(tot); });
   const ws = aoaSheet(aoa);
-  const lebar = { klaster: 14, jumlah: 8, _unit: 6, unit: 12, konsumen: 26, ppjb: 14, tipe: 12, bayar: 24, rpInc: 20, rpExc: 22, sbum: 14, sales: 34, ket: 40, sumber: 18, usia: 6, lahir: 12, kel: 18, kec: 16, kota: 16 };
+  const lebar = { klaster: 14, jumlah: 8, _unit: 6, unit: 12, konsumen: 26, ppjb: 14, tipe: 12, bayar: 24, rpInc: 20, rpExc: 22, sbum: 14, sales: 34, ket: 40, sumber: 18, usia: 6, lahir: 12, kel: 18, kec: 16, kota: 16 , tandaJadi: 20 };
   ws["!cols"] = [37, 18, ...kol.map(c => lebar[c.k] || 14)].map(w => ({ wch: w }));
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, String(th));
   XLSX.writeFile(wb, `Weekly_Report_${nama.replace(/\s+/g, "_")}_${wkTahun && wkTahun < wkThIni() ? wkTahun : S.sales2.tanggal}.xlsx`);
