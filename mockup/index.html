@@ -2131,12 +2131,14 @@ function bindSales() {
   document.getElementById("salesShot").onclick = e => menuGambar(e.currentTarget, "capSales", `Dashboard_Penjualan_${BULAN[denganTahunSales(bulanAktif) - 1]}_${salesTahun || tahunKe()}.png`);
   const yb = document.getElementById("salesTh");
   if (yb) yb.onchange = () => { const y = +yb.value; salesTahun = y === +todayISO().slice(0, 4) ? null : y; salesBulan = null; pilihSalesTgl = null; render("salesTh"); };
-  document.getElementById("salesTgl").onchange = e => {
-    const v = e.target.value; if (!v) return;
+  /* Tanggal bisa diketik: diterapkan setelah selesai mengetik (jeda singkat), Enter, atau keluar dari kotak tanggal */
+  const tIn = document.getElementById("salesTgl"); let tT = null;
+  const terapTgl = () => { clearTimeout(tT); const v = tIn.value; if (!v || v === (pilihSalesTgl || tanggalTampil(bulanAktif()))) return;
     const y = salesTahun || tahunKe(), akhir = salesTahun ? `${y}-12-31` : S.sales2.tanggal, bk = salesTahun ? 12 : bulanKe();
     if (+v.slice(0, 4) !== y || v > akhir) { toast(`Pilih tanggal antara 01-01-${y} dan ${ddmmyyyy(akhir)}`); render("salesTgl"); return; }
-    const m = +v.slice(5, 7); salesBulan = m === bk ? null : m; pilihSalesTgl = salesBulan ? v : null; render("salesTgl");
-  };
+    const m = +v.slice(5, 7); salesBulan = m === bk ? null : m; pilihSalesTgl = v === S.sales2.tanggal ? null : v; render("salesTgl"); };
+  tIn.onchange = () => { clearTimeout(tT); tT = setTimeout(terapTgl, 1200); };
+  tIn.onblur = terapTgl; tIn.onkeydown = e => { if (e.key === "Enter") terapTgl(); };
   const sl = document.getElementById("salesLatest"); if (sl) sl.onclick = () => { salesBulan = null; pilihSalesTgl = null; render(); };
 }
 
