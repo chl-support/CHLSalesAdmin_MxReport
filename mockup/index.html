@@ -3728,9 +3728,14 @@ function msWeekly(nama, tglExcel) {
 }
 function msHitung(nama) {
   const D = msData(nama); if (!D || !(D.units || []).length) return null;
-  const W = msWeekly(nama, D.tanggal);
+  const W = msWeekly(nama, D.tanggal), HOLD = {};
+  wkHit(((S.weekly || {})[nama] || {}).hold).forEach(x => { const k = msNorm(msKode(x.unit)); if (k) HOLD[k] = x; });
   const units = D.units.map(u => { let st = u.st, dari = u.mTgl ? `Manual ${ddmmyyyy(u.mTgl)}` : "Excel"; const w = W[msNorm(u.k)], ref = u.mTgl || D.tanggal;
     if (w && w.st && ref && w.t > ref && w.st !== st && !(w.st === "hold" && st === "sold") && st !== "mg" && st !== "rc") { st = w.st; dari = `Weekly ${w.t ? ddmmyyyy(w.t) : ""}`; }
+    /* Hold Reserved di Weekly = posisi saat ini: unit yang masih tercantum di Hold tampil Reserved, berapa pun tanggalnya
+       (kecuali sudah Sold, Marketing Gallery, atau Rumah Contoh) */
+    const h = HOLD[msNorm(u.k)];
+    if (h && (st === "avail" || st === "stock")) { st = "hold"; dari = `Hold Reserved Weekly${h.tanggal ? " " + ddmmyyyy(h.tanggal) : ""}`; }
     return Object.assign({}, u, { st, dari, jual: w && w.jual }); });
   const ada = new Set(D.units.map(u => msNorm(u.k))), asing = Object.keys(W).filter(k => !ada.has(k)).map(k => W[k].kode);
   const n = {}; MS_URUT.forEach(s => n[s] = units.filter(u => u.st === s).length);
