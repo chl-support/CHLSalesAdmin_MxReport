@@ -173,6 +173,11 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-zoom { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 .ms-zoom button { font: inherit; font-weight: 700; width: 34px; height: 30px; border: 0; background: var(--bg); color: var(--ink); cursor: pointer; } .ms-zoom span { font-size: 12px; min-width: 46px; text-align: center; } .ms-zoom button:disabled { opacity: .35; cursor: default; } .ms-uk { margin-left: auto; margin-right: 8px; }
 .ms-scroll { overflow: auto; max-height: 80vh; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.ms-wrap { position: relative; }
+.ms-lgd { position: absolute; top: 10px; right: 10px; z-index: 6; background: rgba(255,255,255,.95); border: 1px solid #0d2a57; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; color: #0f2140; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 2px 8px rgba(0,0,0,.15); pointer-events: none; }
+.ms-lgd b { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 2px; }
+.ms-lgd span { display: flex; align-items: center; gap: 8px; } .ms-lgd i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.45); flex: none; }
+.ms-lgd em { font-style: normal; font-weight: 700; margin-left: auto; padding-left: 12px; }
 .ms-map { position: relative; container-type: inline-size; min-width: 100%; }
 .ms-map img { display: block; width: 100%; user-select: none; -webkit-user-select: none; }
 .ms-map.atur { cursor: crosshair; }
@@ -3693,7 +3698,9 @@ function msPeta(nama, H) {
   if (!img) return `<div class="empty">Gambar siteplan belum diunggah.${bolehEdit(nama) ? " Tekan <b>Unggah siteplan</b> untuk menambahkan gambar." : ""} Status unit tetap bisa dilihat di daftar per blok di bawah.</div>`;
   const T = msAtur === nama ? msTitik : ((H && H.D.titik) || {}), units = H ? H.units : [];
   const dots = units.filter(u => T[u.k] && (msAtur === nama || !msSembunyi.has(u.st))).map(u => msDot(u, T[u.k])).join("");
-  return `<div class="ms-scroll" id="msScroll"><div class="ms-map ${msAtur === nama ? "atur" : ""}" id="msMap" style="width:${msZoom * 100}%;--msd:${msUkuran(nama)}"><img src="${img}" alt="Siteplan ${esc(nama)}" draggable="false">${dots}</div></div>`;
+  /* Legenda warna di dalam gambar (pojok kanan atas, tetap terlihat saat digeser/diperbesar) */
+  const lg = H ? `<div class="ms-lgd" aria-label="Legenda warna"><b>Legenda</b>${MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => `<span><i style="background:${MS_ST[s].c}"></i>${MS_ST[s].t}<em>${H.n[s]}</em></span>`).join("")}</div>` : "";
+  return `<div class="ms-wrap">${lg}<div class="ms-scroll" id="msScroll"><div class="ms-map ${msAtur === nama ? "atur" : ""}" id="msMap" style="width:${msZoom * 100}%;--msd:${msUkuran(nama)}"><img src="${img}" alt="Siteplan ${esc(nama)}" draggable="false">${dots}</div></div></div>`;
 }
 const msDot = (u, p) => `<button type="button" class="ms-dot st-${u.st} ${msAtur && msPilih === u.k ? "on" : ""}" style="left:${p[0]}%;top:${p[1]}%" data-msk="${esc(u.k)}" title="${esc(u.k)} • ${MS_ST[u.st].t}" aria-label="${esc(u.k)}, ${MS_ST[u.st].t}"></button>`;
 function msRekapBlok(units) {
