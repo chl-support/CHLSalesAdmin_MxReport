@@ -183,8 +183,8 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-map { position: relative; container-type: inline-size; margin: 0 auto; }
 .ms-map img { display: block; width: 100%; user-select: none; -webkit-user-select: none; }
 .ms-map.atur { cursor: crosshair; }
-.ms-dot { position: absolute; width: max(5px, calc(var(--msd, .5) * 1cqw)); aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.3); padding: 0; cursor: pointer; border-width: max(1px, calc(var(--msd, .5) * .15cqw)); }
-.ms-dot.st-sold { background: #d64545; } .ms-dot.st-hold { background: #f0b400; } .ms-dot.st-avail { background: #2e9e5b; } .ms-dot.st-stock { background: #8a94a6; } .ms-dot.st-mg { background: #1aa7e8; } .ms-dot.st-rc { background: #f27fd8; }
+.ms-dot { position: absolute; width: max(10px, calc(var(--msd, .9) * 1cqw)); aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.75), 0 1px 3px rgba(0,0,0,.45); padding: 0; cursor: pointer; border-width: max(1.5px, calc(var(--msd, .9) * .12cqw)); }
+.ms-dot.st-sold { background: #e10600; } .ms-dot.st-hold { background: #ffb300; } .ms-dot.st-avail { background: #2e9e5b; } .ms-dot.st-stock { background: #8a94a6; } .ms-dot.st-mg { background: #0091ea; } .ms-dot.st-rc { background: #ff3fd2; }
 .ms-dot.on { outline: 3px solid #0d2a57; outline-offset: 2px; z-index: 2; }
 .ms-pop { position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 14px)); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.2); padding: 9px 12px; font-size: 12.5px; line-height: 1.5; min-width: 210px; max-width: 300px; pointer-events: none; }
 .ms-pill { color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; margin-left: 4px; } .ms-src { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
@@ -3666,8 +3666,8 @@ function bindTargetInput() {
    S.stok[nama] = { tanggal, file, units:[{k, blok, tipe, lb, lt, st, stAsli}], titik:{ kode:[x%, y%] } }
    Gambar siteplan disimpan terpisah di server (/api/siteplan), tidak ikut data utama.
    Status: dari Excel stock; transaksi Weekly (jual / hold / batal) SETELAH tanggal status Excel otomatis memperbarui warnanya. */
-const MS_ST = { sold: { t: "Sold", c: "#d64545" }, hold: { t: "Reserved (Hold)", c: "#f0b400" }, avail: { t: "Available", c: "#2e9e5b" },
-  mg: { t: "Marketing Gallery", c: "#1aa7e8" }, rc: { t: "Rumah Contoh", c: "#f27fd8" }, stock: { t: "Stock (belum dirilis)", c: "#8a94a6" } };
+const MS_ST = { sold: { t: "Sold", c: "#e10600" }, hold: { t: "Reserved (Hold)", c: "#ffb300" }, avail: { t: "Available", c: "#2e9e5b" },
+  mg: { t: "Marketing Gallery", c: "#0091ea" }, rc: { t: "Rumah Contoh", c: "#ff3fd2" }, stock: { t: "Stock (belum dirilis)", c: "#8a94a6" } };
 const MS_URUT = ["sold", "hold", "avail", "mg", "rc", "stock"];
 /* Status yang ditampilkan: Sold, Reserved, Available selalu; lainnya hanya jika ada unitnya */
 const msAda = H => MS_URUT.filter(s => ["sold", "hold", "avail"].includes(s) || H.n[s]);
@@ -3689,8 +3689,8 @@ function msTitikEf(nama) {
 let msImg = {}, msMuat = new Set(), msZoom = 1, msSembunyi = new Set(), msAtur = null, msPilih = null, msTitik = null, msScroll = null;
 const MS_ZOOM = [0.5, 0.75, 1, 1.5, 2, 3, 4];
 /* Ukuran titik (persen lebar gambar), bisa disesuaikan admin dan tersimpan per proyek */
-const MS_UKURAN = [0.3, 0.4, 0.5, 0.6, 0.75, 0.9, 1.1];
-const msUkuran = nama => { const v = +((msData(nama) || {}).ukuran); return v > 0 ? v : 0.5; };
+const MS_UKURAN = [0.4, 0.5, 0.6, 0.75, 0.9, 1.1, 1.3, 1.6];
+const msUkuran = nama => { const v = +((msData(nama) || {}).ukuran); return v > 0 ? v : 0.9; };
 function msWeekly(nama, tglExcel) {
   const W = S.weekly && S.weekly[nama], o = {}; if (!W) return o;
   const ev = [];
@@ -3885,7 +3885,7 @@ function msEksporExcel(nama) {
 function msEksporGambar(nama) {
   const H = msHitung(nama), src = msImg[nama]; if (!H || !src) return;
   const im = new Image(); im.onload = () => { const W = im.naturalWidth, Hh = im.naturalHeight, c = document.createElement("canvas"); c.width = W; c.height = Hh; const x = c.getContext("2d");
-    x.drawImage(im, 0, 0); const r = W * 0.0058, T = msTitikEf(nama);
+    x.drawImage(im, 0, 0); const r = W * 0.0045 * msUkuran(nama), T = msTitikEf(nama);
     H.units.forEach(u => { const p = T[u.k]; if (!p || u.st === "avail") return; x.beginPath(); x.arc(p[0] / 100 * W, p[1] / 100 * Hh, r, 0, Math.PI * 2); x.fillStyle = MS_ST[u.st].c; x.fill(); x.lineWidth = r * 0.35; x.strokeStyle = "#fff"; x.stroke(); });
     const S2 = msAda(H), fs = Math.round(W * 0.008), pad = fs * 0.8, bw = fs * 21, bh = pad * 2 + fs * 1.5 * (S2.length + 1);
     x.fillStyle = "rgba(255,255,255,.93)"; x.fillRect(pad, Hh - bh - pad, bw, bh); x.strokeStyle = "#0d2a57"; x.lineWidth = 2; x.strokeRect(pad, Hh - bh - pad, bw, bh);
