@@ -182,7 +182,7 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-map img { display: block; width: 100%; user-select: none; -webkit-user-select: none; }
 .ms-map.atur { cursor: crosshair; }
 .ms-dot { position: absolute; width: max(5px, calc(var(--msd, .5) * 1cqw)); aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.3); padding: 0; cursor: pointer; border-width: max(1px, calc(var(--msd, .5) * .15cqw)); }
-.ms-dot.st-sold { background: #d64545; } .ms-dot.st-hold { background: #f0b400; } .ms-dot.st-avail { background: #2e9e5b; } .ms-dot.st-stock { background: #8a94a6; }
+.ms-dot.st-sold { background: #d64545; } .ms-dot.st-hold { background: #f0b400; } .ms-dot.st-avail { background: #2e9e5b; } .ms-dot.st-stock { background: #8a94a6; } .ms-dot.st-mg { background: #1aa7e8; } .ms-dot.st-rc { background: #f27fd8; }
 .ms-dot.on { outline: 3px solid #0d2a57; outline-offset: 2px; z-index: 2; }
 .ms-pop { position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 14px)); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.2); padding: 9px 12px; font-size: 12.5px; line-height: 1.5; min-width: 210px; max-width: 300px; pointer-events: none; }
 .ms-pill { color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; margin-left: 4px; } .ms-src { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
@@ -3658,10 +3658,14 @@ function bindTargetInput() {
    S.stok[nama] = { tanggal, file, units:[{k, blok, tipe, lb, lt, st, stAsli}], titik:{ kode:[x%, y%] } }
    Gambar siteplan disimpan terpisah di server (/api/siteplan), tidak ikut data utama.
    Status: dari Excel stock; transaksi Weekly (jual / hold / batal) SETELAH tanggal status Excel otomatis memperbarui warnanya. */
-const MS_ST = { sold: { t: "Sold", c: "#d64545" }, hold: { t: "Reserved (Hold)", c: "#f0b400" }, avail: { t: "Available", c: "#2e9e5b" }, stock: { t: "Stock (belum dirilis)", c: "#8a94a6" } };
-const MS_URUT = ["sold", "hold", "avail", "stock"];
+const MS_ST = { sold: { t: "Sold", c: "#d64545" }, hold: { t: "Reserved (Hold)", c: "#f0b400" }, avail: { t: "Available", c: "#2e9e5b" },
+  mg: { t: "Marketing Gallery", c: "#1aa7e8" }, rc: { t: "Rumah Contoh", c: "#f27fd8" }, stock: { t: "Stock (belum dirilis)", c: "#8a94a6" } };
+const MS_URUT = ["sold", "hold", "avail", "mg", "rc", "stock"];
+/* Status yang ditampilkan: Sold, Reserved, Available selalu; lainnya hanya jika ada unitnya */
+const msAda = H => MS_URUT.filter(s => ["sold", "hold", "avail"].includes(s) || H.n[s]);
 const msKode = s => String(s == null ? "" : s).toUpperCase().replace(/\s+/g, "");
-const msStatus = v => { const t = String(v || "").toLowerCase(); return /sold|terjual|akad|laku/.test(t) ? "sold" : /hold|reserv|booking|nup|pesan/.test(t) ? "hold" : /avail|tersedia|ready|kosong/.test(t) ? "avail" : "stock"; };
+const msStatus = v => { const t = String(v || "").toLowerCase(); return /marketing|gallery|galeri|kantor pemasaran/.test(t) ? "mg" : /rumah contoh|unit contoh|show ?unit|contoh/.test(t) ? "rc"
+  : /sold|terjual|akad|laku/.test(t) ? "sold" : /hold|reserv|booking|nup|pesan/.test(t) ? "hold" : /avail|tersedia|ready|kosong/.test(t) ? "avail" : "stock"; };
 const msData = nama => (S.stok && S.stok[nama]) || null;
 let msImg = {}, msMuat = new Set(), msZoom = 1, msSembunyi = new Set(), msAtur = null, msPilih = null, msTitik = null, msScroll = null;
 const MS_ZOOM = [1, 1.5, 2, 3, 4];
@@ -3681,7 +3685,7 @@ function msHitung(nama) {
   const D = msData(nama); if (!D || !(D.units || []).length) return null;
   const W = msWeekly(nama, D.tanggal);
   const units = D.units.map(u => { let st = u.st, dari = "Excel"; const w = W[u.k];
-    if (w && w.st && w.st !== st && !(w.st === "hold" && st === "sold")) { st = w.st; dari = `Weekly ${w.t ? ddmmyyyy(w.t) : ""}`; }
+    if (w && w.st && w.st !== st && !(w.st === "hold" && st === "sold") && st !== "mg" && st !== "rc") { st = w.st; dari = `Weekly ${w.t ? ddmmyyyy(w.t) : ""}`; }
     return Object.assign({}, u, { st, dari, jual: w && w.jual }); });
   const ada = new Set(D.units.map(u => u.k)), asing = Object.keys(W).filter(k => !ada.has(k));
   const n = {}; MS_URUT.forEach(s => n[s] = units.filter(u => u.st === s).length);
@@ -3699,7 +3703,7 @@ function msPeta(nama, H) {
   const T = msAtur === nama ? msTitik : ((H && H.D.titik) || {}), units = H ? H.units : [];
   const dots = units.filter(u => T[u.k] && (msAtur === nama || !msSembunyi.has(u.st))).map(u => msDot(u, T[u.k])).join("");
   /* Legenda warna di dalam gambar (pojok kanan atas, tetap terlihat saat digeser/diperbesar) */
-  const lg = H ? `<div class="ms-lgd" aria-label="Legenda warna"><b>Legenda</b>${MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => `<span><i style="background:${MS_ST[s].c}"></i>${MS_ST[s].t}<em>${H.n[s]}</em></span>`).join("")}</div>` : "";
+  const lg = H ? `<div class="ms-lgd" aria-label="Legenda warna"><b>Legenda</b>${msAda(H).map(s => `<span><i style="background:${MS_ST[s].c}"></i>${MS_ST[s].t}<em>${H.n[s]}</em></span>`).join("")}</div>` : "";
   return `<div class="ms-wrap">${lg}<div class="ms-scroll" id="msScroll"><div class="ms-map ${msAtur === nama ? "atur" : ""}" id="msMap" style="width:${msZoom * 100}%;--msd:${msUkuran(nama)}"><img src="${img}" alt="Siteplan ${esc(nama)}" draggable="false">${dots}</div></div></div>`;
 }
 const msDot = (u, p) => `<button type="button" class="ms-dot st-${u.st} ${msAtur && msPilih === u.k ? "on" : ""}" style="left:${p[0]}%;top:${p[1]}%" data-msk="${esc(u.k)}" title="${esc(u.k)} • ${MS_ST[u.st].t}" aria-label="${esc(u.k)}, ${MS_ST[u.st].t}"></button>`;
@@ -3719,9 +3723,9 @@ function viewStock(nama) {
     <div class="empty" style="margin-top:14px">Belum ada data Master Stock untuk ${esc(nama)}.${ed ? " Tekan <b>Impor Excel stock</b> (kolom Code, Address/Blok, Type, Build, Land, Status), lalu <b>Unggah siteplan</b>." : ""}</div>
     ${msImg[nama] ? msPeta(nama, null) : ""}</div>`;
   const tot = H.units.length, T = (H.D.titik || {}), belum = H.units.filter(u => !(atur ? msTitik : T)[u.k]).length;
-  const kartu = [["Total unit", tot, "var(--navy)"], ...MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => [MS_ST[s].t, H.n[s], MS_ST[s].c, s])]
+  const kartu = [["Total unit", tot, "var(--navy)"], ...msAda(H).map(s => [MS_ST[s].t, H.n[s], MS_ST[s].c, s])]
     .map(([t, v, c, s]) => `<div class="ms-card" style="border-left-color:${c}"><span>${t}</span><b>${n0(v)}</b>${s ? `<small>${tot ? idn(v / tot * 100, 1) : 0}%</small>` : ""}</div>`).join("");
-  const leg = MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => `<button type="button" class="ms-leg ${msSembunyi.has(s) ? "off" : ""}" data-msf="${s}" aria-pressed="${!msSembunyi.has(s)}"><i style="background:${MS_ST[s].c}"></i>${MS_ST[s].t} <b>${H.n[s]}</b></button>`).join("");
+  const leg = msAda(H).map(s => `<button type="button" class="ms-leg ${msSembunyi.has(s) ? "off" : ""}" data-msf="${s}" aria-pressed="${!msSembunyi.has(s)}"><i style="background:${MS_ST[s].c}"></i>${MS_ST[s].t} <b>${H.n[s]}</b></button>`).join("");
   const uk = MS_UKURAN.indexOf(msUkuran(nama));
   const ukuran = msImg[nama] && ed ? `<div class="ms-zoom ms-uk" role="group" aria-label="Ukuran titik"><button type="button" data-msuk="-1" aria-label="Titik lebih kecil" ${uk === 0 ? "disabled" : ""}>−</button><span>Titik</span><button type="button" data-msuk="1" aria-label="Titik lebih besar" ${uk === MS_UKURAN.length - 1 ? "disabled" : ""}>+</button></div>` : "";
   const zoom = msImg[nama] ? `${ukuran}<div class="ms-zoom" role="group" aria-label="Perbesar gambar"><button type="button" data-mszoom="-1" aria-label="Perkecil">−</button><span>${Math.round(msZoom * 100)}%</span><button type="button" data-mszoom="1" aria-label="Perbesar">+</button></div>` : "";
@@ -3729,9 +3733,9 @@ function viewStock(nama) {
     return `<div class="ms-side"><div class="ms-side-h">Klik posisi unit <b id="msPilihLbl">${esc(msPilih || "–")}</b> di gambar. Klik titik yang sudah ada untuk memilih/memindahkannya.</div>
       ${B.map(g => `<div class="ms-g">${esc(g.b)} <small data-msgc="${esc(g.b)}">${g.u.filter(u => msTitik[u.k]).length}/${g.n}</small></div><div class="ms-us">${g.u.map(u => `<button type="button" class="ms-u ${msTitik[u.k] ? "ok" : ""} ${msPilih === u.k ? "on" : ""}" data-msu="${esc(u.k)}" title="${esc(u.k)}">${esc(u.k.split("-").pop())}</button>`).join("")}</div>`).join("")}</div>`; })() : "";
   const blok = msRekapBlok(H.units);
-  const tabelBlok = `<section class="gut"><h2>Rekap per blok</h2><div class="tbl-wrap"><table class="hold-t pg-t ms-t"><thead><tr><th class="l">Blok</th><th>Total</th>${MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => `<th><i class="ms-i" style="background:${MS_ST[s].c}"></i>${MS_ST[s].t}</th>`).join("")}<th>% Sold</th></tr></thead><tbody>
-    ${blok.map(g => `<tr><td class="l">${esc(g.b)}</td><td>${g.n}</td>${MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => `<td>${n0(g[s])}</td>`).join("")}<td>${idn(g.sold / g.n * 100, 1)}%</td></tr>`).join("")}
-    <tr class="t"><td class="l">TOTAL</td><td>${tot}</td>${MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => `<td>${n0(H.n[s])}</td>`).join("")}<td>${tot ? idn(H.n.sold / tot * 100, 1) : 0}%</td></tr></tbody></table></div></section>`;
+  const tabelBlok = `<section class="gut"><h2>Rekap per blok</h2><div class="tbl-wrap"><table class="hold-t pg-t ms-t"><thead><tr><th class="l">Blok</th><th>Total</th>${msAda(H).map(s => `<th><i class="ms-i" style="background:${MS_ST[s].c}"></i>${MS_ST[s].t}</th>`).join("")}<th>% Sold</th></tr></thead><tbody>
+    ${blok.map(g => `<tr><td class="l">${esc(g.b)}</td><td>${g.n}</td>${msAda(H).map(s => `<td>${n0(g[s])}</td>`).join("")}<td>${idn(g.sold / g.n * 100, 1)}%</td></tr>`).join("")}
+    <tr class="t"><td class="l">TOTAL</td><td>${tot}</td>${msAda(H).map(s => `<td>${n0(H.n[s])}</td>`).join("")}<td>${tot ? idn(H.n.sold / tot * 100, 1) : 0}%</td></tr></tbody></table></div></section>`;
   const daftar = `<section class="gut"><details class="ms-det"><summary>Daftar semua unit (${tot})</summary><div class="tbl-wrap"><table class="hold-t pg-t ms-t"><thead><tr><th class="l">Kode</th><th class="l">Blok</th><th class="l">Tipe</th><th>LB</th><th>LT</th><th class="l">Status</th><th class="l">Sumber status</th><th class="l">Konsumen</th><th class="l">Sales</th></tr></thead><tbody>
     ${H.units.map(u => `<tr><td class="l"><b>${esc(u.k)}</b></td><td class="l">${esc(u.blok)}</td><td class="l">${esc(u.tipe)}</td><td>${esc(u.lb ?? "")}</td><td>${esc(u.lt ?? "")}</td><td class="l"><i class="ms-i" style="background:${MS_ST[u.st].c}"></i>${MS_ST[u.st].t}</td><td class="l">${esc(u.dari)}</td><td class="l">${esc((u.jual && u.jual.konsumen) || "")}</td><td class="l">${esc((u.jual && u.jual.sales) || "")}</td></tr>`).join("")}</tbody></table></div></details></section>`;
   const cek = H.berubah.length || H.asing.length ? `<section class="gut"><h2>Cek dengan Weekly</h2><div class="ms-cek">
@@ -3809,7 +3813,7 @@ function bindStock(nama) {
       let r = null; for (const sn of wb.SheetNames) { r = msBacaExcel(XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: null })); if (r && r.units.length) break; }
       if (!r || !r.units.length) { toast("Tidak ada unit yang terbaca. Pastikan ada kolom Code/Kode dan Status."); return; }
       const n = {}; MS_URUT.forEach(s => n[s] = r.units.filter(u => u.st === s).length);
-      const ring = `${r.units.length} unit • Sold ${n.sold} • Reserved ${n.hold} • Available ${n.avail}${n.stock ? ` • Stock ${n.stock}` : ""}`;
+      const ring = `${r.units.length} unit • ${MS_URUT.filter(s => ["sold", "hold", "avail"].includes(s) || n[s]).map(s => `${MS_ST[s].t} ${n[s]}`).join(" • ")}`;
       if (!confirm(`Impor Master Stock ${nama}\nStatus per ${r.tgl ? ddmmyyyy(r.tgl) : "(tanggal tidak ada di judul kolom Status, dipakai hari ini)"}\n${ring}\n\nData stock lama diganti. Posisi titik di gambar tetap. Lanjutkan?`)) return;
       const lama = msData(nama) || {}, stLama = {}; (lama.units || []).forEach(u => stLama[u.k] = u.st);
       const ubah = r.units.filter(u => stLama[u.k] && stLama[u.k] !== u.st).map(u => `${u.k}: ${MS_ST[stLama[u.k]].t} → ${MS_ST[u.st].t}`);
@@ -3847,7 +3851,7 @@ function msEksporExcel(nama) {
   const aoa = [[`MASTER STOCK ${nama.toUpperCase()}`], [`Status per ${H.D.tanggal ? ddmmyyyy(H.D.tanggal) : "-"} (Excel stock) + transaksi Weekly sesudahnya • diekspor ${ddmmyyyy(todayISO())}`], [],
     ["Kode", "Blok", "Tipe", "LB", "LT", "Status", "Sumber status", "Status di Excel", "Konsumen", "Sales"]];
   H.units.forEach(u => aoa.push([u.k, u.blok, u.tipe, u.lb, u.lt, MS_ST[u.st].t, u.dari, u.stAsli || "", (u.jual && u.jual.konsumen) || "", (u.jual && u.jual.sales) || ""]));
-  const S2 = MS_URUT.filter(s => s !== "stock" || H.n.stock), rk = [[`REKAP PER BLOK ${nama.toUpperCase()}`], [], ["Blok", "Total", ...S2.map(s => MS_ST[s].t), "% Sold"]];
+  const S2 = msAda(H), rk = [[`REKAP PER BLOK ${nama.toUpperCase()}`], [], ["Blok", "Total", ...S2.map(s => MS_ST[s].t), "% Sold"]];
   msRekapBlok(H.units).forEach(g => rk.push([g.b, g.n, ...S2.map(s => g[s]), { v: g.sold / g.n, t: "n", z: "0.0%" }]));
   rk.push(["TOTAL", H.units.length, ...S2.map(s => H.n[s]), { v: H.n.sold / H.units.length, t: "n", z: "0.0%" }]);
   const wb = XLSX.utils.book_new(), a = aoaSheet(rk), b = aoaSheet(aoa);
@@ -3860,7 +3864,7 @@ function msEksporGambar(nama) {
   const im = new Image(); im.onload = () => { const W = im.naturalWidth, Hh = im.naturalHeight, c = document.createElement("canvas"); c.width = W; c.height = Hh; const x = c.getContext("2d");
     x.drawImage(im, 0, 0); const r = W * 0.0058, T = H.D.titik || {};
     H.units.forEach(u => { const p = T[u.k]; if (!p) return; x.beginPath(); x.arc(p[0] / 100 * W, p[1] / 100 * Hh, r, 0, Math.PI * 2); x.fillStyle = MS_ST[u.st].c; x.fill(); x.lineWidth = r * 0.35; x.strokeStyle = "#fff"; x.stroke(); });
-    const S2 = MS_URUT.filter(s => s !== "stock" || H.n.stock), fs = Math.round(W * 0.012), pad = fs * 0.8, bw = fs * 17, bh = pad * 2 + fs * 1.5 * (S2.length + 1);
+    const S2 = msAda(H), fs = Math.round(W * 0.012), pad = fs * 0.8, bw = fs * 17, bh = pad * 2 + fs * 1.5 * (S2.length + 1);
     x.fillStyle = "rgba(255,255,255,.93)"; x.fillRect(pad, Hh - bh - pad, bw, bh); x.strokeStyle = "#0d2a57"; x.lineWidth = 2; x.strokeRect(pad, Hh - bh - pad, bw, bh);
     x.font = `700 ${fs}px sans-serif`; x.fillStyle = "#0d2a57"; x.fillText(`Status per ${ddmmyyyy(todayISO())}`, pad * 2, Hh - bh - pad + pad + fs);
     S2.forEach((s, i) => { const yy = Hh - bh - pad + pad + fs * 1.5 * (i + 1) + fs; x.beginPath(); x.arc(pad * 2 + fs * 0.45, yy - fs * 0.35, fs * 0.45, 0, Math.PI * 2); x.fillStyle = MS_ST[s].c; x.fill();
