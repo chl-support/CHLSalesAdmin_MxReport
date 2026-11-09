@@ -140,6 +140,7 @@ function forUser(state, user) {
     out.laporan = {};
     Object.keys(state.laporan || {}).forEach(d => { const r = (state.laporan[d] || []).filter(x => bids.has(x.proyekId)); if (r.length) out.laporan[d] = r; });
   }
+  if (state.stok) { out.stok = {}; Object.keys(state.stok).forEach(k => { if (ok(k)) out.stok[k] = state.stok[k]; }); }
   if (state.weekly) { out.weekly = {}; Object.keys(state.weekly).forEach(k => { if (ok(k)) out.weekly[k] = state.weekly[k]; }); }
   /* Sales Achievement: target per tahun per proyek (id Daily Sales) */
   if (state.target) { const ids = new Set(((state.sales2 || {}).proyek || []).filter(p => ok(p.nama)).map(p => String(p.id))); out.target = {};
@@ -196,6 +197,8 @@ function merge(old, inc, user) {
     /* Data awal yang belum ada di server boleh ditambahkan oleh siapa saja (tidak menimpa) */
     Object.keys(inc.weekly).forEach(k => { if (!out.weekly[k]) out.weekly[k] = inc.weekly[k]; });
   }
+  /* Master Stock (siteplan): data per proyek; hanya proyek yang diizinkan */
+  if (inc.stok) { out.stok = Object.assign({}, old.stok || {}); Object.keys(inc.stok).forEach(k => { if (ok(k)) out.stok[k] = inc.stok[k]; }); }
   return out;
 }
 
@@ -205,4 +208,4 @@ async function readBody(req) {
   const chunks = []; for await (const c of req) chunks.push(c);
   const s = Buffer.concat(chunks).toString(); return s ? JSON.parse(s) : {};
 }
-module.exports = { findUser, publicUser, signToken, userFromReq, loadDoc, saveDoc, merge, forUser, send, readBody, storageKind, users, saveUsers, hashPw, cekPw };
+module.exports = { findUser, publicUser, signToken, userFromReq, loadDoc, saveDoc, merge, forUser, send, readBody, storageKind, users, saveUsers, hashPw, cekPw, kvGet, kvSet };

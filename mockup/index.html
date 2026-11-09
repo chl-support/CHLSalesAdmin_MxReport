@@ -161,6 +161,37 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .notes b { color: var(--ink); }
 
 /* Forms */
+/* Master Stock (siteplan) */
+.ms-cards { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 12px; }
+.ms-card { flex: 1 1 140px; border: 1px solid var(--line); border-left: 5px solid; border-radius: 8px; padding: 10px 14px; background: var(--bg); display: flex; flex-direction: column; gap: 2px; }
+.ms-card span { font-size: 12px; color: var(--muted); font-weight: 600; } .ms-card b { font-size: 24px; color: var(--ink); } .ms-card small { font-size: 12px; color: var(--muted); }
+.ms-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 10px; }
+.ms-legs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ms-leg { font: inherit; font-size: 13px; display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.ms-leg i, .ms-i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.ms-i { margin-right: 6px; vertical-align: -1px; } .ms-leg.off { opacity: .4; text-decoration: line-through; }
+.ms-zoom { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.ms-zoom button { font: inherit; font-weight: 700; width: 34px; height: 30px; border: 0; background: var(--bg); color: var(--ink); cursor: pointer; } .ms-zoom span { font-size: 12px; min-width: 46px; text-align: center; }
+.ms-scroll { overflow: auto; max-height: 80vh; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+.ms-map { position: relative; container-type: inline-size; min-width: 100%; }
+.ms-map img { display: block; width: 100%; user-select: none; -webkit-user-select: none; }
+.ms-map.atur { cursor: crosshair; }
+.ms-dot { position: absolute; width: max(9px, 1.15cqw); aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.35); padding: 0; cursor: pointer; }
+.ms-dot.st-sold { background: #d64545; } .ms-dot.st-hold { background: #f0b400; } .ms-dot.st-avail { background: #2e9e5b; } .ms-dot.st-stock { background: #8a94a6; }
+.ms-dot.on { outline: 3px solid #0d2a57; outline-offset: 2px; z-index: 2; }
+.ms-pop { position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 14px)); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.2); padding: 9px 12px; font-size: 12.5px; line-height: 1.5; min-width: 210px; max-width: 300px; pointer-events: none; }
+.ms-pill { color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; margin-left: 4px; } .ms-src { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+.ms-note { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+.ms-aturw { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 12px; align-items: start; }
+.ms-side { max-height: 80vh; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 12.5px; background: var(--bg); }
+.ms-side-h { margin-bottom: 8px; color: var(--ink); } .ms-g { font-weight: 800; margin: 10px 0 4px; color: var(--ink); } .ms-g small { font-weight: 600; color: var(--muted); }
+.ms-us { display: flex; flex-wrap: wrap; gap: 4px; }
+.ms-u { font: inherit; font-size: 12px; min-width: 34px; padding: 3px 4px; border: 1px solid var(--line); border-radius: 5px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.ms-u.ok { background: var(--blue-soft); border-color: var(--blue); } .ms-u.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+.ms-atur-lbl { font-weight: 700; color: var(--ink); font-size: 13px; }
+.ms-t td, .ms-t th { text-align: right; } .ms-t td.l, .ms-t th.l { text-align: left; }
+.ms-det summary { cursor: pointer; font-weight: 700; color: var(--ink); margin: 6px 0 10px; }
+.ms-cek { font-size: 13px; display: flex; flex-direction: column; gap: 6px; color: var(--ink); } .ms-warn { color: var(--red); }
 .bast-f { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 18px 0 10px; font-size: 13px; }
 .bast-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .bast-fl { font-weight: 700; color: var(--ink); display: inline-flex; align-items: center; gap: 8px; }
@@ -3618,6 +3649,210 @@ function bindTargetInput() {
     save(); tgDraft = null; render(); toast(ub.length ? "Target disimpan" : "Tidak ada perubahan");
   };
 }
+/* ===================== MASTER STOCK (siteplan) per proyek — tab di Weekly Sales Dashboard =====
+   S.stok[nama] = { tanggal, file, units:[{k, blok, tipe, lb, lt, st, stAsli}], titik:{ kode:[x%, y%] } }
+   Gambar siteplan disimpan terpisah di server (/api/siteplan), tidak ikut data utama.
+   Status: dari Excel stock; transaksi Weekly (jual / hold / batal) SETELAH tanggal status Excel otomatis memperbarui warnanya. */
+const MS_ST = { sold: { t: "Sold", c: "#d64545" }, hold: { t: "Reserved (Hold)", c: "#f0b400" }, avail: { t: "Available", c: "#2e9e5b" }, stock: { t: "Stock (belum dirilis)", c: "#8a94a6" } };
+const MS_URUT = ["sold", "hold", "avail", "stock"];
+const msKode = s => String(s == null ? "" : s).toUpperCase().replace(/\s+/g, "");
+const msStatus = v => { const t = String(v || "").toLowerCase(); return /sold|terjual|akad|laku/.test(t) ? "sold" : /hold|reserv|booking|nup|pesan/.test(t) ? "hold" : /avail|tersedia|ready|kosong/.test(t) ? "avail" : "stock"; };
+const msData = nama => (S.stok && S.stok[nama]) || null;
+let msImg = {}, msMuat = new Set(), msZoom = 1, msSembunyi = new Set(), msAtur = null, msPilih = null, msTitik = null, msScroll = null;
+const MS_ZOOM = [1, 1.5, 2, 3, 4];
+function msWeekly(nama, tglExcel) {
+  const W = S.weekly && S.weekly[nama], o = {}; if (!W) return o;
+  const ev = [];
+  [["jual", "sold"], ["hold", "hold"], ["batal", "avail"]].forEach(([j, st]) => wkHit(W[j]).forEach(x => { const k = msKode(x.unit); if (k) ev.push({ k, st, t: wkEf(x) || "", x, j }); }));
+  ev.sort((a, b) => a.t.localeCompare(b.t));
+  ev.forEach(e => { const r = o[e.k] = o[e.k] || {}; if (e.j === "jual") r.jual = e.x; if (e.j === "batal") r.jual = null;
+    if (tglExcel && e.t && e.t > tglExcel) { r.st = e.st; r.t = e.t; } });
+  return o;
+}
+function msHitung(nama) {
+  const D = msData(nama); if (!D || !(D.units || []).length) return null;
+  const W = msWeekly(nama, D.tanggal);
+  const units = D.units.map(u => { let st = u.st, dari = "Excel"; const w = W[u.k];
+    if (w && w.st && w.st !== st && !(w.st === "hold" && st === "sold")) { st = w.st; dari = `Weekly ${w.t ? ddmmyyyy(w.t) : ""}`; }
+    return Object.assign({}, u, { st, dari, jual: w && w.jual }); });
+  const ada = new Set(D.units.map(u => u.k)), asing = Object.keys(W).filter(k => !ada.has(k));
+  const n = {}; MS_URUT.forEach(s => n[s] = units.filter(u => u.st === s).length);
+  return { D, units, n, asing, berubah: units.filter(u => u.dari !== "Excel") };
+}
+function msMuatImg(nama) {
+  if (msMuat.has(nama)) return; msMuat.add(nama);
+  api("GET", "/api/siteplan?p=" + encodeURIComponent(nama)).then(r => { msImg[nama] = r.ok ? (r.data.img || "") : ""; })
+    .catch(() => { msImg[nama] = ""; }).finally(() => { msMuat.delete(nama); const ft = findTab(current()); if (ft && ft.t.stock === nama) render(); });
+}
+function msPeta(nama, H) {
+  const img = msImg[nama];
+  if (img === undefined) { msMuatImg(nama); return `<div class="empty">Memuat gambar siteplan…</div>`; }
+  if (!img) return `<div class="empty">Gambar siteplan belum diunggah.${bolehEdit(nama) ? " Tekan <b>Unggah siteplan</b> untuk menambahkan gambar." : ""} Status unit tetap bisa dilihat di daftar per blok di bawah.</div>`;
+  const T = msAtur === nama ? msTitik : ((H && H.D.titik) || {}), units = H ? H.units : [];
+  const dots = units.filter(u => T[u.k] && (msAtur === nama || !msSembunyi.has(u.st))).map(u => msDot(u, T[u.k])).join("");
+  return `<div class="ms-scroll" id="msScroll"><div class="ms-map ${msAtur === nama ? "atur" : ""}" id="msMap" style="width:${msZoom * 100}%"><img src="${img}" alt="Siteplan ${esc(nama)}" draggable="false">${dots}</div></div>`;
+}
+const msDot = (u, p) => `<button type="button" class="ms-dot st-${u.st} ${msAtur && msPilih === u.k ? "on" : ""}" style="left:${p[0]}%;top:${p[1]}%" data-msk="${esc(u.k)}" title="${esc(u.k)} • ${MS_ST[u.st].t}" aria-label="${esc(u.k)}, ${MS_ST[u.st].t}"></button>`;
+function msRekapBlok(units) {
+  const g = {}; units.forEach(u => { const b = u.blok || "–"; (g[b] = g[b] || { b, n: 0, sold: 0, hold: 0, avail: 0, stock: 0, u: [] }); g[b].n++; g[b][u.st]++; g[b].u.push(u); });
+  return Object.values(g);
+}
+function viewStock(nama) {
+  const H = msHitung(nama), ed = bolehEdit(nama), D = msData(nama), atur = msAtur === nama;
+  const n0 = v => v ? v.toLocaleString(LOC()) : "–";
+  const alat = `<div class="btn-row">${H ? `<button class="btn sec" id="msXls" type="button">Ekspor Excel</button>${msImg[nama] && D && Object.keys(D.titik || {}).length ? `<button class="btn sec" id="msPng" type="button">Ekspor gambar</button>` : ""}` : ""}
+    ${ed && !atur ? `<button class="btn sec" id="msUp" type="button">${msImg[nama] ? "Ganti siteplan" : "Unggah siteplan"}</button><input type="file" id="msUpFile" accept="image/png,image/jpeg,image/webp" hidden>
+      <button class="btn sec" id="msImp" type="button">Impor Excel stock</button><input type="file" id="msImpFile" accept=".xlsx,.xls" hidden>
+      ${H && msImg[nama] ? `<button class="btn" id="msAturBtn" type="button">Atur titik unit</button>` : ""}` : ""}</div>`;
+  const info = D && D.units && D.units.length ? `Status per <b>${D.tanggal ? ddmmyyyy(D.tanggal) : "–"}</b> dari Excel stock${D.file ? ` (${esc(D.file)})` : ""}. Transaksi Weekly setelah tanggal itu ikut memperbarui status.` : "Belum ada data stock.";
+  if (!H) return `<div class="page gut"><div class="form-head"><div><h2>Master Stock ${esc(nama)}</h2><div class="desc">${info}</div></div>${alat}</div>
+    <div class="empty" style="margin-top:14px">Belum ada data Master Stock untuk ${esc(nama)}.${ed ? " Tekan <b>Impor Excel stock</b> (kolom Code, Address/Blok, Type, Build, Land, Status), lalu <b>Unggah siteplan</b>." : ""}</div>
+    ${msImg[nama] ? msPeta(nama, null) : ""}</div>`;
+  const tot = H.units.length, T = (H.D.titik || {}), belum = H.units.filter(u => !(atur ? msTitik : T)[u.k]).length;
+  const kartu = [["Total unit", tot, "var(--navy)"], ...MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => [MS_ST[s].t, H.n[s], MS_ST[s].c, s])]
+    .map(([t, v, c, s]) => `<div class="ms-card" style="border-left-color:${c}"><span>${t}</span><b>${n0(v)}</b>${s ? `<small>${tot ? idn(v / tot * 100, 1) : 0}%</small>` : ""}</div>`).join("");
+  const leg = MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => `<button type="button" class="ms-leg ${msSembunyi.has(s) ? "off" : ""}" data-msf="${s}" aria-pressed="${!msSembunyi.has(s)}"><i style="background:${MS_ST[s].c}"></i>${MS_ST[s].t} <b>${H.n[s]}</b></button>`).join("");
+  const zoom = msImg[nama] ? `<div class="ms-zoom" role="group" aria-label="Perbesar gambar"><button type="button" data-mszoom="-1" aria-label="Perkecil">−</button><span>${Math.round(msZoom * 100)}%</span><button type="button" data-mszoom="1" aria-label="Perbesar">+</button></div>` : "";
+  const sisi = atur ? (() => { const B = msRekapBlok(H.units);
+    return `<div class="ms-side"><div class="ms-side-h">Klik posisi unit <b id="msPilihLbl">${esc(msPilih || "–")}</b> di gambar. Klik titik yang sudah ada untuk memilih/memindahkannya.</div>
+      ${B.map(g => `<div class="ms-g">${esc(g.b)} <small data-msgc="${esc(g.b)}">${g.u.filter(u => msTitik[u.k]).length}/${g.n}</small></div><div class="ms-us">${g.u.map(u => `<button type="button" class="ms-u ${msTitik[u.k] ? "ok" : ""} ${msPilih === u.k ? "on" : ""}" data-msu="${esc(u.k)}" title="${esc(u.k)}">${esc(u.k.split("-").pop())}</button>`).join("")}</div>`).join("")}</div>`; })() : "";
+  const blok = msRekapBlok(H.units);
+  const tabelBlok = `<section class="gut"><h2>Rekap per blok</h2><div class="tbl-wrap"><table class="hold-t pg-t ms-t"><thead><tr><th class="l">Blok</th><th>Total</th>${MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => `<th><i class="ms-i" style="background:${MS_ST[s].c}"></i>${MS_ST[s].t}</th>`).join("")}<th>% Sold</th></tr></thead><tbody>
+    ${blok.map(g => `<tr><td class="l">${esc(g.b)}</td><td>${g.n}</td>${MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => `<td>${n0(g[s])}</td>`).join("")}<td>${idn(g.sold / g.n * 100, 1)}%</td></tr>`).join("")}
+    <tr class="t"><td class="l">TOTAL</td><td>${tot}</td>${MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => `<td>${n0(H.n[s])}</td>`).join("")}<td>${tot ? idn(H.n.sold / tot * 100, 1) : 0}%</td></tr></tbody></table></div></section>`;
+  const daftar = `<section class="gut"><details class="ms-det"><summary>Daftar semua unit (${tot})</summary><div class="tbl-wrap"><table class="hold-t pg-t ms-t"><thead><tr><th class="l">Kode</th><th class="l">Blok</th><th class="l">Tipe</th><th>LB</th><th>LT</th><th class="l">Status</th><th class="l">Sumber status</th><th class="l">Konsumen</th><th class="l">Sales</th></tr></thead><tbody>
+    ${H.units.map(u => `<tr><td class="l"><b>${esc(u.k)}</b></td><td class="l">${esc(u.blok)}</td><td class="l">${esc(u.tipe)}</td><td>${esc(u.lb ?? "")}</td><td>${esc(u.lt ?? "")}</td><td class="l"><i class="ms-i" style="background:${MS_ST[u.st].c}"></i>${MS_ST[u.st].t}</td><td class="l">${esc(u.dari)}</td><td class="l">${esc((u.jual && u.jual.konsumen) || "")}</td><td class="l">${esc((u.jual && u.jual.sales) || "")}</td></tr>`).join("")}</tbody></table></div></details></section>`;
+  const cek = H.berubah.length || H.asing.length ? `<section class="gut"><h2>Cek dengan Weekly</h2><div class="ms-cek">
+    ${H.berubah.length ? `<div><b>${H.berubah.length} unit</b> statusnya diperbarui dari Weekly (setelah ${ddmmyyyy(H.D.tanggal || todayISO())}): ${H.berubah.map(u => `${esc(u.k)} → ${MS_ST[u.st].t}`).join(", ")}</div>` : ""}
+    ${H.asing.length ? `<div class="ms-warn">⚠ Kode unit di Weekly yang tidak ada di Master Stock (cek penulisan kode): <b>${H.asing.map(esc).join(", ")}</b></div>` : ""}</div></section>` : "";
+  return `<div class="page gut"><div class="form-head"><div><h2>Master Stock ${esc(nama)}</h2><div class="desc">${info}</div></div>${alat}</div>
+    <div class="ms-cards">${kartu}</div>
+    <div class="ms-bar"><div class="ms-legs">${atur ? `<span class="ms-atur-lbl">Mode atur titik • ${tot - belum}/${tot} unit sudah ditandai</span>` : leg}</div>${zoom}
+      ${atur ? `<div class="btn-row"><button class="btn sec" id="msHapus" type="button">Hapus titik terpilih</button><button class="btn sec" id="msBatal" type="button">Batal</button><button class="btn" id="msSimpan" type="button">Simpan titik</button></div>` : ""}</div>
+    ${!atur && msImg[nama] && belum ? `<div class="ms-note">${belum} unit belum ditandai di gambar.${ed ? " Tekan <b>Atur titik unit</b> untuk menandainya." : ""}</div>` : ""}
+    <div class="${atur ? "ms-aturw" : ""}">${msPeta(nama, H)}${sisi}</div>
+    ${atur ? "" : tabelBlok + cek + daftar}</div>`;
+}
+function msKecilkan(file) {
+  return new Promise((ok, gagal) => { const fr = new FileReader(); fr.onerror = gagal; fr.onload = () => { const im = new Image(); im.onerror = () => gagal(new Error("Gambar tidak bisa dibaca"));
+    im.onload = () => { let w = Math.min(2400, im.naturalWidth), q = 0.85, out = "";
+      for (let k = 0; k < 8; k++) { const c = document.createElement("canvas"); c.width = w; c.height = Math.round(im.naturalHeight * w / im.naturalWidth);
+        const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+        out = c.toDataURL("image/jpeg", q); if (out.length < 900000) break; if (q > 0.6) q -= 0.1; else w = Math.round(w * 0.85); }
+      ok(out); }; im.src = fr.result; }; fr.readAsDataURL(file); });
+}
+function msBacaExcel(rows) {
+  const low = v => String(v == null ? "" : v).replace(/\s+/g, " ").trim().toLowerCase();
+  let h = -1; const c = {};
+  for (let i = 0; i < Math.min(rows.length, 40) && h < 0; i++) { const r = rows[i] || [];
+    const iK = r.findIndex(v => /^(code|kode|kode unit|no\.? kavling|kavling|unit)$/.test(low(v))), iS = r.findIndex(v => /^status/.test(low(v)));
+    if (iK < 0 || iS < 0) continue; h = i; c.k = iK; c.s = iS;
+    r.forEach((v, j) => { const t = low(v); if (j === iK || j === iS) return;
+      if (c.b == null && /^(address|blok|block|alamat|cluster|klaster)/.test(t)) c.b = j; else if (c.t == null && /^(type|tipe)$/.test(t)) c.t = j;
+      else if (c.lb == null && /^(build|lb|luas bangunan)/.test(t)) c.lb = j; else if (c.lt == null && /^(land|lt|luas tanah)/.test(t)) c.lt = j; });
+    const m = String(r[iS]).match(/(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{4})/); if (m) c.tgl = `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`; }
+  if (h < 0) return null;
+  const units = [], seen = new Set();
+  rows.slice(h + 1).forEach(r => { r = r || []; const k = msKode(r[c.k]), s = r[c.s]; if (!k || seen.has(k) || s == null || String(s).trim() === "") return; seen.add(k);
+    units.push({ k, blok: c.b != null && r[c.b] ? String(r[c.b]).trim() : "BLOK " + k.split("-")[0], tipe: c.t != null && r[c.t] != null ? String(r[c.t]).trim() : "",
+      lb: c.lb != null && r[c.lb] != null ? r[c.lb] : "", lt: c.lt != null && r[c.lt] != null ? r[c.lt] : "", st: msStatus(s), stAsli: String(s).trim() }); });
+  return { units, tgl: c.tgl || "" };
+}
+function msNext(urut, dari) { const i = urut.indexOf(dari); for (let k = 1; k <= urut.length; k++) { const u = urut[(i + k) % urut.length]; if (!msTitik[u]) return u; } return dari; }
+function bindStock(nama) {
+  const g = id => document.getElementById(id), v = document.getElementById("view"), H = msHitung(nama);
+  const sc = g("msScroll"); if (sc && msScroll) { sc.scrollLeft = msScroll[0] * sc.scrollWidth; sc.scrollTop = msScroll[1] * sc.scrollHeight; }
+  const ingatScroll = () => { const s = g("msScroll"); msScroll = s ? [s.scrollLeft / s.scrollWidth, s.scrollTop / s.scrollHeight] : null; };
+  v.querySelectorAll("[data-msf]").forEach(b => b.onclick = () => { const s = b.dataset.msf; msSembunyi.has(s) ? msSembunyi.delete(s) : msSembunyi.add(s); ingatScroll(); render(); });
+  v.querySelectorAll("[data-mszoom]").forEach(b => b.onclick = () => { const i = Math.max(0, Math.min(MS_ZOOM.length - 1, MS_ZOOM.indexOf(msZoom) + +b.dataset.mszoom)); ingatScroll(); msZoom = MS_ZOOM[i]; render(); });
+  if (g("msXls")) g("msXls").onclick = () => denganID(() => msEksporExcel(nama));
+  if (g("msPng")) g("msPng").onclick = () => msEksporGambar(nama);
+  const map = g("msMap");
+  /* Lihat: klik titik untuk detail unit */
+  if (map && msAtur !== nama && H) {
+    map.onclick = e => { const d = e.target.closest("[data-msk]"); const lama = map.querySelector(".ms-pop"); if (lama) lama.remove(); if (!d) return;
+      const u = H.units.find(x => x.k === d.dataset.msk); if (!u) return; const j = u.jual;
+      map.insertAdjacentHTML("beforeend", `<div class="ms-pop" style="left:${d.style.left};top:${d.style.top}"><b>${esc(u.k)}</b> <span class="ms-pill" style="background:${MS_ST[u.st].c}">${MS_ST[u.st].t}</span>
+        <div>${esc(u.blok)}${u.tipe ? ` • Tipe ${esc(u.tipe)}` : ""}${u.lb !== "" || u.lt !== "" ? ` • LB/LT ${esc(u.lb)}/${esc(u.lt)}` : ""}</div>
+        ${j && u.st === "sold" ? `<div>${j.konsumen ? `Konsumen: ${esc(j.konsumen)} • ` : ""}${wkEf(j) ? `Tgl: ${ddmmyyyy(j.tanggal || wkEf(j))}` : ""}${j.sales ? `<br>Sales: ${esc(j.sales)}` : ""}</div>` : ""}
+        <div class="ms-src">Status dari ${esc(u.dari)}${u.stAsli && u.dari === "Excel" ? ` (${esc(u.stAsli)})` : ""}</div></div>`); };
+  }
+  if (!bolehEdit(nama)) return;
+  const up = g("msUpFile");
+  if (g("msUp")) g("msUp").onclick = () => { up.value = ""; up.click(); };
+  if (up) up.onchange = async () => { const file = up.files && up.files[0]; if (!file) return;
+    try { toast("Mengunggah siteplan…"); const img = await msKecilkan(file);
+      const r = await api("POST", "/api/siteplan", { p: nama, img });
+      if (!r.ok) { toast(r.data.error || "Gagal mengunggah siteplan"); return; }
+      msImg[nama] = img; S.stok = S.stok || {}; S.stok[nama] = Object.assign({ units: [], titik: {} }, S.stok[nama] || {}, { imgAt: new Date().toISOString() });
+      catat(`weekly:${nama}`, "Master Stock", [`Gambar siteplan ${nama} diunggah (${file.name})`]); save(); toast("Siteplan tersimpan"); render();
+    } catch (e) { toast("Gagal mengunggah: " + (e.message || e)); } };
+  const fi = g("msImpFile");
+  if (g("msImp")) g("msImp").onclick = () => { if (!window.XLSX) { toast("Impor Excel belum siap. Periksa koneksi internet."); return; } fi.value = ""; fi.click(); };
+  if (fi) fi.onchange = async () => { const file = fi.files && fi.files[0]; if (!file) return;
+    try { const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
+      let r = null; for (const sn of wb.SheetNames) { r = msBacaExcel(XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: null })); if (r && r.units.length) break; }
+      if (!r || !r.units.length) { toast("Tidak ada unit yang terbaca. Pastikan ada kolom Code/Kode dan Status."); return; }
+      const n = {}; MS_URUT.forEach(s => n[s] = r.units.filter(u => u.st === s).length);
+      const ring = `${r.units.length} unit • Sold ${n.sold} • Reserved ${n.hold} • Available ${n.avail}${n.stock ? ` • Stock ${n.stock}` : ""}`;
+      if (!confirm(`Impor Master Stock ${nama}\nStatus per ${r.tgl ? ddmmyyyy(r.tgl) : "(tanggal tidak ada di judul kolom Status, dipakai hari ini)"}\n${ring}\n\nData stock lama diganti. Posisi titik di gambar tetap. Lanjutkan?`)) return;
+      const lama = msData(nama) || {}, stLama = {}; (lama.units || []).forEach(u => stLama[u.k] = u.st);
+      const ubah = r.units.filter(u => stLama[u.k] && stLama[u.k] !== u.st).map(u => `${u.k}: ${MS_ST[stLama[u.k]].t} → ${MS_ST[u.st].t}`);
+      S.stok = S.stok || {}; S.stok[nama] = Object.assign({ titik: {} }, lama, { tanggal: r.tgl || todayISO(), file: file.name, units: r.units });
+      catat(`weekly:${nama}`, "Master Stock", [`Impor Excel stock ${file.name} (status per ${ddmmyyyy(S.stok[nama].tanggal)}): ${ring}`, ...ubah.slice(0, 60), ...(ubah.length > 60 ? [`…dan ${ubah.length - 60} perubahan lain`] : [])]);
+      save(); toast("Master Stock tersimpan"); render();
+    } catch (e) { toast("Gagal membaca Excel: " + (e.message || e)); } };
+  if (g("msAturBtn")) g("msAturBtn").onclick = () => { msAtur = nama; msTitik = clone((msData(nama) || {}).titik || {}); msSembunyi.clear();
+    const urut = H.units.map(u => u.k); msPilih = urut.find(k => !msTitik[k]) || urut[0]; render(); };
+  if (msAtur !== nama || !map || !H) return;
+  const urut = H.units.map(u => u.k), unitOf = k => H.units.find(u => u.k === k);
+  const pilih = k => { msPilih = k; v.querySelectorAll(".ms-dot.on, .ms-u.on").forEach(e => e.classList.remove("on"));
+    v.querySelectorAll(`[data-msk="${CSS.escape(k)}"], [data-msu="${CSS.escape(k)}"]`).forEach(e => e.classList.add("on")); const l = g("msPilihLbl"); if (l) l.textContent = k;
+    const b = v.querySelector(`[data-msu="${CSS.escape(k)}"]`); if (b) b.scrollIntoView({ block: "nearest" }); };
+  const hitungUlang = () => { const lbl = v.querySelector(".ms-atur-lbl"), ada = urut.filter(k => msTitik[k]).length; if (lbl) lbl.textContent = `Mode atur titik • ${ada}/${urut.length} unit sudah ditandai`;
+    msRekapBlok(H.units).forEach(gr => { const el = v.querySelector(`[data-msgc="${CSS.escape(gr.b)}"]`); if (el) el.textContent = `${gr.u.filter(u => msTitik[u.k]).length}/${gr.n}`; }); };
+  map.onclick = e => { const d = e.target.closest("[data-msk]"); if (d) { pilih(d.dataset.msk); return; }
+    if (!msPilih) return; const R = map.getBoundingClientRect(), x = +((e.clientX - R.left) / R.width * 100).toFixed(2), y = +((e.clientY - R.top) / R.height * 100).toFixed(2);
+    msTitik[msPilih] = [x, y]; const lama = map.querySelector(`[data-msk="${CSS.escape(msPilih)}"]`); if (lama) lama.remove();
+    map.insertAdjacentHTML("beforeend", msDot(unitOf(msPilih), [x, y]));
+    const b = v.querySelector(`[data-msu="${CSS.escape(msPilih)}"]`); if (b) b.classList.add("ok");
+    hitungUlang(); pilih(msNext(urut, msPilih)); };
+  v.querySelectorAll("[data-msu]").forEach(b => b.onclick = () => pilih(b.dataset.msu));
+  g("msHapus").onclick = () => { if (!msPilih || !msTitik[msPilih]) { toast("Pilih unit yang sudah punya titik"); return; } delete msTitik[msPilih];
+    const d = map.querySelector(`[data-msk="${CSS.escape(msPilih)}"]`); if (d) d.remove(); const b = v.querySelector(`[data-msu="${CSS.escape(msPilih)}"]`); if (b) b.classList.remove("ok"); hitungUlang(); };
+  g("msBatal").onclick = () => { msAtur = null; msTitik = null; render(); };
+  g("msSimpan").onclick = () => { const D = msData(nama), lama = D.titik || {}, k = urut.filter(x => JSON.stringify(lama[x]) !== JSON.stringify(msTitik[x]));
+    D.titik = msTitik; msAtur = null; msTitik = null;
+    if (k.length) catat(`weekly:${nama}`, "Master Stock", [`Posisi titik unit di siteplan diubah: ${k.length} unit (${k.slice(0, 20).join(", ")}${k.length > 20 ? ", …" : ""})`]);
+    save(); toast("Posisi titik tersimpan"); render(); };
+}
+function msEksporExcel(nama) {
+  if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
+  const H = msHitung(nama); if (!H) return;
+  const aoa = [[`MASTER STOCK ${nama.toUpperCase()}`], [`Status per ${H.D.tanggal ? ddmmyyyy(H.D.tanggal) : "-"} (Excel stock) + transaksi Weekly sesudahnya • diekspor ${ddmmyyyy(todayISO())}`], [],
+    ["Kode", "Blok", "Tipe", "LB", "LT", "Status", "Sumber status", "Status di Excel", "Konsumen", "Sales"]];
+  H.units.forEach(u => aoa.push([u.k, u.blok, u.tipe, u.lb, u.lt, MS_ST[u.st].t, u.dari, u.stAsli || "", (u.jual && u.jual.konsumen) || "", (u.jual && u.jual.sales) || ""]));
+  const S2 = MS_URUT.filter(s => s !== "stock" || H.n.stock), rk = [[`REKAP PER BLOK ${nama.toUpperCase()}`], [], ["Blok", "Total", ...S2.map(s => MS_ST[s].t), "% Sold"]];
+  msRekapBlok(H.units).forEach(g => rk.push([g.b, g.n, ...S2.map(s => g[s]), { v: g.sold / g.n, t: "n", z: "0.0%" }]));
+  rk.push(["TOTAL", H.units.length, ...S2.map(s => H.n[s]), { v: H.n.sold / H.units.length, t: "n", z: "0.0%" }]);
+  const wb = XLSX.utils.book_new(), a = aoaSheet(rk), b = aoaSheet(aoa);
+  a["!cols"] = [{ wch: 22 }, ...Array(6).fill({ wch: 16 })]; b["!cols"] = [{ wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 7 }, { wch: 7 }, { wch: 20 }, { wch: 18 }, { wch: 14 }, { wch: 26 }, { wch: 34 }];
+  XLSX.utils.book_append_sheet(wb, a, "Rekap"); XLSX.utils.book_append_sheet(wb, b, "Unit");
+  XLSX.writeFile(wb, `Master_Stock_${nama.replace(/\s+/g, "_")}_${todayISO()}.xlsx`); toast("File Excel diunduh");
+}
+function msEksporGambar(nama) {
+  const H = msHitung(nama), src = msImg[nama]; if (!H || !src) return;
+  const im = new Image(); im.onload = () => { const W = im.naturalWidth, Hh = im.naturalHeight, c = document.createElement("canvas"); c.width = W; c.height = Hh; const x = c.getContext("2d");
+    x.drawImage(im, 0, 0); const r = W * 0.0058, T = H.D.titik || {};
+    H.units.forEach(u => { const p = T[u.k]; if (!p) return; x.beginPath(); x.arc(p[0] / 100 * W, p[1] / 100 * Hh, r, 0, Math.PI * 2); x.fillStyle = MS_ST[u.st].c; x.fill(); x.lineWidth = r * 0.35; x.strokeStyle = "#fff"; x.stroke(); });
+    const S2 = MS_URUT.filter(s => s !== "stock" || H.n.stock), fs = Math.round(W * 0.012), pad = fs * 0.8, bw = fs * 17, bh = pad * 2 + fs * 1.5 * (S2.length + 1);
+    x.fillStyle = "rgba(255,255,255,.93)"; x.fillRect(pad, Hh - bh - pad, bw, bh); x.strokeStyle = "#0d2a57"; x.lineWidth = 2; x.strokeRect(pad, Hh - bh - pad, bw, bh);
+    x.font = `700 ${fs}px sans-serif`; x.fillStyle = "#0d2a57"; x.fillText(`Status per ${ddmmyyyy(todayISO())}`, pad * 2, Hh - bh - pad + pad + fs);
+    S2.forEach((s, i) => { const yy = Hh - bh - pad + pad + fs * 1.5 * (i + 1) + fs; x.beginPath(); x.arc(pad * 2 + fs * 0.45, yy - fs * 0.35, fs * 0.45, 0, Math.PI * 2); x.fillStyle = MS_ST[s].c; x.fill();
+      x.fillStyle = "#0f2140"; x.font = `600 ${fs}px sans-serif`; x.fillText(`${MS_ST[s].t}: ${H.n[s]}`, pad * 2 + fs * 1.4, yy); });
+    const a = document.createElement("a"); a.href = c.toDataURL("image/png"); a.download = `Siteplan_${nama.replace(/\s+/g, "_")}_${todayISO()}.png`; a.click(); toast("Gambar diunduh"); };
+  im.src = src;
+}
 const REPORTS = [
   { id: "penjualan", nama: "Daily Sales Dashboard", menu: "DAILY SALES DASHBOARD", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan laporan, YTD, dan akumulasi terjual. Mengikuti format Excel Daily Report.",
     tabs: [
@@ -3633,11 +3868,11 @@ const REPORTS = [
     tabs: WK_GRUP
       .flatMap(([grup, list]) => list.map(nama => ({ grup, nama })))
       .flatMap(({ grup, nama }, i) => { const base = "weekly-" + nama.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-        return [["", "Dashboard", {}], ["-input", "Input Data", { admin: true }], ["-history", "History", {}]].map(([suf, label, hak]) => {
+        return [["", "Dashboard", {}], ["-input", "Input Data", { admin: true }], ["-stock", "Master Stock", { stock: nama }], ["-history", "History", {}]].map(([suf, label, hak]) => {
           const id = !i && !suf ? "weekly" : base + suf;
-          const view = label === "Dashboard" ? () => viewWeekly(nama, id) : label === "Input Data" ? () => viewWeeklyInput(nama, id)
+          const view = label === "Dashboard" ? () => viewWeekly(nama, id) : label === "Input Data" ? () => viewWeeklyInput(nama, id) : label === "Master Stock" ? () => viewStock(nama)
             : label === "History" ? () => (S.weekly && S.weekly[nama] ? viewHistory(`weekly:${nama}`) : wkKosong(nama, label, id)) : () => wkKosong(nama, label, id);
-          const bind = label === "Dashboard" ? bindWeekly : label === "Input Data" ? () => bindWeeklyInput(nama) : () => {};
+          const bind = label === "Dashboard" ? bindWeekly : label === "Input Data" ? () => bindWeeklyInput(nama) : label === "Master Stock" ? () => bindStock(nama) : () => {};
           return { id, label, proyek: nama, grup, ...hak, view, bind }; }); }),
     meta: () => "" },
   { id: "monthly", nama: "Monthly Sales Dashboard", menu: "MONTHLY SALES DASHBOARD", desc: "Rekap penjualan, batal, dan hold per bulan untuk semua proyek. Angka dari Daily Sales Dashboard; rincian skema bayar dan sumber informasi dari Weekly Sales Dashboard.",
@@ -3707,7 +3942,7 @@ function renderMenu(v) {
 let rendering = false;
 /* Mode lihat saja untuk Viewer di Input Data & Master: semua isian dikunci, tombol ubah disembunyikan; Ekspor Excel, filter & tampilan tetap bisa */
 function kunciViewer(view) {
-  const boleh = "#sXls, #wkXls, #xlsBtn, #mnXls, #rpDetail, #rpM, #tglIn, #wkMg, #wkTh, #wkHanyaIsi, [data-wktambahan], [data-wkbln], [data-wkmore], [data-wkall], [data-wkless], [data-fbh], [data-fbhreset]";
+  const boleh = "#sXls, #wkXls, #xlsBtn, #mnXls, #rpDetail, #rpM, #tglIn, #wkMg, #wkTh, #wkHanyaIsi, [data-wktambahan], [data-wkbln], [data-wkmore], [data-wkall], [data-wkless], [data-fbh], [data-fbhreset], #msXls, #msPng, [data-mszoom], [data-msf], [data-msk]";
   view.querySelectorAll("input, select, textarea").forEach(el => { if (!el.matches(boleh)) { el.disabled = true; el.classList.add("ro"); } });
   view.querySelectorAll("button").forEach(b => { if (!b.matches(boleh) && !/ekspor excel/i.test(b.textContent)) b.hidden = true; });
   const nav = view.querySelector(".rtabs");
