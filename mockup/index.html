@@ -329,6 +329,10 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .cat-t input[type="text"] { text-align: left !important; text-align-last: left !important; }
 [data-dr][hidden] { display: none !important; }
 /* Daily Report Message Template: warna hijau (WhatsApp) agar berbeda dari menu laporan yang sedang dibuka (emas) */
+.dr-tglw { align-items: center; flex-wrap: wrap; gap: 8px; }
+.dr-tglw input { font: inherit; font-size: 13px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--ink); }
+.dr-tgl0 { font: inherit; font-size: 12px; border: 0; background: none; color: var(--blue); text-decoration: underline; cursor: pointer; padding: 0; }
+.dr-tgln { font-size: 12px; color: var(--muted); width: 100%; }
 .dr-side { margin: 10px 0 0 12px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--blue); background: var(--bg); border: 1.5px solid var(--gold); border-radius: 6px; padding: 7px 10px; cursor: pointer; text-align: left; }
 .dr-side:hover { background: var(--side-hover); }
 .rhead .btn[data-dr] { align-self: center; }
@@ -828,6 +832,7 @@ a.rcard:hover { border-color: var(--gold); }
     <div class="dr-mode" role="group" aria-label="Isi report"><span class="dr-ml">Isi report</span>
       <button type="button" data-drm="semua" class="on">Gabungan</button><button type="button" data-drm="jual">Daily Report Penjualan</button><button type="button" data-drm="bast">Report BAST</button></div>
     <div class="dr-mode dr-proy" id="drProy" role="group" aria-label="Proyek yang dikirim"></div>
+    <div class="dr-mode dr-tglw"><label class="dr-ml" for="drTgl">Tanggal report</label><input type="date" id="drTgl"><button type="button" class="dr-tgl0" id="drTgl0" hidden>Kembali ke tanggal laporan</button><span class="dr-tgln" id="drTglNote"></span></div>
     <div class="dr-tabs" role="tablist"><button type="button" class="on" id="drTabPrev">Pratinjau</button><button type="button" id="drTabEdit">Edit teks</button></div>
     <div class="dr-prev" id="drPrev" aria-label="Pratinjau Daily Report"></div>
     <textarea id="drText" spellcheck="false" aria-label="Teks Daily Report" hidden></textarea>
@@ -2417,9 +2422,12 @@ const singkat = nama => nama.split(/\s+/).map(w => w[0]).join("").toUpperCase();
 /* bagian: "semua" (gabungan), "jual" (Daily Report penjualan + Hold) atau "bast" (Report BAST saja) */
 function teksDailyReport(bagian = "semua") {
   return denganID(() => {
-    const tgl = S.sales2.tanggal, m = bulanKe(tgl), bln = BULAN[m - 1];
+    const tLap = S.sales2.tanggal, tgl = drTgl || tLap, lain = tgl !== tLap, m = bulanKe(tLap), bln = BULAN[m - 1];
     const pil = drProyekPilih(), dipilih = x => !pil || pil.has(x.proyekId);
     const { rows, tot: T } = hitungSales(S.sales2.proyek.filter(p => p.aktif && (!pil || pil.has(p.id))), m);
+    /* Tanggal report lain: "terjual hari ini" dari penjualan Weekly bertanggal itu */
+    if (lain) { T.hari = [0, 0]; rows.forEach(x => { const W = S.weekly && S.weekly[x.p.nama], l = W ? wkHit(W.jual).filter(r => r.tanggal === tgl) : [];
+      x.hari = [l.reduce((a, r) => a + (+r.jumlah || 0), 0), wkNilai(l)]; T.hari[0] += x.hari[0]; T.hari[1] += x.hari[1]; }); }
     const batalHari = s2L("batal").filter(x => x.tanggal === tgl && dipilih(x));
     const pindahHari = s2L("pindah").filter(x => x.tanggal === tgl && dipilih(x)), gantiHari = s2L("ganti").filter(x => x.tanggal === tgl && dipilih(x));
     const teksPindah = l => `*Pindah Unit : ${l.length} Unit (${l.map(b => `${b.kodeLama || "?"} → ${b.kode || "?"}`).join(" & ")})*`;
@@ -2438,7 +2446,7 @@ function teksDailyReport(bagian = "semua") {
     const semua = o => Object.values(o).flat();
     const blok = x => {
       const bt = batalHari.filter(b => b.proyekId === x.p.id), pd = [...pindahHari.filter(b => b.proyekId === x.p.id), ...pindahWk[x.p.id]], gb = [...gantiHari.filter(b => b.proyekId === x.p.id), ...gantiWk[x.p.id]], hd = holdHari[x.p.id], L = [];
-      if (x.hari[0] || x.hari[1]) L.push(`*Terjual hari ini : ${x.hari[0]} Unit (${fM(x.hari[1])} M)*`);
+      if (x.hari[0] || x.hari[1]) L.push(`*Terjual ${lain ? ddmmyyyy(tgl) : "hari ini"} : ${x.hari[0]} Unit (${fM(x.hari[1])} M)*`);
       if (bt.length) L.push(`*Batal : ${bt.length} Unit (${bt.map(b => b.kode || "?").join(" & ")})*`);
       if (pd.length) L.push(teksPindah(pd));
       if (gb.length) L.push(teksGanti(gb));
@@ -2463,7 +2471,7 @@ function teksDailyReport(bagian = "semua") {
       out.push(`*${mk} :*\n` + kel.map(blok).join("\n\n"));
     });
     const L = [];
-    if (T.hari[0] || T.hari[1]) L.push(`*Terjual hari ini : ${T.hari[0]} Unit (${fM(T.hari[1])} M)*`);
+    if (T.hari[0] || T.hari[1]) L.push(`*Terjual ${lain ? ddmmyyyy(tgl) : "hari ini"} : ${T.hari[0]} Unit (${fM(T.hari[1])} M)*`);
     if (batalHari.length) L.push(`*Batal : ${batalHari.length} Unit (${batalHari.map(b => b.kode || "?").join(" & ")})*`);
     const pdT = [...pindahHari, ...semua(pindahWk)], gbT = [...gantiHari, ...semua(gantiWk)], hdT = semua(holdHari);
     if (pdT.length) L.push(teksPindah(pdT));
@@ -2473,7 +2481,7 @@ function teksDailyReport(bagian = "semua") {
     L.push(`${bln} / YTD : ${fU(T.bln[0])}/${fU(T.ytd[0])} Unit (${fM(T.bln[1])}/${fM(T.ytd[1])} M)`);
     L.push(`Total Terjual : ${fU(T.akum[0])}/${fU(T.stok[0])} Unit (${fM(T.akum[1])}/${fM(T.stok[1])} M)`);
     out.push(`*${userTerbatas() || pil ? "Total" : "CHL"} :*\n${L.join("\n")}`);
-    let t = `Daily Report\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n\n` + out.join("\n\n");
+    let t = `Daily Report\nPerubahan ${lain ? "Tanggal" : "Hari ini"} (${ddmmyyyy(tgl)})${lain ? `\n_Bulan / YTD / Total Terjual: posisi data per ${ddmmyyyy(tLap)}_` : ""}\n\n` + out.join("\n\n");
     /* Hold Reserved */
     const hold = s2L("hold").filter(dipilih);
     if (hold.length) {
@@ -2487,7 +2495,7 @@ function teksDailyReport(bagian = "semua") {
       t += `\n\n======================\nNote :\n*Hold Reserved :*\n` + g.map(e => `${e.lbl} : ${e.items.length} Unit (${e.items.map(h => `${h.kode || "?"} / ${rpPendek(h.tandaJadi || 0)}`).join(", ")})`).join("\n") + `\n======================`;
     }
     /* Report BAST: laporan terakhir pada/sebelum hari ini */
-    const dBast = laporanPada(todayISO()) || dates()[0];
+    const dBast = laporanPada(lain ? tgl : todayISO()) || dates()[0];
     let tb = "";
     if (dBast) {
       const H = hitung(dBast), g = n => n === 0 ? "-" : n;
@@ -2550,7 +2558,17 @@ function drProyekGambar() {
     drTeks = {}; ta.value = drTeks[drMode] = teksDailyReport(drMode); drTab(edit);
   });
 }
-let drKustom = null;
+let drKustom = null, drTgl = null; /* drTgl: tanggal report yang dipilih (null = tanggal laporan terakhir) */
+function drTglUI() {
+  const i = document.getElementById("drTgl"), t0 = S.sales2.tanggal, t = drTgl || t0;
+  i.value = t; i.max = t0; i.min = `${+t0.slice(0, 4) - 1}-01-01`;
+  document.getElementById("drTgl0").hidden = !drTgl;
+  document.getElementById("drTglNote").textContent = drTgl ? `Perubahan hari itu (terjual dari Weekly, batal, pindah unit, ganti bayar, hold) mengikuti ${ddmmyyyy(t)}. Angka Bulan / YTD / Total Terjual tetap posisi data terakhir (${ddmmyyyy(t0)}), karena angka per hari tidak tersimpan.` : "";
+}
+function drTglSet(v) {
+  drTgl = !v || v === S.sales2.tanggal ? null : v; drTglUI();
+  const ta = document.getElementById("drText"), edit = !ta.hidden; drTeks = {}; ta.value = drTeks[drMode] = teksDailyReport(drMode); drTab(edit);
+}
 function drSetel(kustom) {
   drKustom = kustom; const w = document.getElementById("drWrap");
   document.getElementById("drTitle").textContent = kustom ? kustom.judul : "Daily Report";
@@ -2568,7 +2586,7 @@ function bukaDailyReport() {
   if (!bolehDailyReport()) return;
   drSetel(null);
   const w = document.getElementById("drWrap"), ta = document.getElementById("drText");
-  drProyekGambar();
+  drProyekGambar(); drTgl = null; drTglUI();
   drTeks = {}; ta.value = drTeks[drMode] = teksDailyReport(drMode); ta.hidden = true;
   document.querySelectorAll("[data-drm]").forEach(b => { const on = b.dataset.drm === drMode; b.classList.toggle("on", on); b.setAttribute("aria-pressed", String(on)); });
   drTab(false);
@@ -2583,6 +2601,8 @@ document.getElementById("drClose").onclick = tutupDailyReport;
 document.getElementById("drWrap").addEventListener("click", e => { if (e.target.id === "drWrap") tutupDailyReport();
   const dd = document.querySelector("#drProy .dr-dd[open]"); if (dd && !dd.contains(e.target)) dd.open = false; });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !document.getElementById("drWrap").hidden) tutupDailyReport(); });
+document.getElementById("drTgl").onchange = e => { clearTimeout(window.drTglT); const v = e.target.value; window.drTglT = setTimeout(() => { if (v > S.sales2.tanggal) { toast(`Tanggal report paling akhir ${ddmmyyyy(S.sales2.tanggal)}`); drTglUI(); return; } drTglSet(v); }, 700); };
+document.getElementById("drTgl0").onclick = () => drTglSet(null);
 document.getElementById("drReset").onclick = () => { const ta = document.getElementById("drText");
   if (drKustom) ta.value = drKustom.buat(); else ta.value = drTeks[drMode] = teksDailyReport(drMode);
   drTab(false); toast("Teks dibuat ulang dari data terbaru"); };
