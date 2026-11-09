@@ -183,7 +183,7 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-map { position: relative; container-type: inline-size; margin: 0 auto; }
 .ms-map img { display: block; width: 100%; user-select: none; -webkit-user-select: none; }
 .ms-map.atur { cursor: crosshair; }
-.ms-dot { position: absolute; width: max(10px, calc(var(--msd, .9) * 1cqw)); aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.75), 0 1px 3px rgba(0,0,0,.45); padding: 0; cursor: pointer; border-width: max(1.5px, calc(var(--msd, .9) * .12cqw)); }
+.ms-dot { position: absolute; width: max(8px, calc(var(--msd, .9) * .75cqw)); aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.75), 0 1px 3px rgba(0,0,0,.45); padding: 0; cursor: pointer; border-width: max(1.5px, calc(var(--msd, .9) * .12cqw)); }
 .ms-dot.st-sold { background: #e10600; } .ms-dot.st-hold { background: #ffb300; } .ms-dot.st-avail { background: #2e9e5b; } .ms-dot.st-stock { background: #8a94a6; } .ms-dot.st-mg { background: #0091ea; } .ms-dot.st-rc { background: #ff3fd2; }
 .ms-map.atur .ms-dot { cursor: grab; } .ms-map.atur .ms-dot:active { cursor: grabbing; }
 .ms-dot.on { outline: 3px solid #0d2a57; outline-offset: 2px; z-index: 2; }
@@ -3943,7 +3943,7 @@ function msEksporExcel(nama) {
 function msEksporGambar(nama, cara) {
   const H = msHitung(nama), src = msImg[nama]; if (!H || !src) return Promise.resolve(null);
   return new Promise(selesai => { const im = new Image(); im.onerror = () => { toast("Gagal membuat gambar"); selesai(null); }; im.onload = () => { const W = im.naturalWidth, Hh = im.naturalHeight, c = document.createElement("canvas"); c.width = W; c.height = Hh; const x = c.getContext("2d");
-    x.drawImage(im, 0, 0); const r = W * 0.0045 * msUkuran(nama), T = msTitikEf(nama);
+    x.drawImage(im, 0, 0); const r = W * 0.0034 * msUkuran(nama), T = msTitikEf(nama);
     H.units.forEach(u => { const p = T[u.k]; if (!p || u.st === "avail") return; x.beginPath(); x.arc(p[0] / 100 * W, p[1] / 100 * Hh, r, 0, Math.PI * 2); x.fillStyle = MS_ST[u.st].c; x.fill(); x.lineWidth = r * 0.35; x.strokeStyle = "#fff"; x.stroke(); });
     const S2 = msAda(H), fs = Math.round(W * 0.008), pad = fs * 0.8, bw = fs * 21, bh = pad * 2 + fs * 1.5 * (S2.length + 1);
     x.fillStyle = "rgba(255,255,255,.93)"; x.fillRect(pad, Hh - bh - pad, bw, bh); x.strokeStyle = "#0d2a57"; x.lineWidth = 2; x.strokeRect(pad, Hh - bh - pad, bw, bh);
