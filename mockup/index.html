@@ -188,6 +188,7 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-dot.on { outline: 3px solid #0d2a57; outline-offset: 2px; z-index: 2; }
 .ms-pop { position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 14px)); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.2); padding: 9px 12px; font-size: 12.5px; line-height: 1.5; min-width: 210px; max-width: 300px; pointer-events: none; }
 .ms-pill { color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; margin-left: 4px; } .ms-src { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+.ms-srv { color: var(--muted); font-style: italic; }
 .ms-note { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
 .ms-aturw { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 12px; align-items: start; }
 .ms-side { max-height: 80vh; overflow: auto; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 12.5px; background: var(--bg); }
@@ -3735,12 +3736,13 @@ function viewStock(nama) {
   const n0 = v => v ? v.toLocaleString(LOC()) : "–";
   const alat = `<div class="btn-row">${H ? `<button class="btn sec" id="msXls" type="button">Ekspor Excel</button>${msImg[nama] && D && Object.keys(msTitikEf(nama)).length ? `<button class="btn sec" id="msPng" type="button">Ekspor gambar</button>` : ""}` : ""}
     ${ed && !atur ? `<button class="btn sec" id="msUp" type="button">${msImg[nama] ? "Ganti siteplan" : "Unggah siteplan"}</button><input type="file" id="msUpFile" accept="image/png,image/jpeg,image/webp" hidden>
-      <button class="btn sec" id="msImp" type="button">Impor Excel stock</button><input type="file" id="msImpFile" accept=".xlsx,.xls" hidden>
+      <button class="btn sec" id="msImp" type="button">Impor Excel stock</button><button class="btn" id="msSave" type="button" title="Simpan data Master Stock ke server sekarang">Simpan</button><input type="file" id="msImpFile" accept=".xlsx,.xls" hidden>
       ${H && msImg[nama] ? `<button class="btn" id="msAturBtn" type="button">Atur titik unit</button>` : ""}` : ""}</div>`;
   const info = D && D.units && D.units.length ? `Status per <b>${D.tanggal ? ddmmyyyy(D.tanggal) : "–"}</b> dari Excel stock${D.file ? ` (${esc(D.file)})` : ""}. Transaksi Weekly setelah tanggal itu ikut memperbarui status.` : "Belum ada data stock.";
-  if (!H) return `<div class="page gut"><div class="form-head"><div><h2>Master Stock ${esc(nama)}</h2><div class="desc">${info}</div></div>${alat}</div>
+  const infoSrv = ed ? ` <span class="ms-srv">• ${esc(SERVER.info || "")}</span>` : "";
+  if (!H) return `<div class="page gut"><div class="form-head"><div><h2>Master Stock ${esc(nama)}</h2><div class="desc">${info}${infoSrv}</div></div>${alat}</div>
     <div class="empty" style="margin-top:14px">Belum ada data Master Stock untuk ${esc(nama)}.${ed ? " Tekan <b>Impor Excel stock</b> (kolom Code, Address/Blok, Type, Build, Land, Status), lalu <b>Unggah siteplan</b>." : ""}</div>
-    ${msImg[nama] ? msPeta(nama, null) : ""}</div>`;
+    <div style="margin-top:14px">${msPeta(nama, null)}</div></div>`;
   const tot = H.units.length, T = msTitikEf(nama), belum = H.units.filter(u => !(atur ? msTitik : T)[u.k]).length;
   const uk = MS_UKURAN.indexOf(msUkuran(nama));
   const ukuran = msImg[nama] && ed ? `<div class="ms-zoom ms-uk" role="group" aria-label="Ukuran titik"><button type="button" data-msuk="-1" aria-label="Titik lebih kecil" ${uk === 0 ? "disabled" : ""}>−</button><span>Titik</span><button type="button" data-msuk="1" aria-label="Titik lebih besar" ${uk === MS_UKURAN.length - 1 ? "disabled" : ""}>+</button></div>` : "";
@@ -3753,7 +3755,7 @@ function viewStock(nama) {
   const cek = H.berubah.length || H.asing.length ? `<section class="gut"><h2>Cek dengan Weekly</h2><div class="ms-cek">
     ${H.berubah.length ? `<div><b>${H.berubah.length} unit</b> statusnya diperbarui dari Weekly (setelah ${ddmmyyyy(H.D.tanggal || todayISO())}): ${H.berubah.map(u => `${esc(u.k)} → ${MS_ST[u.st].t}`).join(", ")}</div>` : ""}
     ${H.asing.length ? `<div class="ms-warn">⚠ Kode unit di Weekly yang tidak ada di Master Stock (cek penulisan kode): <b>${H.asing.map(esc).join(", ")}</b></div>` : ""}</div></section>` : "";
-  return `<div class="page gut"><div class="form-head"><div><h2>Master Stock ${esc(nama)}</h2><div class="desc">${info}</div></div>${alat}</div>
+  return `<div class="page gut"><div class="form-head"><div><h2>Master Stock ${esc(nama)}</h2><div class="desc">${info}${infoSrv}</div></div>${alat}</div>
     <div class="ms-bar"><div class="ms-legs">${atur ? `<span class="ms-atur-lbl">Mode atur titik • ${tot - belum}/${tot} unit sudah ditandai</span>` : ""}</div>${zoom}
       ${atur ? `<div class="btn-row"><button class="btn sec" id="msHapus" type="button">Hapus titik terpilih</button><button class="btn sec" id="msBatal" type="button">Batal</button><button class="btn" id="msSimpan" type="button">Simpan titik</button></div>` : ""}</div>
     ${!atur && msImg[nama] && belum ? `<div class="ms-note">${belum} unit belum ditandai di gambar.${ed ? " Tekan <b>Atur titik unit</b> untuk menandainya." : ""}</div>` : ""}
@@ -3812,6 +3814,11 @@ function bindStock(nama) {
         <div class="ms-src">Status dari ${esc(u.dari)}${u.stAsli && u.dari === "Excel" ? ` (${esc(u.stAsli)})` : ""}</div></div>`); };
   }
   if (!bolehEdit(nama)) return;
+  /* Simpan sekarang ke server (biasanya otomatis; tombol ini untuk memastikan) */
+  if (g("msSave")) g("msSave").onclick = async () => {
+    if (!SERVER.on) { toast("Server tidak tersambung. Data hanya tersimpan di browser ini; coba muat ulang halaman."); return; }
+    clearTimeout(SERVER.kirimT); await kirim();
+    toast(/^Tersimpan/.test(SERVER.info) ? `Master Stock ${nama} tersimpan di server` : (SERVER.info || "Gagal menyimpan ke server")); };
   /* Ubah status langsung di daftar unit (Manual). Transaksi Weekly sesudah tanggal ini tetap memperbarui status. */
   v.querySelectorAll("[data-msst]").forEach(sel => sel.onchange = () => { const D = msData(nama), u = D && D.units.find(x => x.k === sel.dataset.msst); if (!u) return;
     const lama = (H.units.find(x => x.k === u.k) || u).st; if (lama === sel.value) return;
