@@ -180,7 +180,7 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-lgd i.kosong { background: #fff; box-shadow: 0 0 0 1px #8a94a6; }
 .ms-lgd em { font-style: normal; font-weight: 700; margin-left: auto; padding-left: 8px; min-width: 18px; text-align: right; }
 .ms-lgd small { font-size: 10px; color: #5d6878; min-width: 34px; text-align: right; } .ms-lgd .ms-lgd-t { border-top: 1px solid #dfe4ec; padding-top: 2px; margin-top: 1px; font-weight: 700; padding-left: 13px; }
-.ms-map { position: relative; container-type: inline-size; min-width: 100%; }
+.ms-map { position: relative; container-type: inline-size; margin: 0 auto; }
 .ms-map img { display: block; width: 100%; user-select: none; -webkit-user-select: none; }
 .ms-map.atur { cursor: crosshair; }
 .ms-dot { position: absolute; width: max(5px, calc(var(--msd, .5) * 1cqw)); aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.3); padding: 0; cursor: pointer; border-width: max(1px, calc(var(--msd, .5) * .15cqw)); }
@@ -3687,7 +3687,7 @@ function msTitikEf(nama) {
   return Object.assign(o, D.titik || {});
 }
 let msImg = {}, msMuat = new Set(), msZoom = 1, msSembunyi = new Set(), msAtur = null, msPilih = null, msTitik = null, msScroll = null;
-const MS_ZOOM = [1, 1.5, 2, 3, 4];
+const MS_ZOOM = [0.5, 0.75, 1, 1.5, 2, 3, 4];
 /* Ukuran titik (persen lebar gambar), bisa disesuaikan admin dan tersimpan per proyek */
 const MS_UKURAN = [0.3, 0.4, 0.5, 0.6, 0.75, 0.9, 1.1];
 const msUkuran = nama => { const v = +((msData(nama) || {}).ukuran); return v > 0 ? v : 0.5; };
