@@ -3772,9 +3772,13 @@ function msBacaExcel(rows) {
   const low = v => String(v == null ? "" : v).replace(/\s+/g, " ").trim().toLowerCase();
   let h = -1; const c = {};
   for (let i = 0; i < Math.min(rows.length, 40) && h < 0; i++) { const r = rows[i] || [];
-    const iK = r.findIndex(v => /^(code|kode|kode unit|no\.? kavling|kavling|unit)$/.test(low(v))), iS = r.findIndex(v => /^status/.test(low(v)));
-    if (iK < 0 || iS < 0) continue; h = i; c.k = iK; c.s = iS;
-    r.forEach((v, j) => { const t = low(v); if (j === iK || j === iS) return;
+    const iK = r.findIndex(v => /^(code|kode|kode unit|no\.? kavling|kavling|unit)$/.test(low(v)));
+    /* Bisa ada lebih dari satu kolom Status: pakai yang judulnya bertanggal (mis. "Status 09.11.2026"), selain itu kolom Status terakhir.
+       Kolom Status lain (mis. LAUNCHED / UNRELEASED) dipakai sebagai status rilis. */
+    const iSs = r.map((v, j) => /^status/.test(low(v)) ? j : -1).filter(j => j >= 0);
+    const iS = iSs.find(j => /\d{1,2}[.\-\/]\d{1,2}[.\-\/]\d{4}/.test(String(r[j]))) ?? iSs[iSs.length - 1];
+    if (iK < 0 || iS == null) continue; h = i; c.k = iK; c.s = iS; c.rel = iSs.find(j => j !== iS);
+    r.forEach((v, j) => { const t = low(v); if (j === iK || iSs.includes(j)) return;
       if (c.b == null && /^(address|blok|block|alamat|cluster|klaster)/.test(t)) c.b = j; else if (c.t == null && /^(type|tipe)$/.test(t)) c.t = j;
       else if (c.lb == null && /^(build|lb|luas bangunan)/.test(t)) c.lb = j; else if (c.lt == null && /^(land|lt|luas tanah)/.test(t)) c.lt = j; });
     const m = String(r[iS]).match(/(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{4})/); if (m) c.tgl = `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`; }
@@ -3782,7 +3786,10 @@ function msBacaExcel(rows) {
   const units = [], seen = new Set();
   rows.slice(h + 1).forEach(r => { r = r || []; const k = msKode(r[c.k]), s = r[c.s]; if (!k || seen.has(k) || s == null || String(s).trim() === "") return; seen.add(k);
     units.push({ k, blok: c.b != null && r[c.b] ? String(r[c.b]).trim() : "BLOK " + k.split("-")[0], tipe: c.t != null && r[c.t] != null ? String(r[c.t]).trim() : "",
-      lb: c.lb != null && r[c.lb] != null ? r[c.lb] : "", lt: c.lt != null && r[c.lt] != null ? r[c.lt] : "", st: msStatus(s), stAsli: String(s).trim() }); });
+      lb: c.lb != null && r[c.lb] != null ? r[c.lb] : "", lt: c.lt != null && r[c.lt] != null ? r[c.lt] : "", st: msStatus(s), stAsli: String(s).trim() });
+    /* Unit belum dirilis (kolom rilis: UNRELEASED / belum rilis) yang tercatat Available = Stock (belum dirilis) */
+    const rel = c.rel != null ? String(r[c.rel] || "").toLowerCase() : "", u = units[units.length - 1];
+    if (/unrelease|not release|belum (di)?rilis|belum release/.test(rel) && u.st === "avail") { u.st = "stock"; u.stAsli += " (" + String(r[c.rel]).trim() + ")"; } });
   return { units, tgl: c.tgl || "" };
 }
 function msNext(urut, dari) { const i = urut.indexOf(dari); for (let k = 1; k <= urut.length; k++) { const u = urut[(i + k) % urut.length]; if (!msTitik[u]) return u; } return dari; }
