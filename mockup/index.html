@@ -2419,12 +2419,25 @@ function teksDailyReport(bagian = "semua") {
     const pindahHari = s2L("pindah").filter(x => x.tanggal === tgl && dipilih(x)), gantiHari = s2L("ganti").filter(x => x.tanggal === tgl && dipilih(x));
     const teksPindah = l => `*Pindah Unit : ${l.length} Unit (${l.map(b => `${b.kodeLama || "?"} → ${b.kode || "?"}`).join(" & ")})*`;
     const teksGanti = l => `*Ganti Bayar : ${l.length} Unit (${l.map(b => `${b.kode || "?"} : ${b.bayarLama || "?"} → ${b.bayarBaru || "?"}`).join(" & ")})*`;
+    const teksHold = l => `*Hold Reserved : ${l.reduce((a, b) => a + (+b.jumlah || 1), 0)} Unit (${l.map(b => b.unit || b.kode || "?").join(" & ")})*`;
+    /* Perubahan dari Weekly Sales Dashboard (Hold Reserved, Pindah Unit, Ganti Cara Bayar) bertanggal sama dengan tanggal report.
+       Baris yang sudah tercatat di Daily (kode sama) tidak dihitung dua kali. */
+    const kd = v => String(v || "").toUpperCase().replace(/\s+/g, "");
+    const wkHari = (x, j) => { const W = S.weekly && S.weekly[x.p.nama]; return W ? wkHit(W[j]).filter(r => r.tanggal === tgl) : []; };
+    const holdHari = {}, pindahWk = {}, gantiWk = {};
+    rows.forEach(x => {
+      holdHari[x.p.id] = wkHari(x, "hold");
+      pindahWk[x.p.id] = wkHari(x, "pindah").filter(r => !pindahHari.some(b => b.proyekId === x.p.id && kd(b.kode) === kd(r.kode) && kd(b.kodeLama) === kd(r.kodeLama)));
+      gantiWk[x.p.id] = wkHari(x, "ganti").map(r => Object.assign({}, r, { kode: r.unit || r.kode })).filter(r => !gantiHari.some(b => b.proyekId === x.p.id && kd(b.kode) === kd(r.kode)));
+    });
+    const semua = o => Object.values(o).flat();
     const blok = x => {
-      const bt = batalHari.filter(b => b.proyekId === x.p.id), pd = pindahHari.filter(b => b.proyekId === x.p.id), gb = gantiHari.filter(b => b.proyekId === x.p.id), L = [];
+      const bt = batalHari.filter(b => b.proyekId === x.p.id), pd = [...pindahHari.filter(b => b.proyekId === x.p.id), ...pindahWk[x.p.id]], gb = [...gantiHari.filter(b => b.proyekId === x.p.id), ...gantiWk[x.p.id]], hd = holdHari[x.p.id], L = [];
       if (x.hari[0] || x.hari[1]) L.push(`*Terjual hari ini : ${x.hari[0]} Unit (${fM(x.hari[1])} M)*`);
       if (bt.length) L.push(`*Batal : ${bt.length} Unit (${bt.map(b => b.kode || "?").join(" & ")})*`);
       if (pd.length) L.push(teksPindah(pd));
       if (gb.length) L.push(teksGanti(gb));
+      if (hd.length) L.push(teksHold(hd));
       if (!L.length) L.push("Tidak ada perubahan");
       L.push(`${bln} / YTD : ${fU(x.bln[0])}/${fU(x.ytd[0])} Unit (${fM(x.bln[1])}/${fM(x.ytd[1])} M)`);
       L.push(`Total Terjual : ${fU(x.akum[0])}/${fU(x.stok[0])} Unit (${fM(x.akum[1])}/${fM(x.stok[1])} M)`);
@@ -2447,8 +2460,10 @@ function teksDailyReport(bagian = "semua") {
     const L = [];
     if (T.hari[0] || T.hari[1]) L.push(`*Terjual hari ini : ${T.hari[0]} Unit (${fM(T.hari[1])} M)*`);
     if (batalHari.length) L.push(`*Batal : ${batalHari.length} Unit (${batalHari.map(b => b.kode || "?").join(" & ")})*`);
-    if (pindahHari.length) L.push(teksPindah(pindahHari));
-    if (gantiHari.length) L.push(teksGanti(gantiHari));
+    const pdT = [...pindahHari, ...semua(pindahWk)], gbT = [...gantiHari, ...semua(gantiWk)], hdT = semua(holdHari);
+    if (pdT.length) L.push(teksPindah(pdT));
+    if (gbT.length) L.push(teksGanti(gbT));
+    if (hdT.length) L.push(teksHold(hdT));
     if (!L.length) L.push("Tidak ada perubahan");
     L.push(`${bln} / YTD : ${fU(T.bln[0])}/${fU(T.ytd[0])} Unit (${fM(T.bln[1])}/${fM(T.ytd[1])} M)`);
     L.push(`Total Terjual : ${fU(T.akum[0])}/${fU(T.stok[0])} Unit (${fM(T.akum[1])}/${fM(T.stok[1])} M)`);
