@@ -3807,7 +3807,7 @@ function msBacaExcel(rows) {
     if (iK < 0 || iS == null) continue; h = i; c.k = iK; c.s = iS; c.rel = iSs.find(j => j !== iS);
     r.forEach((v, j) => { const t = low(v); if (j === iK || iSs.includes(j)) return;
       if (c.b == null && /^(address|blok|block|alamat|cluster|klaster)/.test(t)) c.b = j; else if (c.t == null && /^(type|tipe)$/.test(t)) c.t = j;
-      else if (c.lb == null && /^(build|lb|luas bangunan)/.test(t)) c.lb = j; else if (c.lt == null && /^(land|lt|luas tanah)/.test(t)) c.lt = j; });
+      else if (c.lb == null && /^(build|lb|luas bangunan)/.test(t)) c.lb = j; else if (c.lt == null && /^(land|lt|luas tanah)/.test(t)) c.lt = j; else if (c.pr == null && /^(parcel|proyek|project)$/.test(t)) c.pr = j; });
     const m = String(r[iS]).match(/(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{4})/); if (m) c.tgl = `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`; }
   if (h < 0) return null;
   const units = [], seen = new Set();
@@ -3817,7 +3817,9 @@ function msBacaExcel(rows) {
     /* Unit belum dirilis (kolom rilis: UNRELEASED / belum rilis) yang tercatat Available = Stock (belum dirilis) */
     const rel = c.rel != null ? String(r[c.rel] || "").toLowerCase() : "", u = units[units.length - 1];
     if (/unrelease|not release|belum (di)?rilis|belum release/.test(rel) && u.st === "avail") { u.st = "stock"; u.stAsli += " (" + String(r[c.rel]).trim() + ")"; } });
-  return { units, tgl: c.tgl || "" };
+  /* Nama proyek di kolom Parcel (untuk mencegah salah impor file proyek lain) */
+  const parcel = c.pr != null ? [...new Set(rows.slice(h + 1).map(r => String((r || [])[c.pr] || "").trim()).filter(Boolean))] : [];
+  return { units, tgl: c.tgl || "", parcel };
 }
 function msNext(urut, dari) { const i = urut.indexOf(dari); for (let k = 1; k <= urut.length; k++) { const u = urut[(i + k) % urut.length]; if (!msTitik[u]) return u; } return dari; }
 function bindStock(nama) {
@@ -3862,6 +3864,11 @@ function bindStock(nama) {
     try { const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true });
       let r = null; for (const sn of wb.SheetNames) { r = msBacaExcel(XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: null })); if (r && r.units.length) break; }
       if (!r || !r.units.length) { toast("Tidak ada unit yang terbaca. Pastikan ada kolom Code/Kode dan Status."); return; }
+      /* Cegah salah file: nama proyek di kolom Parcel atau nama file harus cocok dengan proyek ini */
+      const sederhana = t => String(t || "").toLowerCase().replace(/[^a-z0-9]/g, ""), target = sederhana(nama);
+      const parcelLain = r.parcel.length && !r.parcel.some(x => sederhana(x).includes(target) || target.includes(sederhana(x)));
+      const fileLain = !parcelLain && !sederhana(file.name).includes(target) && WK_GRUP.flatMap(g => g[1]).some(pn => pn !== nama && sederhana(file.name).includes(sederhana(pn)));
+      if ((parcelLain || fileLain) && !confirm(`PERHATIAN: file ini sepertinya milik proyek lain${parcelLain ? ` (Parcel: ${r.parcel.join(", ")})` : ` (nama file: ${file.name})`}, bukan ${nama}.\n\nTetap impor ke Master Stock ${nama}?`)) return;
       const n = {}; MS_URUT.forEach(s => n[s] = r.units.filter(u => u.st === s).length);
       const ring = `${r.units.length} unit • ${MS_URUT.filter(s => ["sold", "hold", "avail"].includes(s) || n[s]).map(s => `${MS_ST[s].t} ${n[s]}`).join(" • ")}`;
       if (!confirm(`Impor Master Stock ${nama}\nStatus per ${r.tgl ? ddmmyyyy(r.tgl) : "(tanggal tidak ada di judul kolom Status, dipakai hari ini)"}\n${ring}\n\nData stock lama diganti. Posisi titik di gambar tetap. Lanjutkan?`)) return;
