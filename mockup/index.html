@@ -542,6 +542,10 @@ select.th-sel { font: inherit; font-size: 13px; font-weight: 700; padding: 4px 8
 .tg-in th.tg-tot, .tg-in td.tg-tot { background: var(--gold-soft); }
 .tg-info { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 10px; font-size: 13px; color: var(--ink); }
 .tg-info label { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.tg-cat { display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; font-size: 13px; color: var(--ink); max-width: 760px; }
+.tg-cat label { font-weight: 700; padding-top: 6px; }
+.tg-cat textarea { flex: 1; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--ink); resize: vertical; min-height: 44px; }
+.tg-cat-ro { padding-top: 6px; white-space: pre-wrap; }
 .tg-info input[type=date] { font: inherit; font-weight: 400; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--ink); }
 .tg-in thead th.tg-tot { color: var(--ink); font-weight: 800; }
 .tg-in td.proj-c, .tg-in thead tr:first-child th:first-child { min-width: 190px; width: 190px; white-space: nowrap; text-align: left; font-weight: 700; }
@@ -3496,7 +3500,7 @@ function bindTarget() {
 /* ---- Input Data target (admin.chl) ---- */
 function viewTargetInput() {
   const th = tgTh(), ro = !bolehTarget();
-  if (!tgDraft || tgDraftTh !== th) { tgDraft = clone((S.target || {})[th] || {}); tgDraftTh = th; tgInfo = { terima: "", aktif: "", ...clone(tgInfoTh(th)) }; }
+  if (!tgDraft || tgDraftTh !== th) { tgDraft = clone((S.target || {})[th] || {}); tgDraftTh = th; tgInfo = { terima: "", aktif: "", catatan: "", ...clone(tgInfoTh(th)) }; }
   const { semua } = tgData(th), grup = [...new Set(semua.map(p => p.grup))];
   const arr = id => tgDraft[id] = Array.isArray(tgDraft[id]) && tgDraft[id].length === 12 ? tgDraft[id] : tgNol();
   const tot = id => arr(id).reduce((a, v) => [a[0] + (+v[0] || 0), a[1] + (+v[1] || 0)], [0, 0]);
@@ -3508,7 +3512,8 @@ function viewTargetInput() {
   return `<div class="page gut"><div class="form-head"><div><h2>Input Target ${th}</h2>
     <div class="desc">Target per proyek per bulan (unit dan Rp). Isi kolom <b>Total ${th}</b> lalu tekan Tab untuk <b>dibagi rata</b> ke 12 bulan, atau isi per bulan. Actual diambil otomatis dari Daily Sales Dashboard.${ro ? " <b>Hanya admin.chl yang bisa mengubah target.</b>" : ""}</div>
     <div class="tg-info">${ro ? `<span>Tanggal penerimaan data budget: <b>${tgInfo.terima ? ddmmyyyy(tgInfo.terima) : "–"}</b></span><span>Tanggal aktif: <b>${tgInfo.aktif ? ddmmyyyy(tgInfo.aktif) : "–"}</b></span>`
-      : `<label for="tgTerima">Tanggal penerimaan data budget <input type="date" id="tgTerima" value="${tgInfo.terima || ""}"></label><label for="tgAktif">Tanggal aktif (berlaku mulai) <input type="date" id="tgAktif" value="${tgInfo.aktif || ""}"></label>`}</div></div>
+      : `<label for="tgTerima">Tanggal penerimaan data budget <input type="date" id="tgTerima" value="${tgInfo.terima || ""}"></label><label for="tgAktif">Tanggal aktif (berlaku mulai) <input type="date" id="tgAktif" value="${tgInfo.aktif || ""}"></label>`}</div>
+    <div class="tg-cat"><label for="tgCatatan">Catatan</label>${ro ? `<div class="tg-cat-ro">${tgInfo.catatan ? esc(tgInfo.catatan) : "–"}</div>` : `<textarea id="tgCatatan" rows="2" placeholder="Catatan budget/target tahun ${th} (opsional)">${esc(tgInfo.catatan || "")}</textarea>`}</div></div>
     <div class="btn-row"><label class="wk-opt" for="tgThIn">Tahun <select id="tgThIn" class="th-sel">${[...new Set([+todayISO().slice(0, 4) + 1, ...tahunSalesAda(), ...Object.keys(S.target || {}).map(Number)])].filter(Boolean).sort((a, c) => c - a).map(y => `<option value="${y}" ${y === th ? "selected" : ""}>${y}</option>`).join("")}</select></label>
       <button class="btn sec" id="tgXlsIn" type="button">Ekspor Excel</button>${ro ? "" : `<button class="btn sec" id="tgImp" type="button">Impor dari Excel</button><input type="file" id="tgImpFile" accept=".xlsx,.xls" hidden>`}${ro ? "" : `${adaLalu ? `<button class="btn sec" id="tgSalin" type="button">Salin dari ${th - 1}</button>` : ""}<button class="btn sec" id="tgBatal" type="button">Batalkan perubahan</button><button class="btn" id="tgSimpan" type="button">Simpan target</button>`}</div></div>
     <div class="tbl-wrap"><table class="edit tg-in"><thead><tr><th rowspan="2" class="stick">Proyek</th><th colspan="2" class="tg-tot">Total ${th}</th>${BULAN.map(x => `<th colspan="2">${x}</th>`).join("")}</tr>
@@ -3571,6 +3576,7 @@ function bindTargetInput() {
     } catch (e) { toast("Gagal membaca file Excel."); }
   };
   if (g("tgTerima")) g("tgTerima").onchange = g("tgTerima").oninput = e => { tgInfo.terima = e.target.value || ""; };
+  if (g("tgCatatan")) g("tgCatatan").oninput = e => { tgInfo.catatan = e.target.value; };
   if (g("tgAktif")) g("tgAktif").onchange = g("tgAktif").oninput = e => { tgInfo.aktif = e.target.value || ""; };
   if (g("tgSalin")) g("tgSalin").onclick = () => { if (!confirm(`Salin target ${th - 1} ke ${th}? Isian ${th} yang sekarang akan diganti.`)) return; tgDraft = clone((S.target || {})[th - 1] || {}); render(); toast(`Target ${th - 1} disalin. Periksa lalu klik Simpan target.`); };
   if (g("tgBatal")) g("tgBatal").onclick = () => { tgDraft = null; render(); toast("Perubahan dibatalkan"); };
@@ -3582,7 +3588,8 @@ function bindTargetInput() {
     const infoLama = tgInfoTh(th);
     if ((infoLama.terima || "") !== (tgInfo.terima || "")) ub.push(`Tanggal penerimaan data budget ${th}: ${infoLama.terima ? ddmmyyyy(infoLama.terima) : "–"} → ${tgInfo.terima ? ddmmyyyy(tgInfo.terima) : "–"}`);
     if ((infoLama.aktif || "") !== (tgInfo.aktif || "")) ub.push(`Tanggal aktif budget ${th}: ${infoLama.aktif ? ddmmyyyy(infoLama.aktif) : "–"} → ${tgInfo.aktif ? ddmmyyyy(tgInfo.aktif) : "–"}`);
-    S.targetInfo = S.targetInfo || {}; S.targetInfo[th] = { terima: tgInfo.terima || "", aktif: tgInfo.aktif || "" };
+    if ((infoLama.catatan || "").trim() !== (tgInfo.catatan || "").trim()) ub.push(`Catatan target ${th}: ${(tgInfo.catatan || "").trim() || "(dihapus)"}`);
+    S.targetInfo = S.targetInfo || {}; S.targetInfo[th] = { terima: tgInfo.terima || "", aktif: tgInfo.aktif || "", catatan: (tgInfo.catatan || "").trim() };
     S.target = S.target || {}; S.target[th] = clone(tgDraft);
     if (ub.length) catat("target", "Input Data", ub);
     save(); tgDraft = null; render(); toast(ub.length ? "Target disimpan" : "Tidak ada perubahan");
