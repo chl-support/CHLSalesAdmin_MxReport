@@ -185,6 +185,7 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-map.atur { cursor: crosshair; }
 .ms-dot { position: absolute; width: max(10px, calc(var(--msd, .9) * 1cqw)); aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.75), 0 1px 3px rgba(0,0,0,.45); padding: 0; cursor: pointer; border-width: max(1.5px, calc(var(--msd, .9) * .12cqw)); }
 .ms-dot.st-sold { background: #e10600; } .ms-dot.st-hold { background: #ffb300; } .ms-dot.st-avail { background: #2e9e5b; } .ms-dot.st-stock { background: #8a94a6; } .ms-dot.st-mg { background: #0091ea; } .ms-dot.st-rc { background: #ff3fd2; }
+.ms-map.atur .ms-dot { cursor: grab; } .ms-map.atur .ms-dot:active { cursor: grabbing; }
 .ms-dot.on { outline: 3px solid #0d2a57; outline-offset: 2px; z-index: 2; }
 .ms-pop { position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 14px)); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.2); padding: 9px 12px; font-size: 12.5px; line-height: 1.5; min-width: 210px; max-width: 300px; pointer-events: none; }
 .ms-pill { color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; margin-left: 4px; } .ms-src { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
@@ -3687,7 +3688,7 @@ function msTitikEf(nama) {
   (D.units || []).forEach(u => { const p = n[msNorm(u.k)]; if (p) o[u.k] = p; });
   return Object.assign(o, D.titik || {});
 }
-let msImg = {}, msMuat = new Set(), msZoom = 1, msSembunyi = new Set(), msAtur = null, msPilih = null, msTitik = null, msScroll = null;
+let msSunting = false, msImg = {}, msMuat = new Set(), msZoom = 1, msSembunyi = new Set(), msAtur = null, msPilih = null, msTitik = null, msScroll = null;
 /* Master Stock disimpan per proyek di server (/api/stok), terpisah dari data utama */
 let msStokSt = {}, msStokInfo = {}, msUkT = null;
 function msMuatStok(nama) {
@@ -3762,7 +3763,7 @@ function viewStock(nama) {
   const alat = `<div class="btn-row">${H ? `<button class="btn sec" id="msXls" type="button">Ekspor Excel</button>${msImg[nama] && D && Object.keys(msTitikEf(nama)).length ? `<button class="btn sec" id="msPng" type="button">Ekspor gambar</button><button class="btn sec" id="msShare" type="button" aria-haspopup="menu">Bagikan ▾</button>` : ""}` : ""}
     ${ed && !atur ? `<button class="btn sec" id="msUp" type="button">${msImg[nama] ? "Ganti siteplan" : "Unggah siteplan"}</button><input type="file" id="msUpFile" accept="image/png,image/jpeg,image/webp" hidden>
       <button class="btn sec" id="msImp" type="button">Impor Excel stock</button><input type="file" id="msImpFile" accept=".xlsx,.xls" hidden>
-      ${H && msImg[nama] ? `<button class="btn" id="msAturBtn" type="button">Atur titik unit</button>` : ""}` : ""}</div>`;
+      ${H && msImg[nama] ? `<button class="btn sec" id="msSuntingBtn" type="button" title="Geser titik yang sudah ada agar rapi">Sunting titik</button><button class="btn" id="msAturBtn" type="button">Atur titik unit</button>` : ""}` : ""}</div>`;
   const info = D && D.units && D.units.length ? `Status per <b>${D.tanggal ? ddmmyyyy(D.tanggal) : "–"}</b> dari Excel stock${D.file ? ` (${esc(D.file)})` : ""}. Transaksi Weekly setelah tanggal itu ikut memperbarui status.` : "Belum ada data stock.";
   const infoSrv = ed && msStokInfo[nama] ? ` <span class="ms-srv ${/GAGAL/.test(msStokInfo[nama]) ? "err" : ""}">• ${esc(msStokInfo[nama])}</span>` : "";
   if (!H) return `<div class="page gut"><div class="form-head"><div><h2>Master Stock ${esc(nama)}</h2><div class="desc">${info}${infoSrv}</div></div>${alat}</div>
@@ -3773,7 +3774,7 @@ function viewStock(nama) {
   const ukuran = msImg[nama] && ed ? `<div class="ms-zoom ms-uk" role="group" aria-label="Ukuran titik"><button type="button" data-msuk="-1" aria-label="Titik lebih kecil" ${uk === 0 ? "disabled" : ""}>−</button><span>Titik</span><button type="button" data-msuk="1" aria-label="Titik lebih besar" ${uk === MS_UKURAN.length - 1 ? "disabled" : ""}>+</button></div>` : "";
   const zoom = msImg[nama] ? `${ukuran}<div class="ms-zoom" role="group" aria-label="Perbesar gambar"><button type="button" data-mszoom="-1" aria-label="Perkecil">−</button><span>${Math.round(msZoom * 100)}%</span><button type="button" data-mszoom="1" aria-label="Perbesar">+</button></div>` : "";
   const sisi = atur ? (() => { const B = msRekapBlok(H.units);
-    return `<div class="ms-side"><div class="ms-side-h">Klik posisi unit <b id="msPilihLbl">${esc(msPilih || "–")}</b> di gambar. Klik titik yang sudah ada untuk memilih/memindahkannya.</div>
+    return `<div class="ms-side"><div class="ms-side-h">${msSunting ? `<b>Sunting titik:</b> tarik (drag) titik ke posisi yang rapi, atau pilih titik lalu geser dengan tombol panah keyboard. Terpilih: <b id="msPilihLbl">${esc(msPilih || "–")}</b>` : `Klik posisi unit <b id="msPilihLbl">${esc(msPilih || "–")}</b> di gambar. Klik titik yang sudah ada untuk memilih, atau tarik titik untuk menggesernya.`}</div>
       ${B.map(g => `<div class="ms-g">${esc(g.b)} <small data-msgc="${esc(g.b)}">${g.u.filter(u => msTitik[u.k]).length}/${g.n}</small></div><div class="ms-us">${g.u.map(u => `<button type="button" class="ms-u ${msTitik[u.k] ? "ok" : ""} ${msPilih === u.k ? "on" : ""}" data-msu="${esc(u.k)}" title="${esc(u.k)}">${esc(u.k.split("-").pop())}</button>`).join("")}</div>`).join("")}</div>`; })() : "";
   const daftar = `<section class="gut"><details class="ms-det"><summary>Daftar semua unit (${tot})</summary><div class="tbl-wrap"><table class="hold-t pg-t ms-t"><thead><tr><th class="l">Kode</th><th class="l">Blok</th><th class="l">Tipe</th><th>LB</th><th>LT</th><th class="l">Status</th><th class="l">Sumber status</th></tr></thead><tbody>
     ${H.units.map(u => `<tr><td class="l"><b>${esc(u.k)}</b></td><td class="l">${esc(u.blok)}</td><td class="l">${esc(u.tipe)}</td><td>${esc(u.lb ?? "")}</td><td>${esc(u.lt ?? "")}</td><td class="l"><i class="ms-i" style="background:${MS_ST[u.st].c}"></i>${ed && !atur ? `<select class="ms-st" data-msst="${esc(u.k)}" aria-label="Status ${esc(u.k)}">${MS_URUT.map(x => `<option value="${x}" ${x === u.st ? "selected" : ""}>${MS_ST[x].t}</option>`).join("")}</select>` : MS_ST[u.st].t}</td><td class="l">${esc(u.dari)}</td></tr>`).join("")}</tbody></table></div></details></section>`;
@@ -3781,7 +3782,7 @@ function viewStock(nama) {
     ${H.berubah.length ? `<div><b>${H.berubah.length} unit</b> statusnya diperbarui dari Weekly (setelah ${ddmmyyyy(H.D.tanggal || todayISO())}): ${H.berubah.map(u => `${esc(u.k)} → ${MS_ST[u.st].t}`).join(", ")}</div>` : ""}
     ${H.asing.length ? `<div class="ms-warn">⚠ Kode unit di Weekly yang tidak ada di Master Stock (cek penulisan kode): <b>${H.asing.map(esc).join(", ")}</b></div>` : ""}</div></section>` : "";
   return `<div class="page gut"><div class="form-head"><div><h2>Master Stock ${esc(nama)}</h2><div class="desc">${info}${infoSrv}</div></div>${alat}</div>
-    <div class="ms-bar"><div class="ms-legs">${atur ? `<span class="ms-atur-lbl">Mode atur titik • ${tot - belum}/${tot} unit sudah ditandai</span>` : ""}</div>${zoom}
+    <div class="ms-bar"><div class="ms-legs">${atur ? `<span class="ms-atur-lbl">${msSunting ? "Mode sunting titik" : "Mode atur titik"} • ${tot - belum}/${tot} unit sudah ditandai</span>` : ""}</div>${zoom}
       ${atur ? `<div class="btn-row"><button class="btn sec" id="msHapus" type="button">Hapus titik terpilih</button><button class="btn sec" id="msBatal" type="button">Batal</button><button class="btn" id="msSimpan" type="button">Simpan titik</button></div>` : ""}</div>
     ${!atur && msImg[nama] && belum ? `<div class="ms-note">${belum} unit belum ditandai di gambar.${ed ? " Tekan <b>Atur titik unit</b> untuk menandainya." : ""}</div>` : ""}
     <div class="${atur ? "ms-aturw" : ""}">${msPeta(nama, H)}${sisi}</div>
@@ -3887,7 +3888,8 @@ function bindStock(nama) {
       catat(`weekly:${nama}`, "Master Stock", [`Impor Excel stock ${file.name} (status per ${ddmmyyyy(S.stok[nama].tanggal)}): ${ring}`, ...ubah.slice(0, 60), ...(ubah.length > 60 ? [`…dan ${ubah.length - 60} perubahan lain`] : [])]);
       save(); render(); msSimpanStok(nama, `Master Stock ${nama} tersimpan di server (${r.units.length} unit)`);
     } catch (e) { toast("Gagal membaca Excel: " + (e.message || e)); } };
-  if (g("msAturBtn")) g("msAturBtn").onclick = () => { msAtur = nama; msTitik = clone(msTitikEf(nama)); msSembunyi.clear();
+  if (g("msSuntingBtn")) g("msSuntingBtn").onclick = () => { msAtur = nama; msSunting = true; msTitik = clone(msTitikEf(nama)); msSembunyi.clear(); msPilih = null; render(); };
+  if (g("msAturBtn")) g("msAturBtn").onclick = () => { msAtur = nama; msSunting = false; msTitik = clone(msTitikEf(nama)); msSembunyi.clear();
     const urut = H.units.map(u => u.k); msPilih = urut.find(k => !msTitik[k]) || urut[0]; render(); };
   if (msAtur !== nama || !map || !H) return;
   const urut = H.units.map(u => u.k), unitOf = k => H.units.find(u => u.k === k);
@@ -3896,8 +3898,21 @@ function bindStock(nama) {
     const b = v.querySelector(`[data-msu="${CSS.escape(k)}"]`); if (b) b.scrollIntoView({ block: "nearest" }); };
   const hitungUlang = () => { const lbl = v.querySelector(".ms-atur-lbl"), ada = urut.filter(k => msTitik[k]).length; if (lbl) lbl.textContent = `Mode atur titik • ${ada}/${urut.length} unit sudah ditandai`;
     msRekapBlok(H.units).forEach(gr => { const el = v.querySelector(`[data-msgc="${CSS.escape(gr.b)}"]`); if (el) el.textContent = `${gr.u.filter(u => msTitik[u.k]).length}/${gr.n}`; }); };
-  map.onclick = e => { const d = e.target.closest("[data-msk]"); if (d) { pilih(d.dataset.msk); return; }
-    if (!msPilih) return; const R = map.getBoundingClientRect(), x = +((e.clientX - R.left) / R.width * 100).toFixed(2), y = +((e.clientY - R.top) / R.height * 100).toFixed(2);
+  /* Geser titik: tarik dengan mouse/jari, atau tombol panah untuk titik terpilih */
+  let tarik = null, baruDitarik = false;
+  const pindah = (k, x, y) => { x = Math.max(0, Math.min(100, +x.toFixed(2))); y = Math.max(0, Math.min(100, +y.toFixed(2))); msTitik[k] = [x, y];
+    const d = map.querySelector(`[data-msk="${CSS.escape(k)}"]`); if (d) { d.style.left = x + "%"; d.style.top = y + "%"; } };
+  map.onpointerdown = e => { const d = e.target.closest("[data-msk]"); if (!d) return; e.preventDefault(); pilih(d.dataset.msk);
+    tarik = { k: d.dataset.msk, x0: e.clientX, y0: e.clientY, gerak: false }; try { d.setPointerCapture(e.pointerId); } catch (x) {} };
+  map.onpointermove = e => { if (!tarik) return; if (!tarik.gerak && Math.hypot(e.clientX - tarik.x0, e.clientY - tarik.y0) < 3) return; tarik.gerak = true;
+    const R = map.getBoundingClientRect(); pindah(tarik.k, (e.clientX - R.left) / R.width * 100, (e.clientY - R.top) / R.height * 100); };
+  map.onpointerup = map.onpointercancel = () => { if (tarik && tarik.gerak) baruDitarik = true; tarik = null; };
+  map.style.touchAction = "none";
+  document.onkeydown = e => { if (msAtur !== nama || !msPilih || !msTitik[msPilih] || !/^Arrow/.test(e.key) || /input|select|textarea/i.test((e.target.tagName || ""))) return;
+    e.preventDefault(); const st = e.shiftKey ? 0.5 : 0.1, [x, y] = msTitik[msPilih];
+    pindah(msPilih, x + (e.key === "ArrowRight" ? st : e.key === "ArrowLeft" ? -st : 0), y + (e.key === "ArrowDown" ? st : e.key === "ArrowUp" ? -st : 0)); };
+  map.onclick = e => { if (baruDitarik) { baruDitarik = false; return; } const d = e.target.closest("[data-msk]"); if (d) { pilih(d.dataset.msk); return; }
+    if (!msPilih || msSunting) return; const R = map.getBoundingClientRect(), x = +((e.clientX - R.left) / R.width * 100).toFixed(2), y = +((e.clientY - R.top) / R.height * 100).toFixed(2);
     msTitik[msPilih] = [x, y]; const lama = map.querySelector(`[data-msk="${CSS.escape(msPilih)}"]`); if (lama) lama.remove();
     map.insertAdjacentHTML("beforeend", msDot(unitOf(msPilih), [x, y]));
     const b = v.querySelector(`[data-msu="${CSS.escape(msPilih)}"]`); if (b) b.classList.add("ok");
@@ -3905,9 +3920,9 @@ function bindStock(nama) {
   v.querySelectorAll("[data-msu]").forEach(b => b.onclick = () => pilih(b.dataset.msu));
   g("msHapus").onclick = () => { if (!msPilih || !msTitik[msPilih]) { toast("Pilih unit yang sudah punya titik"); return; } delete msTitik[msPilih];
     const d = map.querySelector(`[data-msk="${CSS.escape(msPilih)}"]`); if (d) d.remove(); const b = v.querySelector(`[data-msu="${CSS.escape(msPilih)}"]`); if (b) b.classList.remove("ok"); hitungUlang(); };
-  g("msBatal").onclick = () => { msAtur = null; msTitik = null; render(); };
+  g("msBatal").onclick = () => { msAtur = null; msTitik = null; msSunting = false; document.onkeydown = null; render(); };
   g("msSimpan").onclick = () => { const D = msData(nama), lama = msTitikEf(nama), k = urut.filter(x => JSON.stringify(lama[x]) !== JSON.stringify(msTitik[x]));
-    D.titik = msTitik; msAtur = null; msTitik = null;
+    D.titik = msTitik; msAtur = null; msTitik = null; msSunting = false; document.onkeydown = null;
     if (k.length) catat(`weekly:${nama}`, "Master Stock", [`Posisi titik unit di siteplan diubah: ${k.length} unit (${k.slice(0, 20).join(", ")}${k.length > 20 ? ", …" : ""})`]);
     save(); render(); msSimpanStok(nama, "Posisi titik tersimpan di server"); };
 }
