@@ -171,12 +171,12 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-leg i, .ms-i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; flex: none; }
 .ms-i { margin-right: 6px; vertical-align: -1px; } .ms-leg.off { opacity: .4; text-decoration: line-through; }
 .ms-zoom { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-.ms-zoom button { font: inherit; font-weight: 700; width: 34px; height: 30px; border: 0; background: var(--bg); color: var(--ink); cursor: pointer; } .ms-zoom span { font-size: 12px; min-width: 46px; text-align: center; }
+.ms-zoom button { font: inherit; font-weight: 700; width: 34px; height: 30px; border: 0; background: var(--bg); color: var(--ink); cursor: pointer; } .ms-zoom span { font-size: 12px; min-width: 46px; text-align: center; } .ms-zoom button:disabled { opacity: .35; cursor: default; } .ms-uk { margin-left: auto; margin-right: 8px; }
 .ms-scroll { overflow: auto; max-height: 80vh; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
 .ms-map { position: relative; container-type: inline-size; min-width: 100%; }
 .ms-map img { display: block; width: 100%; user-select: none; -webkit-user-select: none; }
 .ms-map.atur { cursor: crosshair; }
-.ms-dot { position: absolute; width: max(8px, 0.8cqw); aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.35); padding: 0; cursor: pointer; }
+.ms-dot { position: absolute; width: max(5px, calc(var(--msd, .5) * 1cqw)); aspect-ratio: 1; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.3); padding: 0; cursor: pointer; border-width: max(1px, calc(var(--msd, .5) * .15cqw)); }
 .ms-dot.st-sold { background: #d64545; } .ms-dot.st-hold { background: #f0b400; } .ms-dot.st-avail { background: #2e9e5b; } .ms-dot.st-stock { background: #8a94a6; }
 .ms-dot.on { outline: 3px solid #0d2a57; outline-offset: 2px; z-index: 2; }
 .ms-pop { position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 14px)); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.2); padding: 9px 12px; font-size: 12.5px; line-height: 1.5; min-width: 210px; max-width: 300px; pointer-events: none; }
@@ -3660,6 +3660,9 @@ const msStatus = v => { const t = String(v || "").toLowerCase(); return /sold|te
 const msData = nama => (S.stok && S.stok[nama]) || null;
 let msImg = {}, msMuat = new Set(), msZoom = 1, msSembunyi = new Set(), msAtur = null, msPilih = null, msTitik = null, msScroll = null;
 const MS_ZOOM = [1, 1.5, 2, 3, 4];
+/* Ukuran titik (persen lebar gambar), bisa disesuaikan admin dan tersimpan per proyek */
+const MS_UKURAN = [0.3, 0.4, 0.5, 0.6, 0.75, 0.9, 1.1];
+const msUkuran = nama => { const v = +((msData(nama) || {}).ukuran); return v > 0 ? v : 0.5; };
 function msWeekly(nama, tglExcel) {
   const W = S.weekly && S.weekly[nama], o = {}; if (!W) return o;
   const ev = [];
@@ -3690,7 +3693,7 @@ function msPeta(nama, H) {
   if (!img) return `<div class="empty">Gambar siteplan belum diunggah.${bolehEdit(nama) ? " Tekan <b>Unggah siteplan</b> untuk menambahkan gambar." : ""} Status unit tetap bisa dilihat di daftar per blok di bawah.</div>`;
   const T = msAtur === nama ? msTitik : ((H && H.D.titik) || {}), units = H ? H.units : [];
   const dots = units.filter(u => T[u.k] && (msAtur === nama || !msSembunyi.has(u.st))).map(u => msDot(u, T[u.k])).join("");
-  return `<div class="ms-scroll" id="msScroll"><div class="ms-map ${msAtur === nama ? "atur" : ""}" id="msMap" style="width:${msZoom * 100}%"><img src="${img}" alt="Siteplan ${esc(nama)}" draggable="false">${dots}</div></div>`;
+  return `<div class="ms-scroll" id="msScroll"><div class="ms-map ${msAtur === nama ? "atur" : ""}" id="msMap" style="width:${msZoom * 100}%;--msd:${msUkuran(nama)}"><img src="${img}" alt="Siteplan ${esc(nama)}" draggable="false">${dots}</div></div>`;
 }
 const msDot = (u, p) => `<button type="button" class="ms-dot st-${u.st} ${msAtur && msPilih === u.k ? "on" : ""}" style="left:${p[0]}%;top:${p[1]}%" data-msk="${esc(u.k)}" title="${esc(u.k)} • ${MS_ST[u.st].t}" aria-label="${esc(u.k)}, ${MS_ST[u.st].t}"></button>`;
 function msRekapBlok(units) {
@@ -3712,7 +3715,9 @@ function viewStock(nama) {
   const kartu = [["Total unit", tot, "var(--navy)"], ...MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => [MS_ST[s].t, H.n[s], MS_ST[s].c, s])]
     .map(([t, v, c, s]) => `<div class="ms-card" style="border-left-color:${c}"><span>${t}</span><b>${n0(v)}</b>${s ? `<small>${tot ? idn(v / tot * 100, 1) : 0}%</small>` : ""}</div>`).join("");
   const leg = MS_URUT.filter(s => s !== "stock" || H.n.stock).map(s => `<button type="button" class="ms-leg ${msSembunyi.has(s) ? "off" : ""}" data-msf="${s}" aria-pressed="${!msSembunyi.has(s)}"><i style="background:${MS_ST[s].c}"></i>${MS_ST[s].t} <b>${H.n[s]}</b></button>`).join("");
-  const zoom = msImg[nama] ? `<div class="ms-zoom" role="group" aria-label="Perbesar gambar"><button type="button" data-mszoom="-1" aria-label="Perkecil">−</button><span>${Math.round(msZoom * 100)}%</span><button type="button" data-mszoom="1" aria-label="Perbesar">+</button></div>` : "";
+  const uk = MS_UKURAN.indexOf(msUkuran(nama));
+  const ukuran = msImg[nama] && ed ? `<div class="ms-zoom ms-uk" role="group" aria-label="Ukuran titik"><button type="button" data-msuk="-1" aria-label="Titik lebih kecil" ${uk === 0 ? "disabled" : ""}>−</button><span>Titik</span><button type="button" data-msuk="1" aria-label="Titik lebih besar" ${uk === MS_UKURAN.length - 1 ? "disabled" : ""}>+</button></div>` : "";
+  const zoom = msImg[nama] ? `${ukuran}<div class="ms-zoom" role="group" aria-label="Perbesar gambar"><button type="button" data-mszoom="-1" aria-label="Perkecil">−</button><span>${Math.round(msZoom * 100)}%</span><button type="button" data-mszoom="1" aria-label="Perbesar">+</button></div>` : "";
   const sisi = atur ? (() => { const B = msRekapBlok(H.units);
     return `<div class="ms-side"><div class="ms-side-h">Klik posisi unit <b id="msPilihLbl">${esc(msPilih || "–")}</b> di gambar. Klik titik yang sudah ada untuk memilih/memindahkannya.</div>
       ${B.map(g => `<div class="ms-g">${esc(g.b)} <small data-msgc="${esc(g.b)}">${g.u.filter(u => msTitik[u.k]).length}/${g.n}</small></div><div class="ms-us">${g.u.map(u => `<button type="button" class="ms-u ${msTitik[u.k] ? "ok" : ""} ${msPilih === u.k ? "on" : ""}" data-msu="${esc(u.k)}" title="${esc(u.k)}">${esc(u.k.split("-").pop())}</button>`).join("")}</div>`).join("")}</div>`; })() : "";
@@ -3778,6 +3783,9 @@ function bindStock(nama) {
         <div class="ms-src">Status dari ${esc(u.dari)}${u.stAsli && u.dari === "Excel" ? ` (${esc(u.stAsli)})` : ""}</div></div>`); };
   }
   if (!bolehEdit(nama)) return;
+  v.querySelectorAll("[data-msuk]").forEach(b => b.onclick = () => { const D = msData(nama); if (!D) return; const i = MS_UKURAN.indexOf(msUkuran(nama)), j = Math.max(0, Math.min(MS_UKURAN.length - 1, (i < 0 ? 2 : i) + +b.dataset.msuk));
+    D.ukuran = MS_UKURAN[j]; const m = g("msMap"); if (m) m.style.setProperty("--msd", D.ukuran); save();
+    v.querySelectorAll("[data-msuk]").forEach(x => x.disabled = (+x.dataset.msuk < 0 && j === 0) || (+x.dataset.msuk > 0 && j === MS_UKURAN.length - 1)); });
   const up = g("msUpFile");
   if (g("msUp")) g("msUp").onclick = () => { up.value = ""; up.click(); };
   if (up) up.onchange = async () => { const file = up.files && up.files[0]; if (!file) return;
