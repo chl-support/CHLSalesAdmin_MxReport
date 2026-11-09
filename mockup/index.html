@@ -161,6 +161,15 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .notes b { color: var(--ink); }
 
 /* Forms */
+.bast-f { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 18px 0 10px; font-size: 13px; }
+.bast-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.bast-fl { font-weight: 700; color: var(--ink); display: inline-flex; align-items: center; gap: 8px; }
+.bast-fl select { font: inherit; font-weight: 400; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--ink); }
+.bast-chip { font: inherit; padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.bast-chip b { display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 5px; border-radius: 9px; background: var(--line); font-size: 11px; text-align: center; }
+.bast-chip.on { background: var(--navy, #13294b); border-color: var(--navy, #13294b); color: #fff; }
+.bast-chip.on b { background: rgba(255,255,255,.25); }
+.bast-fi { color: var(--muted, #667); font-style: italic; }
 .form-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; margin-top: 24px; }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .field input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--input-bg); color: var(--ink); font-weight: 600; }
@@ -1176,7 +1185,9 @@ function exportExcel(tgl) {
 }
 
 /* ===================== Input Data ===================== */
-let draft = null, draftDate = null;
+let draft = null, draftDate = null, bastFPer = "", bastFPrj = "";
+/* Filter tampilan Input BAST (hanya menyaring tampilan; semua baris tetap tersimpan) */
+const bastTampil = r => (!bastFPer || !r.periodeId || r.periodeId === +bastFPer) && (!bastFPrj || !r.proyekId || r.proyekId === +bastFPrj);
 function loadDraft(tgl) {
   draftDate = tgl;
   draft = clone(S.laporan[tgl] || []);
@@ -1200,7 +1211,7 @@ function viewInput() {
     .map(p => `<option value="${p.id}" ${p.id === sel ? "selected" : ""}>${esc(p.nama)}</option>`).join("");
   const optJ = sel => `<option value="">Pilih proyek</option>` + S.proyek.slice().sort(byUrut).filter(p => (p.aktif && bolehEdit(p.nama)) || p.id === sel)
     .map(p => `<option value="${p.id}" ${p.id === sel ? "selected" : ""}>${esc(p.nama)}</option>`).join("");
-  const body = draft.map((r, i) => { const lk = !!r.proyekId && !bolehEdit(prjById(r.proyekId)?.nama), dis = lk ? 'disabled title="Dikunci. Proyek ini bukan wewenang akun Anda."' : "", ro = lk ? 'readonly class="locked"' : "";
+  const body = draft.map((r, i) => { if (!bastTampil(r)) return ""; const lk = !!r.proyekId && !bolehEdit(prjById(r.proyekId)?.nama), dis = lk ? 'disabled title="Dikunci. Proyek ini bukan wewenang akun Anda."' : "", ro = lk ? 'readonly class="locked"' : "";
     return `<tr class="${errs[i] ? "err" : ""} ${lk ? "row-locked" : ""}">
     <td class="num">${lk ? ikonKunci : i + 1}</td>
     <td><select id="p-${i}" data-i="${i}" data-k="periodeId" ${dis} aria-label="Periode baris ${i + 1}">${optP(r.periodeId)}</select>${errs[i] ? `<div class="msg">${errs[i]}</div>` : ""}</td>
@@ -1210,7 +1221,16 @@ function viewInput() {
     <td><input id="k-${i}" type="text" data-i="${i}" data-k="ket" value="${esc(r.ket || "")}" ${ro} aria-label="Keterangan baris ${i + 1}"></td>
     <td>${errs[i] ? "" : '<span class="ok">OK</span>'}</td>
     <td>${lk ? "" : `<button class="del" data-del="${i}" type="button" aria-label="Hapus baris ${i + 1}">×</button>`}</td></tr>`; }).join("");
-  const hasErr = errs.some(Boolean);
+  const hasErr = errs.some(Boolean), tampil = draft.filter(bastTampil), errLain = draft.some((r, i) => errs[i] && !bastTampil(r));
+  const perAda = S.periode.slice().sort(byUrut).filter(p => draft.some(r => r.periodeId === p.id));
+  const prjAda = S.proyek.slice().sort(byUrut).filter(p => draft.some(r => r.proyekId === p.id));
+  const nPer = id => draft.filter(r => r.periodeId === id && (!bastFPrj || r.proyekId === +bastFPrj)).length;
+  const filterBar = draft.length ? `<div class="bast-f">
+    <div class="bast-chips" role="group" aria-label="Filter periode"><span class="bast-fl">Periode</span>
+      <button type="button" class="bast-chip ${!bastFPer ? "on" : ""}" data-fper="">Semua <b>${draft.filter(r => !bastFPrj || r.proyekId === +bastFPrj).length}</b></button>
+      ${perAda.map(p => `<button type="button" class="bast-chip ${+bastFPer === p.id ? "on" : ""}" data-fper="${p.id}">${esc(p.nama)} <b>${nPer(p.id)}</b></button>`).join("")}</div>
+    <label class="bast-fl" for="fPrj">Proyek <select id="fPrj"><option value="">Semua proyek</option>${prjAda.map(p => `<option value="${p.id}" ${+bastFPrj === p.id ? "selected" : ""}>${esc(p.nama)}</option>`).join("")}</select></label>
+    ${bastFPer || bastFPrj ? `<span class="bast-fi">Menampilkan ${tampil.length} dari ${draft.length} baris</span>` : ""}</div>` : "";
   return `<div class="page gut">
   <div class="form-head">
     <div><h2>Input Data BAST</h2><div class="desc">Isi satu baris per periode dan proyek. Kosongkan atau isi 0 untuk tanda “–”.</div></div>
@@ -1223,13 +1243,14 @@ function viewInput() {
       <button class="btn" id="saveBtn" type="button" ${hasErr || !draft.length ? "disabled" : ""}>Simpan laporan</button>
     </div>
   </div>
+  ${filterBar}
   ${draft.length ? `<div class="tbl-wrap"><table class="edit num"><thead><tr><th rowspan="2">No</th><th rowspan="2">Periode PPN DTP</th><th rowspan="2">Proyek</th>
     <th colspan="2">PPN DTP</th><th colspan="2">Non PPN DTP</th><th colspan="2" class="gt-h">Grand Total</th><th rowspan="2">Keterangan</th><th rowspan="2">Cek</th><th rowspan="2"></th></tr>
     <tr><th>BAST</th><th>Total Unit</th><th>BAST</th><th>Total Unit</th><th class="gt-h">BAST</th><th class="gt-h">Total Unit</th></tr></thead>
-    <tbody>${body}${(() => { const T = draft.reduce((a, r) => add(a, r.d), [0, 0, 0, 0]);
-      return `<tr class="sum"><td></td><td colspan="2" style="text-align:left;font-weight:800">TOTAL</td>${T.map(v => `<td>${v.toLocaleString(LOC())}</td>`).join("")}<td class="gt">${(T[0] + T[2]).toLocaleString(LOC())}</td><td class="gt">${(T[1] + T[3]).toLocaleString(LOC())}</td><td colspan="3"></td></tr>`; })()}</tbody></table></div>`
+    <tbody>${body}${(() => { const T = tampil.reduce((a, r) => add(a, r.d), [0, 0, 0, 0]);
+      return `<tr class="sum"><td></td><td colspan="2" style="text-align:left;font-weight:800">TOTAL${bastFPer || bastFPrj ? " (sesuai filter)" : ""}</td>${T.map(v => `<td>${v.toLocaleString(LOC())}</td>`).join("")}<td class="gt">${(T[0] + T[2]).toLocaleString(LOC())}</td><td class="gt">${(T[1] + T[3]).toLocaleString(LOC())}</td><td colspan="3"></td></tr>`; })()}</tbody></table></div>`
     : `<div class="empty">Belum ada data untuk ${ddmmyyyy(draftDate)}. ${prev ? `Salin dari laporan ${ddmmyyyy(prev)} atau tambah baris baru.` : "Tambah baris untuk mulai mengisi."}</div>`}
-  <p class="hint">${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : S.laporan[draftDate] ? "Menyimpan akan mengganti laporan tanggal ini." : "Laporan baru untuk tanggal ini."}${userTerbatas() ? ` Akun Anda hanya bisa mengubah proyek: ${esc(S.proyek.filter(p => bolehEdit(p.nama)).sort(byUrut).map(p => p.nama).join(", ") || "–")}. Baris proyek lain dikunci.` : ""}</p>
+  <p class="hint">${errLain ? "Ada baris bermasalah yang tersembunyi oleh filter. Pilih “Semua” untuk melihatnya. " : ""}${hasErr ? "Perbaiki baris bertanda merah sebelum menyimpan." : S.laporan[draftDate] ? "Menyimpan akan mengganti laporan tanggal ini." : "Laporan baru untuk tanggal ini."}${userTerbatas() ? ` Akun Anda hanya bisa mengubah proyek: ${esc(S.proyek.filter(p => bolehEdit(p.nama)).sort(byUrut).map(p => p.nama).join(", ") || "–")}. Baris proyek lain dikunci.` : ""}</p>
   </div>`;
 }
 function bindInput() {
@@ -1237,7 +1258,9 @@ function bindInput() {
   document.getElementById("tglIn").onchange = e => { if (e.target.value) { loadDraft(e.target.value); render(); } };
   const cp = document.getElementById("copyPrev");
   if (cp) cp.onclick = () => { const prev = dates().filter(d => d < draftDate)[0]; draft = clone(S.laporan[prev]); render(); toast(`Data ${ddmmyyyy(prev)} disalin. Periksa lalu simpan.`); };
-  document.getElementById("addRow").onclick = () => { draft.push({ periodeId: null, proyekId: null, d: [0, 0, 0, 0], ket: "" }); render(); };
+  document.getElementById("addRow").onclick = () => { draft.push({ periodeId: bastFPer ? +bastFPer : null, proyekId: bastFPrj ? +bastFPrj : null, d: [0, 0, 0, 0], ket: "" }); render(); };
+  v.querySelectorAll("[data-fper]").forEach(b => b.onclick = () => { bastFPer = b.dataset.fper; render(); });
+  if (document.getElementById("fPrj")) document.getElementById("fPrj").onchange = e => { bastFPrj = e.target.value; render(); };
   document.getElementById("saveBtn").onclick = () => {
     const lama = S.laporan[draftDate] || [], key = r => r.periodeId + "-" + r.proyekId, items = [];
     if (userTerbatas()) {
