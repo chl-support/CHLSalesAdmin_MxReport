@@ -3869,8 +3869,8 @@ function viewStock(nama) {
   if (SERVER.on && msStokSt[nama] !== "ok" && msStokSt[nama] !== "gagal") { msMuatStok(nama); return `<div class="page gut"><div class="empty" style="margin-top:20px">Memuat data Master Stock ${esc(nama)}…</div></div>`; }
   const H = msHitung(nama), ed = bolehEdit(nama), D = msData(nama), atur = msAtur === nama;
   const n0 = v => v ? v.toLocaleString(LOC()) : "–";
-  const alat = `<div class="btn-row">${H ? `<button class="btn sec" id="msXls" type="button">Ekspor Excel</button>${msImg[msK(nama)] && D && Object.keys(msTitikEf(nama)).length ? `<button class="btn sec" id="msPng" type="button">Ekspor gambar</button><button class="btn sec" id="msShare" type="button" aria-haspopup="menu">Bagikan ▾</button>` : ""}` : ""}
-    ${ed && !atur ? `<button class="btn sec" id="msUp" type="button">${msImg[msK(nama)] ? "Ganti siteplan" : "Unggah siteplan"}</button><input type="file" id="msUpFile" accept="image/png,image/jpeg,image/webp" hidden>${msImg[msK(nama)] || msHal(nama) ? `<button class="btn sec ms-hapus" id="msHapusSp" type="button" title="Hapus gambar siteplan (jika salah unggah)">Hapus siteplan</button>` : ""}
+  const alat = `<div class="btn-row">${H ? `<button class="btn sec" id="msXls" type="button">Ekspor Excel</button>${msImg[msK(nama)] && D && Object.keys(msTitikEf(nama)).length ? `<button class="btn sec" id="msPng" type="button">Ekspor gambar${msHalList(nama).length > 1 ? " ▾" : ""}</button><button class="btn sec" id="msShare" type="button" aria-haspopup="menu">Bagikan ▾</button>` : ""}` : ""}
+    ${ed && !atur ? `<button class="btn sec" id="msUp" type="button">${msImg[msK(nama)] ? "Ganti siteplan" : "Unggah siteplan"}${msHalList(nama).length > 1 ? ` (${esc((msHalList(nama).find(x => x.id === msHal(nama)) || {}).nama || "")})` : ""}</button><input type="file" id="msUpFile" accept="image/png,image/jpeg,image/webp" hidden>${msImg[msK(nama)] || msHal(nama) ? `<button class="btn sec ms-hapus" id="msHapusSp" type="button" title="Hapus gambar siteplan (jika salah unggah)">Hapus siteplan${msHalList(nama).length > 1 ? ` (${esc((msHalList(nama).find(x => x.id === msHal(nama)) || {}).nama || "")})` : ""}</button>` : ""}
       <button class="btn sec" id="msImp" type="button">Impor Excel stock</button><input type="file" id="msImpFile" accept=".xlsx,.xls" hidden>
       ${H && msImg[msK(nama)] ? `<button class="btn sec" id="msSuntingBtn" type="button" title="Geser titik yang sudah ada agar rapi">Sunting titik</button><button class="btn" id="msAturBtn" type="button">Atur titik unit</button>` : ""}` : ""}</div>`;
   const info = D && D.units && D.units.length ? `Status per <b>${D.tanggal ? ddmmyyyy(D.tanggal) : "–"}</b> dari Excel stock${D.file ? ` (${esc(D.file)})` : ""}. Transaksi Weekly setelah tanggal itu ikut memperbarui status.` : "Belum ada data stock.";
@@ -3943,7 +3943,7 @@ function bindStock(nama) {
   v.querySelectorAll("[data-mshal]").forEach(b => b.onclick = () => { msHalPilih[nama] = +b.dataset.mshal; msScroll = null; render(); });
   v.querySelectorAll("[data-mszoom]").forEach(b => b.onclick = () => { const i = Math.max(0, Math.min(MS_ZOOM.length - 1, MS_ZOOM.indexOf(msZoom) + +b.dataset.mszoom)); ingatScroll(); msZoom = MS_ZOOM[i]; render(); });
   if (g("msXls")) g("msXls").onclick = () => denganID(() => msEksporExcel(nama));
-  if (g("msPng")) g("msPng").onclick = () => msEksporGambar(nama);
+  if (g("msPng")) g("msPng").onclick = e => { e.stopPropagation(); msPilihLantai(e.currentTarget, nama, h => { toast("Menyiapkan gambar…"); msEksporGambar(nama, undefined, h); }); };
   if (g("msShare")) g("msShare").onclick = e => { e.stopPropagation();
     let m = document.getElementById("msShareMenu"); if (m && !m.hidden) { m.hidden = true; return; }
     if (!m) { m = document.createElement("div"); m.id = "msShareMenu"; m.className = "shot-menu"; m.setAttribute("role", "menu"); document.body.appendChild(m);
@@ -3951,13 +3951,13 @@ function bindStock(nama) {
     m.innerHTML = `<button type="button" role="menuitem" data-msb="img"><b>Bagikan gambar siteplan</b><small>${bisaBagikan() ? "WhatsApp, Telegram, email, dll. (dengan titik & legenda)" : "Di browser ini gambar akan diunduh dulu"}</small></button>
       <button type="button" role="menuitem" data-msb="txt"><b>Kirim ringkasan teks</b><small>Jumlah Sold / Reserved / Available dan sisa per blok</small></button>`;
     const r = e.currentTarget.getBoundingClientRect(); m.style.top = (r.bottom + 6) + "px"; m.style.left = Math.max(8, Math.min(r.right - 280, window.innerWidth - 288)) + "px"; m.hidden = false;
-    m.querySelector('[data-msb="img"]').onclick = () => { m.hidden = true; msBagikanGambar(nama); };
+    m.querySelector('[data-msb="img"]').onclick = ev => { ev.stopPropagation(); m.hidden = true; msPilihLantai(g("msShare"), nama, h => msBagikanGambar(nama, h)); };
     m.querySelector('[data-msb="txt"]').onclick = () => { m.hidden = true; bukaKirimTeks(`Master Stock ${nama}`, () => msTeks(nama)); }; };
   const map = g("msMap");
   /* Lihat: klik titik untuk detail unit */
   if (msSemua(nama) && H) v.querySelectorAll(".ms-semua .ms-map").forEach(m => m.onclick = e => { const d = e.target.closest("[data-msk]"); v.querySelectorAll(".ms-pop").forEach(x => x.remove()); if (!d) return;
     const u = H.units.find(x => x.k === d.dataset.msk); if (u) m.insertAdjacentHTML("beforeend", msPopHtml(u, d.style.left, d.style.top)); });
-  if (msSemua(nama)) ["msUp", "msHapusSp", "msSuntingBtn", "msAturBtn", "msPng", "msLgdPos", "msHalNama"].forEach(id => { const el = g(id); if (el) el.hidden = true; });
+  if (msSemua(nama)) ["msUp", "msHapusSp", "msSuntingBtn", "msAturBtn", "msLgdPos", "msHalNama"].forEach(id => { const el = g(id); if (el) el.hidden = true; });
   if (map && msAtur !== nama && H) {
     map.onclick = e => { const d = e.target.closest("[data-msk]"); const lama = map.querySelector(".ms-pop"); if (lama) lama.remove(); if (!d) return;
       const u = H.units.find(x => x.k === d.dataset.msk); if (!u) return; const j = u.jual;
@@ -4060,8 +4060,9 @@ function msEksporExcel(nama) {
   if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
   const H = msHitung(nama); if (!H) return;
   const aoa = [[`MASTER STOCK ${nama.toUpperCase()}`], [`Status per ${H.D.tanggal ? ddmmyyyy(H.D.tanggal) : "-"} (Excel stock) + transaksi Weekly sesudahnya • diekspor ${ddmmyyyy(todayISO())}`], [],
-    ["Kode", "Blok", "Tipe", "LB", "LT", "Status", "Sumber status", "Status di Excel", "Konsumen", "Sales"]];
-  H.units.forEach(u => aoa.push([u.k, u.blok, u.tipe, u.lb, u.lt, MS_ST[u.st].t, u.dari, u.stAsli || "", (u.jual && u.jual.konsumen) || "", (u.jual && u.jual.sales) || ""]));
+    ["Kode", "Blok", ...(msHalList(nama).length > 1 ? ["Lantai / Siteplan"] : []), "Tipe", "LB", "LT", "Status", "Sumber status", "Status di Excel", "Konsumen", "Sales"]];
+  const TT = msTitikEf(nama), LL = msHalList(nama), lt = k => TT[k] ? ((LL.find(x => x.id === msHalTitik(TT[k])) || {}).nama || "") : "";
+  H.units.forEach(u => aoa.push([u.k, u.blok, ...(LL.length > 1 ? [lt(u.k)] : []), u.tipe, u.lb, u.lt, MS_ST[u.st].t, u.dari, u.stAsli || "", (u.jual && u.jual.konsumen) || "", (u.jual && u.jual.sales) || ""]));
   const S2 = msAda(H), rk = [[`REKAP PER BLOK ${nama.toUpperCase()}`], [], ["Blok", "Total", ...S2.map(s => MS_ST[s].t), "% Sold"]];
   msRekapBlok(H.units).forEach(g => rk.push([g.b, g.n, ...S2.map(s => g[s]), { v: g.sold / g.n, t: "n", z: "0.0%" }]));
   rk.push(["TOTAL", H.units.length, ...S2.map(s => H.n[s]), { v: H.n.sold / H.units.length, t: "n", z: "0.0%" }]);
@@ -4070,17 +4071,18 @@ function msEksporExcel(nama) {
   XLSX.utils.book_append_sheet(wb, a, "Rekap"); XLSX.utils.book_append_sheet(wb, b, "Unit");
   XLSX.writeFile(wb, `Master_Stock_${nama.replace(/\s+/g, "_")}_${todayISO()}.xlsx`); toast("File Excel diunduh");
 }
-function msEksporGambar(nama, cara) {
-  const H = msHitung(nama), src = msImg[msK(nama)]; if (!H || !src) return Promise.resolve(null);
+function msEksporGambar(nama, cara, h = msHal(nama)) {
+  if (h === "semua") return msGambarSemua(nama, cara);
+  const H = msHitung(nama), src = msImg[msK(nama, h)]; if (!H || !src) return Promise.resolve(null);
   return new Promise(selesai => { const im = new Image(); im.onerror = () => { toast("Gagal membuat gambar"); selesai(null); }; im.onload = () => { const W = im.naturalWidth, Hh = im.naturalHeight, c = document.createElement("canvas"); c.width = W; c.height = Hh; const x = c.getContext("2d");
     x.drawImage(im, 0, 0); const r = W * 0.0034 * msUkuran(nama), T = msTitikEf(nama);
-    const hp = msHal(nama); H.units.forEach(u => { const p = T[u.k]; if (!p || u.st === "avail" || msHalTitik(p) !== hp) return; x.beginPath(); x.arc(p[0] / 100 * W, p[1] / 100 * Hh, r, 0, Math.PI * 2); x.fillStyle = MS_ST[u.st].c; x.fill(); x.lineWidth = r * 0.35; x.strokeStyle = "#fff"; x.stroke(); });
+    const hp = h; H.units.forEach(u => { const p = T[u.k]; if (!p || u.st === "avail" || msHalTitik(p) !== hp) return; x.beginPath(); x.arc(p[0] / 100 * W, p[1] / 100 * Hh, r, 0, Math.PI * 2); x.fillStyle = MS_ST[u.st].c; x.fill(); x.lineWidth = r * 0.35; x.strokeStyle = "#fff"; x.stroke(); });
     const S2 = msAda(H), fs = Math.round(W * 0.008), pad = fs * 0.8, bw = fs * 21, bh = pad * 2 + fs * 1.5 * (S2.length + 1);
     x.fillStyle = "rgba(255,255,255,.93)"; x.fillRect(pad, Hh - bh - pad, bw, bh); x.strokeStyle = "#0d2a57"; x.lineWidth = 2; x.strokeRect(pad, Hh - bh - pad, bw, bh);
     x.font = `700 ${fs}px sans-serif`; x.fillStyle = "#0d2a57"; x.fillText(`Unit Status Legend (${ddmmyyyy(todayISO())})`, pad * 2, Hh - bh - pad + pad + fs);
     S2.forEach((s, i) => { const yy = Hh - bh - pad + pad + fs * 1.5 * (i + 1) + fs; x.beginPath(); x.arc(pad * 2 + fs * 0.45, yy - fs * 0.35, fs * 0.45, 0, Math.PI * 2); if (s === "avail") { x.fillStyle = "#fff"; x.fill(); x.lineWidth = 2; x.strokeStyle = "#8a94a6"; x.stroke(); } else { x.fillStyle = MS_ST[s].c; x.fill(); }
       x.fillStyle = "#0f2140"; x.font = `600 ${fs}px sans-serif`; x.fillText(`${MS_ST[s].t}${s === "avail" ? " (kosong)" : ""}: ${H.n[s]} (${idn(H.n[s] / H.units.length * 100, 1)}%)`, pad * 2 + fs * 1.4, yy); });
-    const hn = msHalList(nama).length > 1 ? "_" + ((msHalList(nama).find(x => x.id === msHal(nama)) || {}).nama || "").replace(/\s+/g, "_") : "";
+    const hn = msHalList(nama).length > 1 ? "_" + ((msHalList(nama).find(x => x.id === h) || {}).nama || "").replace(/\s+/g, "_") : "";
     const fn = `Siteplan_${nama.replace(/\s+/g, "_")}${hn}_${todayISO()}.png`;
     c.toBlob(blob => { if (cara === "blob") { selesai({ blob, fn }); return; } simpanBlob(blob, fn); toast("Gambar diunduh"); selesai(null); }, "image/png"); };
   im.src = src; });
@@ -4096,15 +4098,38 @@ function msTeks(nama) {
   return L.join("\n");
 }
 /* Bagikan gambar siteplan (dengan titik & legenda) lewat menu bagikan perangkat; jika tidak didukung, gambar diunduh */
-async function msBagikanGambar(nama) {
+async function msBagikanGambar(nama, h = msHal(nama)) {
   toast("Menyiapkan gambar…");
-  const r = await msEksporGambar(nama, "blob"); if (!r) return;
+  const r = await msEksporGambar(nama, "blob", h); if (!r) return;
   const file = new File([r.blob], r.fn, { type: "image/png" });
   if (!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }))) { simpanBlob(r.blob, r.fn); toast("Browser ini belum bisa membagikan gambar langsung. Gambar diunduh; bagikan dari galeri atau folder Download."); return; }
   try { await navigator.share({ files: [file], title: `Master Stock ${nama}`, text: msTeks(nama) }); }
   catch (e) { if (e && e.name === "NotAllowedError") { msSiap = { nama, r, t: Date.now() }; toast("Gambar siap. Ketuk Bagikan sekali lagi."); } else if (!e || e.name !== "AbortError") toast("Gagal membagikan gambar"); }
 }
 let msSiap = null;
+/* Satu gambar berisi semua lantai (disusun ke bawah) */
+async function msGambarSemua(nama, cara) {
+  const L = msHalList(nama), parts = [];
+  for (const x of L) { if (msImg[msK(nama, x.id)] === undefined) { await new Promise(ok => { msMuatImg(nama, x.id); const t = setInterval(() => { if (msImg[msK(nama, x.id)] !== undefined) { clearInterval(t); ok(); } }, 200); setTimeout(() => { clearInterval(t); ok(); }, 15000); }); }
+    const r = await msEksporGambar(nama, "blob", x.id); if (r) parts.push(r); }
+  if (!parts.length) { toast("Gambar siteplan belum diunggah"); return null; }
+  const ims = await Promise.all(parts.map(r => new Promise(ok => { const im = new Image(); im.onload = () => ok(im); im.src = URL.createObjectURL(r.blob); })));
+  const W = Math.max(...ims.map(i => i.naturalWidth)), c = document.createElement("canvas"); c.width = W; c.height = ims.reduce((a, i) => a + Math.round(i.naturalHeight * W / i.naturalWidth), 0);
+  const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); let y = 0;
+  ims.forEach(i => { const hh = Math.round(i.naturalHeight * W / i.naturalWidth); x.drawImage(i, 0, y, W, hh); y += hh; });
+  const fn = `Siteplan_${nama.replace(/\s+/g, "_")}_Semua_lantai_${todayISO()}.png`;
+  return new Promise(selesai => c.toBlob(blob => { if (cara === "blob") { selesai({ blob, fn }); return; } simpanBlob(blob, fn); toast("Gambar diunduh"); selesai(null); }, "image/png"));
+}
+/* Pilihan lantai untuk Ekspor gambar / Bagikan gambar (proyek dengan beberapa siteplan) */
+function msPilihLantai(btn, nama, aksi) {
+  const L = msHalList(nama); if (L.length < 2) { aksi(msHal(nama)); return; }
+  let m = document.getElementById("msLtMenu");
+  if (!m) { m = document.createElement("div"); m.id = "msLtMenu"; m.className = "shot-menu"; m.setAttribute("role", "menu"); document.body.appendChild(m);
+    document.addEventListener("click", ev => { if (!m.hidden && !m.contains(ev.target) && !ev.target.closest("#msPng, #msShareMenu")) m.hidden = true; }); window.addEventListener("scroll", () => { m.hidden = true; }, { passive: true }); }
+  m.innerHTML = [["semua", "Semua lantai", "Semua lantai dalam 1 gambar"], ...L.map(x => [x.id, x.nama, "Hanya " + x.nama])].map(([v, t, d]) => `<button type="button" role="menuitem" data-mslt="${v}"><b>${esc(t)}</b><small>${esc(d)}</small></button>`).join("");
+  const r = btn.getBoundingClientRect(); m.style.top = (r.bottom + 6) + "px"; m.style.left = Math.max(8, Math.min(r.right - 260, window.innerWidth - 268)) + "px"; m.hidden = false;
+  m.querySelectorAll("[data-mslt]").forEach(b => b.onclick = () => { m.hidden = true; aksi(b.dataset.mslt === "semua" ? "semua" : +b.dataset.mslt); });
+}
 /* ===================== HOLD RESERVED DASHBOARD (semua proyek, dari Weekly) ===================== */
 let hrProyek = "", hrDari = "", hrSampai = "";
 const hrKode = v => String(v || "").toUpperCase().replace(/\s+/g, "");
