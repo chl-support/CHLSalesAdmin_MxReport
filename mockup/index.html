@@ -174,6 +174,9 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-zoom button { font: inherit; font-weight: 700; width: 34px; height: 30px; border: 0; background: var(--bg); color: var(--ink); cursor: pointer; } .ms-zoom span { font-size: 12px; min-width: 46px; text-align: center; } .ms-zoom button:disabled { opacity: .35; cursor: default; } .ms-uk { margin-left: auto; margin-right: 8px; }
 .ms-scroll { overflow: auto; max-height: 80vh; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
 .ms-wrap { position: relative; }
+.ms-hal .ms-leg.on { background: var(--navy); border-color: var(--navy); color: #fff; font-weight: 700; }
+.ms-hal { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 10px; }
+.ms-hal-add { font: inherit; font-size: 12.5px; border: 1px dashed var(--line); border-radius: 999px; background: none; color: var(--blue); padding: 5px 12px; cursor: pointer; }
 .ms-lgd { position: absolute; top: 6px; right: 6px; z-index: 6; background: rgba(255,255,255,.92); border: 1px solid #0d2a57; border-radius: 6px; padding: 4px 7px; font-size: 10.5px; line-height: 1.25; color: #0f2140; display: flex; flex-direction: column; gap: 1px; box-shadow: 0 1px 4px rgba(0,0,0,.15); pointer-events: none; }
 .ms-lgd b { font-size: 9.5px; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 1px; }
 .ms-lgd span { display: flex; align-items: center; gap: 5px; } .ms-lgd i { width: 8px; height: 8px; border-radius: 50%; border: 1px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.45); flex: none; }
@@ -3790,17 +3793,29 @@ function msHitung(nama) {
   const n = {}; MS_URUT.forEach(s => n[s] = units.filter(u => u.st === s).length);
   return { D, units, n, asing, berubah: units.filter(u => u.dari !== "Excel") };
 }
+/* Beberapa siteplan per proyek (mis. per lantai). D.halaman = [{id, nama}]; id 0 = siteplan utama. Posisi titik: [x, y, idHalaman] */
+let msHalPilih = {};
+const msHalList = nama => { const D = msData(nama); return D && Array.isArray(D.halaman) && D.halaman.length ? D.halaman : [{ id: 0, nama: "Siteplan" }]; };
+const msHal = nama => { const L = msHalList(nama), v = msHalPilih[nama]; return L.some(h => h.id === v) ? v : L[0].id; };
+const msK = (nama, h = msHal(nama)) => h ? `${nama}#${h}` : nama;
+const msHalTitik = p => (p && p[2]) || 0;
 function msMuatImg(nama) {
-  if (msMuat.has(nama)) return; msMuat.add(nama);
-  api("GET", "/api/siteplan?p=" + encodeURIComponent(nama)).then(r => { msImg[nama] = r.ok ? (r.data.img || "") : ""; })
-    .catch(() => { msImg[nama] = ""; }).finally(() => { msMuat.delete(nama); const ft = findTab(current()); if (ft && ft.t.stock === nama) render(); });
+  const k = msK(nama), h = msHal(nama);
+  if (msMuat.has(k)) return; msMuat.add(k);
+  api("GET", "/api/siteplan?p=" + encodeURIComponent(nama) + (h ? "&h=" + h : "")).then(r => { msImg[k] = r.ok ? (r.data.img || "") : ""; })
+    .catch(() => { msImg[k] = ""; }).finally(() => { msMuat.delete(k); const ft = findTab(current()); if (ft && ft.t.stock === nama) render(); });
+}
+function msHalBar(nama, ed, atur) {
+  const L = msHalList(nama), h = msHal(nama); if (L.length < 2 && !ed) return "";
+  return `<div class="ms-hal" role="tablist" aria-label="Pilih siteplan">${L.map(x => `<button type="button" class="ms-leg ${x.id === h ? "on" : ""}" data-mshal="${x.id}" role="tab" aria-selected="${x.id === h}">${esc(x.nama)}</button>`).join("")}
+    ${ed && !atur ? `<button type="button" class="ms-hal-add" id="msHalAdd" title="Tambah siteplan lain, mis. per lantai">+ Tambah siteplan</button><button type="button" class="ms-hal-add" id="msHalNama" title="Ganti nama siteplan ini">Ganti nama</button>` : ""}</div>`;
 }
 function msPeta(nama, H) {
-  const img = msImg[nama];
+  const img = msImg[msK(nama)], hp = msHal(nama);
   if (img === undefined) { msMuatImg(nama); return `<div class="empty">Memuat gambar siteplan…</div>`; }
   if (!img) return `<div class="empty">Gambar siteplan belum diunggah.${bolehEdit(nama) ? " Tekan <b>Unggah siteplan</b> untuk menambahkan gambar." : ""} Status unit tetap bisa dilihat di daftar per blok di bawah.</div>`;
   const T = msAtur === nama ? msTitik : msTitikEf(nama), units = H ? H.units : [];
-  const dots = units.filter(u => T[u.k] && (msAtur === nama || (!msSembunyi.has(u.st) && u.st !== "avail"))).map(u => msDot(u, T[u.k])).join("");
+  const dots = units.filter(u => T[u.k] && msHalTitik(T[u.k]) === hp && (msAtur === nama || (!msSembunyi.has(u.st) && u.st !== "avail"))).map(u => msDot(u, T[u.k])).join("");
   /* Legenda warna di dalam gambar (pojok kanan atas, tetap terlihat saat digeser/diperbesar) */
   const lg = H ? `<div class="ms-lgd" aria-label="Unit Status Legend"><b>Unit Status Legend</b>${msAda(H).map(s => `<span><i ${s === "avail" ? 'class="kosong"' : `style="background:${MS_ST[s].c}"`}></i>${MS_ST[s].t}${s === "avail" ? " (kosong)" : ""}<em>${H.n[s]}</em><small>${idn(H.n[s] / (H.units.length || 1) * 100, 1)}%</small></span>`).join("")}</div>` : "";
   return `<div class="ms-wrap">${lg}<div class="ms-scroll" id="msScroll"><div class="ms-map ${msAtur === nama ? "atur" : ""}" id="msMap" style="width:${msZoom * 100}%;--msd:${msUkuran(nama)}"><img src="${img}" alt="Siteplan ${esc(nama)}" draggable="false">${dots}</div></div></div>`;
@@ -3814,19 +3829,19 @@ function viewStock(nama) {
   if (SERVER.on && msStokSt[nama] !== "ok" && msStokSt[nama] !== "gagal") { msMuatStok(nama); return `<div class="page gut"><div class="empty" style="margin-top:20px">Memuat data Master Stock ${esc(nama)}…</div></div>`; }
   const H = msHitung(nama), ed = bolehEdit(nama), D = msData(nama), atur = msAtur === nama;
   const n0 = v => v ? v.toLocaleString(LOC()) : "–";
-  const alat = `<div class="btn-row">${H ? `<button class="btn sec" id="msXls" type="button">Ekspor Excel</button>${msImg[nama] && D && Object.keys(msTitikEf(nama)).length ? `<button class="btn sec" id="msPng" type="button">Ekspor gambar</button><button class="btn sec" id="msShare" type="button" aria-haspopup="menu">Bagikan ▾</button>` : ""}` : ""}
-    ${ed && !atur ? `<button class="btn sec" id="msUp" type="button">${msImg[nama] ? "Ganti siteplan" : "Unggah siteplan"}</button><input type="file" id="msUpFile" accept="image/png,image/jpeg,image/webp" hidden>${msImg[nama] ? `<button class="btn sec ms-hapus" id="msHapusSp" type="button" title="Hapus gambar siteplan (jika salah unggah)">Hapus siteplan</button>` : ""}
+  const alat = `<div class="btn-row">${H ? `<button class="btn sec" id="msXls" type="button">Ekspor Excel</button>${msImg[msK(nama)] && D && Object.keys(msTitikEf(nama)).length ? `<button class="btn sec" id="msPng" type="button">Ekspor gambar</button><button class="btn sec" id="msShare" type="button" aria-haspopup="menu">Bagikan ▾</button>` : ""}` : ""}
+    ${ed && !atur ? `<button class="btn sec" id="msUp" type="button">${msImg[msK(nama)] ? "Ganti siteplan" : "Unggah siteplan"}</button><input type="file" id="msUpFile" accept="image/png,image/jpeg,image/webp" hidden>${msImg[msK(nama)] || msHal(nama) ? `<button class="btn sec ms-hapus" id="msHapusSp" type="button" title="Hapus gambar siteplan (jika salah unggah)">Hapus siteplan</button>` : ""}
       <button class="btn sec" id="msImp" type="button">Impor Excel stock</button><input type="file" id="msImpFile" accept=".xlsx,.xls" hidden>
-      ${H && msImg[nama] ? `<button class="btn sec" id="msSuntingBtn" type="button" title="Geser titik yang sudah ada agar rapi">Sunting titik</button><button class="btn" id="msAturBtn" type="button">Atur titik unit</button>` : ""}` : ""}</div>`;
+      ${H && msImg[msK(nama)] ? `<button class="btn sec" id="msSuntingBtn" type="button" title="Geser titik yang sudah ada agar rapi">Sunting titik</button><button class="btn" id="msAturBtn" type="button">Atur titik unit</button>` : ""}` : ""}</div>`;
   const info = D && D.units && D.units.length ? `Status per <b>${D.tanggal ? ddmmyyyy(D.tanggal) : "–"}</b> dari Excel stock${D.file ? ` (${esc(D.file)})` : ""}. Transaksi Weekly setelah tanggal itu ikut memperbarui status.` : "Belum ada data stock.";
   const infoSrv = ed && msStokInfo[nama] ? ` <span class="ms-srv ${/GAGAL/.test(msStokInfo[nama]) ? "err" : ""}">• ${esc(msStokInfo[nama])}</span>` : "";
   if (!H) return `<div class="page gut"><div class="form-head"><div><h2>Master Stock ${esc(nama)}</h2><div class="desc">${info}${infoSrv}</div></div>${alat}</div>
     <div class="empty" style="margin-top:14px">Belum ada data Master Stock untuk ${esc(nama)}.${ed ? " Tekan <b>Impor Excel stock</b> (kolom Code, Address/Blok, Type, Build, Land, Status), lalu <b>Unggah siteplan</b>." : ""}</div>
-    <div style="margin-top:14px">${msPeta(nama, null)}</div></div>`;
+    <div style="margin-top:14px">${msHalBar(nama, ed, false)}${msPeta(nama, null)}</div></div>`;
   const tot = H.units.length, T = msTitikEf(nama), belum = H.units.filter(u => !(atur ? msTitik : T)[u.k]).length;
   const uk = MS_UKURAN.indexOf(msUkuran(nama));
-  const ukuran = msImg[nama] && ed ? `<div class="ms-zoom ms-uk" role="group" aria-label="Ukuran titik"><button type="button" data-msuk="-1" aria-label="Titik lebih kecil" ${uk === 0 ? "disabled" : ""}>−</button><span>Titik</span><button type="button" data-msuk="1" aria-label="Titik lebih besar" ${uk === MS_UKURAN.length - 1 ? "disabled" : ""}>+</button></div>` : "";
-  const zoom = msImg[nama] ? `${ukuran}<div class="ms-zoom" role="group" aria-label="Perbesar gambar"><button type="button" data-mszoom="-1" aria-label="Perkecil">−</button><span>${Math.round(msZoom * 100)}%</span><button type="button" data-mszoom="1" aria-label="Perbesar">+</button></div>` : "";
+  const ukuran = msImg[msK(nama)] && ed ? `<div class="ms-zoom ms-uk" role="group" aria-label="Ukuran titik"><button type="button" data-msuk="-1" aria-label="Titik lebih kecil" ${uk === 0 ? "disabled" : ""}>−</button><span>Titik</span><button type="button" data-msuk="1" aria-label="Titik lebih besar" ${uk === MS_UKURAN.length - 1 ? "disabled" : ""}>+</button></div>` : "";
+  const zoom = msImg[msK(nama)] ? `${ukuran}<div class="ms-zoom" role="group" aria-label="Perbesar gambar"><button type="button" data-mszoom="-1" aria-label="Perkecil">−</button><span>${Math.round(msZoom * 100)}%</span><button type="button" data-mszoom="1" aria-label="Perbesar">+</button></div>` : "";
   const sisi = atur ? (() => { const B = msRekapBlok(H.units);
     return `<div class="ms-side"><div class="ms-side-h">${msSunting ? `<b>Sunting titik:</b> tarik (drag) titik ke posisi yang rapi, atau pilih titik lalu geser dengan tombol panah keyboard. Terpilih: <b id="msPilihLbl">${esc(msPilih || "–")}</b>` : `Klik posisi unit <b id="msPilihLbl">${esc(msPilih || "–")}</b> di gambar. Klik titik yang sudah ada untuk memilih, atau tarik titik untuk menggesernya.`}</div>
       ${B.map(g => `<div class="ms-g">${esc(g.b)} <small data-msgc="${esc(g.b)}">${g.u.filter(u => msTitik[u.k]).length}/${g.n}</small></div><div class="ms-us">${g.u.map(u => `<button type="button" class="ms-u ${msTitik[u.k] ? "ok" : ""} ${msPilih === u.k ? "on" : ""}" data-msu="${esc(u.k)}" title="${esc(u.k)}">${esc(u.k.split("-").pop())}</button>`).join("")}</div>`).join("")}</div>`; })() : "";
@@ -3838,8 +3853,8 @@ function viewStock(nama) {
   return `<div class="page gut"><div class="form-head"><div><h2>Master Stock ${esc(nama)}</h2><div class="desc">${info}${infoSrv}</div></div>${alat}</div>
     <div class="ms-bar"><div class="ms-legs">${atur ? `<span class="ms-atur-lbl">${msSunting ? "Mode sunting titik" : "Mode atur titik"} • ${tot - belum}/${tot} unit sudah ditandai</span>` : ""}</div>${zoom}
       ${atur ? `<div class="btn-row"><button class="btn sec" id="msHapus" type="button">Hapus titik terpilih</button><button class="btn sec" id="msBatal" type="button">Batal</button><button class="btn" id="msSimpan" type="button">Simpan titik</button></div>` : ""}</div>
-    ${!atur && msImg[nama] && belum ? `<div class="ms-note">${belum} unit belum ditandai di gambar.${ed ? " Tekan <b>Atur titik unit</b> untuk menandainya." : ""}</div>` : ""}
-    <div class="${atur ? "ms-aturw" : ""}">${msPeta(nama, H)}${sisi}</div>
+    ${!atur && msImg[msK(nama)] && belum ? `<div class="ms-note">${belum} unit belum ditandai di gambar.${ed ? " Tekan <b>Atur titik unit</b> untuk menandainya." : ""}</div>` : ""}
+    ${msHalBar(nama, ed, atur)}<div class="${atur ? "ms-aturw" : ""}">${msPeta(nama, H)}${sisi}</div>
     ${atur ? "" : cek + daftar}</div>`;
 }
 function msKecilkan(file) {
@@ -3882,6 +3897,7 @@ function bindStock(nama) {
   const sc = g("msScroll"); if (sc && msScroll) { sc.scrollLeft = msScroll[0] * sc.scrollWidth; sc.scrollTop = msScroll[1] * sc.scrollHeight; }
   const ingatScroll = () => { const s = g("msScroll"); msScroll = s ? [s.scrollLeft / s.scrollWidth, s.scrollTop / s.scrollHeight] : null; };
   v.querySelectorAll("[data-msf]").forEach(b => b.onclick = () => { const s = b.dataset.msf; msSembunyi.has(s) ? msSembunyi.delete(s) : msSembunyi.add(s); ingatScroll(); render(); });
+  v.querySelectorAll("[data-mshal]").forEach(b => b.onclick = () => { msHalPilih[nama] = +b.dataset.mshal; msScroll = null; render(); });
   v.querySelectorAll("[data-mszoom]").forEach(b => b.onclick = () => { const i = Math.max(0, Math.min(MS_ZOOM.length - 1, MS_ZOOM.indexOf(msZoom) + +b.dataset.mszoom)); ingatScroll(); msZoom = MS_ZOOM[i]; render(); });
   if (g("msXls")) g("msXls").onclick = () => denganID(() => msEksporExcel(nama));
   if (g("msPng")) g("msPng").onclick = () => msEksporGambar(nama);
@@ -3913,18 +3929,30 @@ function bindStock(nama) {
   v.querySelectorAll("[data-msuk]").forEach(b => b.onclick = () => { const D = msData(nama); if (!D) return; const i = MS_UKURAN.indexOf(msUkuran(nama)), j = Math.max(0, Math.min(MS_UKURAN.length - 1, (i < 0 ? 2 : i) + +b.dataset.msuk));
     D.ukuran = MS_UKURAN[j]; const m = g("msMap"); if (m) m.style.setProperty("--msd", D.ukuran); clearTimeout(msUkT); msUkT = setTimeout(() => msSimpanStok(nama), 600);
     v.querySelectorAll("[data-msuk]").forEach(x => x.disabled = (+x.dataset.msuk < 0 && j === 0) || (+x.dataset.msuk > 0 && j === MS_UKURAN.length - 1)); });
+  /* Tambah siteplan lain (mis. Lantai 2, Lantai 3) dan ganti nama siteplan */
+  const pastikanD = () => { S.stok = S.stok || {}; S.stok[nama] = S.stok[nama] || { units: [], titik: {} }; const D = S.stok[nama];
+    if (!Array.isArray(D.halaman) || !D.halaman.length) D.halaman = [{ id: 0, nama: "Lantai 1" }]; return D; };
+  if (g("msHalAdd")) g("msHalAdd").onclick = () => { const D = pastikanD(), n = prompt("Nama siteplan baru (mis. Lantai 2):", `Lantai ${D.halaman.length + 1}`); if (!n || !n.trim()) return;
+    const id = Math.max(0, ...D.halaman.map(x => x.id)) + 1; D.halaman.push({ id, nama: n.trim() }); msHalPilih[nama] = id;
+    catat(`weekly:${nama}`, "Master Stock", [`Siteplan baru ditambahkan: ${n.trim()}`]); save(); msSimpanStok(nama, `Siteplan "${n.trim()}" ditambahkan. Tekan Unggah siteplan untuk gambarnya.`); render(); };
+  if (g("msHalNama")) g("msHalNama").onclick = () => { const D = pastikanD(), h = msHal(nama), x = D.halaman.find(y => y.id === h) || D.halaman[0], n = prompt("Nama siteplan:", x.nama); if (!n || !n.trim() || n.trim() === x.nama) return;
+    catat(`weekly:${nama}`, "Master Stock", [`Nama siteplan diganti: ${x.nama} → ${n.trim()}`]); x.nama = n.trim(); save(); msSimpanStok(nama, "Nama siteplan disimpan"); render(); };
   if (g("msHapusSp")) g("msHapusSp").onclick = async () => {
     if (!confirm(`Hapus gambar siteplan ${nama}?\n\nData unit dan posisi titik tetap tersimpan. Setelah itu unggah siteplan yang benar.`)) return;
-    try { const r = await api("POST", "/api/siteplan", { p: nama, hapus: true }); if (!r.ok) { toast(r.data.error || "Gagal menghapus siteplan"); return; }
-      msImg[nama] = ""; catat(`weekly:${nama}`, "Master Stock", [`Gambar siteplan ${nama} dihapus`]); save(); toast("Siteplan dihapus"); render();
+    try { const r = await api("POST", "/api/siteplan", { p: nama, h: msHal(nama), hapus: true }); if (!r.ok) { toast(r.data.error || "Gagal menghapus siteplan"); return; }
+      const hid = msHal(nama), hn = (msHalList(nama).find(x => x.id === hid) || {}).nama || "Siteplan", D = msData(nama);
+      msImg[msK(nama)] = "";
+      /* Siteplan tambahan (bukan yang pertama) ikut dihapus dari daftar; titik di siteplan itu dilepas */
+      if (hid && D && Array.isArray(D.halaman)) { D.halaman = D.halaman.filter(x => x.id !== hid); Object.keys(D.titik || {}).forEach(k => { if (msHalTitik(D.titik[k]) === hid) delete D.titik[k]; }); msHalPilih[nama] = 0; msSimpanStok(nama); }
+      catat(`weekly:${nama}`, "Master Stock", [`Gambar siteplan ${nama} (${hn}) dihapus`]); save(); toast("Siteplan dihapus"); render();
     } catch (e) { if (e.message !== "401") toast("Gagal menghapus siteplan"); } };
   const up = g("msUpFile");
   if (g("msUp")) g("msUp").onclick = () => { up.value = ""; up.click(); };
   if (up) up.onchange = async () => { const file = up.files && up.files[0]; if (!file) return;
     try { toast("Mengunggah siteplan…"); const img = await msKecilkan(file);
-      const r = await api("POST", "/api/siteplan", { p: nama, img });
+      const r = await api("POST", "/api/siteplan", { p: nama, h: msHal(nama), img });
       if (!r.ok) { toast(r.data.error || "Gagal mengunggah siteplan"); return; }
-      msImg[nama] = img; S.stok = S.stok || {}; S.stok[nama] = Object.assign({ units: [], titik: {} }, S.stok[nama] || {}, { imgAt: new Date().toISOString() });
+      msImg[msK(nama)] = img; S.stok = S.stok || {}; S.stok[nama] = Object.assign({ units: [], titik: {} }, S.stok[nama] || {}, { imgAt: new Date().toISOString() });
       catat(`weekly:${nama}`, "Master Stock", [`Gambar siteplan ${nama} diunggah (${file.name})`]); save(); await msSimpanStok(nama); toast("Siteplan tersimpan di server"); render();
     } catch (e) { toast("Gagal mengunggah: " + (e.message || e)); } };
   const fi = g("msImpFile");
@@ -3959,7 +3987,7 @@ function bindStock(nama) {
     msRekapBlok(H.units).forEach(gr => { const el = v.querySelector(`[data-msgc="${CSS.escape(gr.b)}"]`); if (el) el.textContent = `${gr.u.filter(u => msTitik[u.k]).length}/${gr.n}`; }); };
   /* Geser titik: tarik dengan mouse/jari, atau tombol panah untuk titik terpilih */
   let tarik = null, baruDitarik = false;
-  const pindah = (k, x, y) => { x = Math.max(0, Math.min(100, +x.toFixed(2))); y = Math.max(0, Math.min(100, +y.toFixed(2))); msTitik[k] = [x, y];
+  const pindah = (k, x, y) => { x = Math.max(0, Math.min(100, +x.toFixed(2))); y = Math.max(0, Math.min(100, +y.toFixed(2))); msTitik[k] = msHal(nama) ? [x, y, msHal(nama)] : [x, y];
     const d = map.querySelector(`[data-msk="${CSS.escape(k)}"]`); if (d) { d.style.left = x + "%"; d.style.top = y + "%"; } };
   map.onpointerdown = e => { const d = e.target.closest("[data-msk]"); if (!d) return; e.preventDefault(); pilih(d.dataset.msk);
     tarik = { k: d.dataset.msk, x0: e.clientX, y0: e.clientY, gerak: false }; try { d.setPointerCapture(e.pointerId); } catch (x) {} };
@@ -3972,7 +4000,7 @@ function bindStock(nama) {
     pindah(msPilih, x + (e.key === "ArrowRight" ? st : e.key === "ArrowLeft" ? -st : 0), y + (e.key === "ArrowDown" ? st : e.key === "ArrowUp" ? -st : 0)); };
   map.onclick = e => { if (baruDitarik) { baruDitarik = false; return; } const d = e.target.closest("[data-msk]"); if (d) { pilih(d.dataset.msk); return; }
     if (!msPilih || msSunting) return; const R = map.getBoundingClientRect(), x = +((e.clientX - R.left) / R.width * 100).toFixed(2), y = +((e.clientY - R.top) / R.height * 100).toFixed(2);
-    msTitik[msPilih] = [x, y]; const lama = map.querySelector(`[data-msk="${CSS.escape(msPilih)}"]`); if (lama) lama.remove();
+    msTitik[msPilih] = msHal(nama) ? [x, y, msHal(nama)] : [x, y]; const lama = map.querySelector(`[data-msk="${CSS.escape(msPilih)}"]`); if (lama) lama.remove();
     map.insertAdjacentHTML("beforeend", msDot(unitOf(msPilih), [x, y]));
     const b = v.querySelector(`[data-msu="${CSS.escape(msPilih)}"]`); if (b) b.classList.add("ok");
     hitungUlang(); pilih(msNext(urut, msPilih)); };
@@ -4000,16 +4028,17 @@ function msEksporExcel(nama) {
   XLSX.writeFile(wb, `Master_Stock_${nama.replace(/\s+/g, "_")}_${todayISO()}.xlsx`); toast("File Excel diunduh");
 }
 function msEksporGambar(nama, cara) {
-  const H = msHitung(nama), src = msImg[nama]; if (!H || !src) return Promise.resolve(null);
+  const H = msHitung(nama), src = msImg[msK(nama)]; if (!H || !src) return Promise.resolve(null);
   return new Promise(selesai => { const im = new Image(); im.onerror = () => { toast("Gagal membuat gambar"); selesai(null); }; im.onload = () => { const W = im.naturalWidth, Hh = im.naturalHeight, c = document.createElement("canvas"); c.width = W; c.height = Hh; const x = c.getContext("2d");
     x.drawImage(im, 0, 0); const r = W * 0.0034 * msUkuran(nama), T = msTitikEf(nama);
-    H.units.forEach(u => { const p = T[u.k]; if (!p || u.st === "avail") return; x.beginPath(); x.arc(p[0] / 100 * W, p[1] / 100 * Hh, r, 0, Math.PI * 2); x.fillStyle = MS_ST[u.st].c; x.fill(); x.lineWidth = r * 0.35; x.strokeStyle = "#fff"; x.stroke(); });
+    const hp = msHal(nama); H.units.forEach(u => { const p = T[u.k]; if (!p || u.st === "avail" || msHalTitik(p) !== hp) return; x.beginPath(); x.arc(p[0] / 100 * W, p[1] / 100 * Hh, r, 0, Math.PI * 2); x.fillStyle = MS_ST[u.st].c; x.fill(); x.lineWidth = r * 0.35; x.strokeStyle = "#fff"; x.stroke(); });
     const S2 = msAda(H), fs = Math.round(W * 0.008), pad = fs * 0.8, bw = fs * 21, bh = pad * 2 + fs * 1.5 * (S2.length + 1);
     x.fillStyle = "rgba(255,255,255,.93)"; x.fillRect(pad, Hh - bh - pad, bw, bh); x.strokeStyle = "#0d2a57"; x.lineWidth = 2; x.strokeRect(pad, Hh - bh - pad, bw, bh);
     x.font = `700 ${fs}px sans-serif`; x.fillStyle = "#0d2a57"; x.fillText(`Unit Status Legend (${ddmmyyyy(todayISO())})`, pad * 2, Hh - bh - pad + pad + fs);
     S2.forEach((s, i) => { const yy = Hh - bh - pad + pad + fs * 1.5 * (i + 1) + fs; x.beginPath(); x.arc(pad * 2 + fs * 0.45, yy - fs * 0.35, fs * 0.45, 0, Math.PI * 2); if (s === "avail") { x.fillStyle = "#fff"; x.fill(); x.lineWidth = 2; x.strokeStyle = "#8a94a6"; x.stroke(); } else { x.fillStyle = MS_ST[s].c; x.fill(); }
       x.fillStyle = "#0f2140"; x.font = `600 ${fs}px sans-serif`; x.fillText(`${MS_ST[s].t}${s === "avail" ? " (kosong)" : ""}: ${H.n[s]} (${idn(H.n[s] / H.units.length * 100, 1)}%)`, pad * 2 + fs * 1.4, yy); });
-    const fn = `Siteplan_${nama.replace(/\s+/g, "_")}_${todayISO()}.png`;
+    const hn = msHalList(nama).length > 1 ? "_" + ((msHalList(nama).find(x => x.id === msHal(nama)) || {}).nama || "").replace(/\s+/g, "_") : "";
+    const fn = `Siteplan_${nama.replace(/\s+/g, "_")}${hn}_${todayISO()}.png`;
     c.toBlob(blob => { if (cara === "blob") { selesai({ blob, fn }); return; } simpanBlob(blob, fn); toast("Gambar diunduh"); selesai(null); }, "image/png"); };
   im.src = src; });
 }
@@ -4122,7 +4151,7 @@ function renderMenu(v) {
 let rendering = false;
 /* Mode lihat saja untuk Viewer di Input Data & Master: semua isian dikunci, tombol ubah disembunyikan; Ekspor Excel, filter & tampilan tetap bisa */
 function kunciViewer(view) {
-  const boleh = "#sXls, #wkXls, #xlsBtn, #mnXls, #rpDetail, #rpM, #tglIn, #wkMg, #wkTh, #wkHanyaIsi, [data-wktambahan], [data-wkbln], [data-wkmore], [data-wkall], [data-wkless], [data-fbh], [data-fbhreset], #msXls, #msPng, #msShare, [data-mszoom], [data-msf], [data-msk]";
+  const boleh = "#sXls, #wkXls, #xlsBtn, #mnXls, #rpDetail, #rpM, #tglIn, #wkMg, #wkTh, #wkHanyaIsi, [data-wktambahan], [data-wkbln], [data-wkmore], [data-wkall], [data-wkless], [data-fbh], [data-fbhreset], #msXls, #msPng, #msShare, [data-mszoom], [data-msf], [data-msk], [data-mshal]";
   view.querySelectorAll("input, select, textarea").forEach(el => { if (!el.matches(boleh)) { el.disabled = true; el.classList.add("ro"); } });
   view.querySelectorAll("button").forEach(b => { if (!b.matches(boleh) && !/ekspor excel/i.test(b.textContent)) b.hidden = true; });
   const nav = view.querySelector(".rtabs");
