@@ -175,6 +175,7 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-scroll { overflow: auto; max-height: 80vh; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
 .ms-wrap { position: relative; }
 /* Hold Reserved Dashboard */
+.hr-link { font-size: 13px; font-weight: 700; color: var(--blue); text-transform: none; letter-spacing: 0; margin-left: 10px; text-decoration: none; } .hr-link:hover { text-decoration: underline; }
 .hr-kpis { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
 .hr-t tr.hr-pt td { background: var(--navy); color: #fff; font-weight: 800; }
 .hr-t tr.hr-pr td { background: var(--blue-soft); font-weight: 700; color: var(--ink); } .hr-t tr.hr-pr small { font-weight: 600; color: var(--muted); margin-left: 8px; }
@@ -1991,6 +1992,7 @@ function viewSales() {
         <input type="date" id="salesTgl" value="${pilihSalesTgl || tgl}" min="${tahunKe()}-01-01" max="${salesTahun ? `${tahunKe()}-12-31` : todayISO()}" title="Data penjualan dicatat per bulan: tanggal yang dipilih menampilkan data bulannya">
         ${salesBulan ? '<button class="btn-ghost" id="salesLatest" type="button">Bulan berjalan</button>' : ""}
         <button class="btn-ghost" id="salesCopy" type="button">Salin teks laporan</button>
+        <a class="btn-ghost" style="text-decoration:none" href="#hold" title="Semua Hold Reserved (detail dari Weekly, semua proyek)">Hold Reserved</a>
         <button class="btn-ghost" id="salesShot" type="button" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button>
       </div></div>
   </div>
@@ -2026,7 +2028,7 @@ function viewSales() {
   ${kontributor("bln", `Kontributor Penjualan ${esc(bln)}`)}
   <section><div class="gut"><h2>Penjualan per Proyek</h2><div class="desc">Unit dan nilai penjualan (Rp miliar). Akumulasi terjual = akumulasi s.d. ${tahunKe() - 1} + YTD ${esc(BULAN[m - 1])}.</div></div>
     <div class="tbl-wrap"><table class="rincian num">${tbl}</table></div></section>
-  <section class="gut"><h2>Hold Reserved</h2>
+  <section class="gut"><h2>Hold Reserved <a class="hr-link" href="#hold">Lihat detail semua proyek →</a></h2>
     <div class="desc">Unit yang ditahan dan belum di-create ke sistem penjualan. Tetap tercantum sampai dihapus manual oleh admin. Tidak dihitung ke penjualan bulan ini, YTD, maupun akumulasi.</div>
     ${hold.length ? `<div class="tbl-wrap"><table class="hold-t num"><thead><tr><th>Proyek</th><th>Kode unit</th><th>Harga unit</th><th>Tanda jadi</th><th>Keterangan</th></tr></thead><tbody>
       ${hold.slice().sort((a, b) => ((S.sales2.proyek.find(p => p.id === a.proyekId) || {}).urutan || 99) - ((S.sales2.proyek.find(p => p.id === b.proyekId) || {}).urutan || 99))
@@ -4155,6 +4157,7 @@ const REPORTS = [
       { id: "penjualan-input", label: "Input Data", view: viewSalesInput, bind: bindSalesInput, admin: true },
       { id: "penjualan-master", label: "Master", view: viewSalesMaster, bind: bindSalesMaster, admin: true, master: true },
       { id: "penjualan-history", label: "History", view: () => viewHistory("penjualan"), bind: () => {} },
+      { id: "hold", label: "Hold Reserved", view: viewHold, bind: bindHold },
     ],
     meta: () => { const T = hitungSales().tot; return `Laporan ${ddmmyyyy(S.sales2.tanggal)} · ${T.bln[0]} unit bulan ini · ${rp(T.bln[1])}`; } },
   { id: "weekly", subMenu: true, nama: "Weekly Sales Dashboard", menu: "WEEKLY SALES DASHBOARD", desc: "",
@@ -4175,11 +4178,6 @@ const REPORTS = [
       { id: "monthly", label: "Dashboard", view: viewMonthly, bind: bindMonthly },
     ],
     meta: () => "" },
-  { id: "hold", nama: "Hold Reserved Dashboard", menu: "HOLD RESERVED DASHBOARD", desc: "Semua unit Hold Reserved dari Weekly Sales Dashboard, seluruh proyek, lengkap dengan nilai reserved, ekspor Excel, gambar, dan kirim ringkasan.",
-    tabs: [
-      { id: "hold", label: "Dashboard", view: viewHold, bind: bindHold },
-    ],
-    meta: () => { const n = hrData().reduce((a, p) => a + p.rows.length, 0); return n ? `${n} unit hold saat ini` : "Tidak ada unit hold"; } },
   { id: "bast", nama: "Monitoring BAST (PPN & Non-PPN)", menu: "MONITORING BAST (PPN & NON-PPN)", desc: "Progres BAST unit PPN DTP dan Non PPN DTP per periode dan proyek.",
     tabs: [
       { id: "bast", label: "Dashboard", view: viewDashboard, bind: bindDashboard },
