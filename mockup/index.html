@@ -174,6 +174,11 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-zoom button { font: inherit; font-weight: 700; width: 34px; height: 30px; border: 0; background: var(--bg); color: var(--ink); cursor: pointer; } .ms-zoom span { font-size: 12px; min-width: 46px; text-align: center; } .ms-zoom button:disabled { opacity: .35; cursor: default; } .ms-uk { margin-left: auto; margin-right: 8px; }
 .ms-scroll { overflow: auto; max-height: 80vh; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
 .ms-wrap { position: relative; }
+/* Hold Reserved Dashboard */
+.hr-kpis { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.hr-t tr.hr-pt td { background: var(--navy); color: #fff; font-weight: 800; }
+.hr-t tr.hr-pr td { background: var(--blue-soft); font-weight: 700; color: var(--ink); } .hr-t tr.hr-pr small { font-weight: 600; color: var(--muted); margin-left: 8px; }
+.hr-t td.c, .hr-sum td.c { text-align: center; } .hr-t td.nowrap { white-space: nowrap; } .hr-t td.hr-lama { color: var(--red); font-weight: 800; }
 .ms-hal .ms-leg.on { background: var(--navy); border-color: var(--navy); color: #fff; font-weight: 700; }
 .ms-hal { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 10px; }
 .ms-hal-add { font: inherit; font-size: 12.5px; border: 1px dashed var(--line); border-radius: 999px; background: none; color: var(--blue); padding: 5px 12px; cursor: pointer; }
@@ -3770,7 +3775,7 @@ async function msSimpanStok(nama, pesan) {
 }
 const MS_LGD = [["kb", "kanan bawah"], ["kib", "kiri bawah"], ["kia", "kiri atas"], ["ka", "kanan atas"]];
 /* Tempat kosong bawaan per siteplan (persen kiri, atas) agar legenda tidak menutupi gambar/tulisan */
-const MS_LGD_BAWAAN = { "Permai Indah": [63, 2], "Mazenta Residence": [3, 87], "Bio District": [72, 80], "Naraya Serpong": [67, 3], "Scotts Vale": [83, 70],
+const MS_LGD_BAWAAN = { "Permai Indah": [63, 2], "Mazenta Residence": [3, 87], "Bio District": [72, 80], "Naraya Serpong": [27, 83], "Scotts Vale": [83, 70],
   "Orchard Riviera": [76, 4], "Tanglin Parc": [3, 6], "Newton Springs": [74, 62], "Banara Serpong": [72, 56], "Marchand": null };
 const msLgdPos = nama => { const v = (msData(nama) || {}).lgdPos; return MS_LGD.some(x => x[0] === v) ? v : (MS_LGD_BAWAAN[nama] && !msHal(nama) ? "auto" : "kb"); };
 const MS_ZOOM = [0.5, 0.75, 1, 1.5, 2, 3, 4];
@@ -4073,6 +4078,76 @@ async function msBagikanGambar(nama) {
   catch (e) { if (e && e.name === "NotAllowedError") { msSiap = { nama, r, t: Date.now() }; toast("Gambar siap. Ketuk Bagikan sekali lagi."); } else if (!e || e.name !== "AbortError") toast("Gagal membagikan gambar"); }
 }
 let msSiap = null;
+/* ===================== HOLD RESERVED DASHBOARD (semua proyek, dari Weekly) ===================== */
+let hrProyek = "", hrDari = "", hrSampai = "";
+const hrKode = v => String(v || "").toUpperCase().replace(/\s+/g, "");
+/* Nilai Reserved: kolom di Weekly; jika kosong ambil tanda jadi Hold Reserved di Daily Sales dengan kode yang sama */
+const hrTj = x => { if (+x.tandaJadi) return +x.tandaJadi; const d = (S.sales2.hold || []).find(h => hrKode(h.kode) === hrKode(x.unit) && +h.tandaJadi); return d ? +d.tandaJadi : 0; };
+const hrLama = t => t ? Math.max(0, Math.round((new Date(todayISO()) - new Date(t)) / 864e5)) : null;
+function hrData() {
+  const out = [];
+  WK_GRUP.forEach(([grup, list]) => list.forEach(nama => { if (!bolehLihat(nama)) return; const W = S.weekly && S.weekly[nama]; if (!W) return;
+    const rows = wkHit(W.hold).filter(x => (!hrDari || (x.tanggal || "") >= hrDari) && (!hrSampai || (x.tanggal || "") <= hrSampai)).slice().sort((a, b) => String(a.tanggal || "").localeCompare(String(b.tanggal || "")));
+    if (hrProyek && hrProyek !== nama) return;
+    out.push({ grup, nama, rows }); }));
+  return out;
+}
+function viewHold() {
+  const D = hrData(), semua = D.flatMap(p => p.rows.map(r => ({ ...r, _p: p.nama, _g: p.grup })));
+  const U = semua.reduce((a, x) => a + (+x.jumlah || 1), 0), TJ = semua.reduce((a, x) => a + hrTj(x), 0), NK = semua.reduce((a, x) => a + (x.rpInc || x.rpExc || 0), 0);
+  const lamaMax = semua.reduce((a, x) => Math.max(a, hrLama(x.tanggal) || 0), 0), ada = D.filter(p => p.rows.length);
+  const kpi = (c, lbl, v, sub) => `<div class="kpi" style="--c:${c}"><div class="lbl">${lbl}</div><div class="val num">${v}</div><div class="note">${sub}</div></div>`;
+  const opsi = WK_GRUP.flatMap(g => g[1]).filter(bolehLihat).map(n => `<option value="${esc(n)}" ${n === hrProyek ? "selected" : ""}>${esc(n)}</option>`).join("");
+  const rp0 = v => v ? akRp(rpDot(v)) : "–";
+  let g0 = "";
+  const body = ada.map(p => { const sub = p.rows.reduce((a, x) => [a[0] + (+x.jumlah || 1), a[1] + hrTj(x), a[2] + (x.rpInc || x.rpExc || 0)], [0, 0, 0]);
+    const gh = p.grup !== g0 ? (g0 = p.grup, `<tr class="hr-pt"><td colspan="11">${esc(p.grup)}</td></tr>`) : "";
+    return gh + `<tr class="hr-pr"><td colspan="11">${esc(p.nama)} <small>${sub[0]} unit • Nilai Reserved ${sub[1] ? rpPendek(sub[1]) : "–"}</small></td></tr>` +
+      p.rows.map(x => { const l = hrLama(x.tanggal); return `<tr><td class="nowrap">${x.tanggal ? ddmmyyyy(x.tanggal) : "–"}</td><td class="c ${l != null && l > 30 ? "hr-lama" : ""}">${l == null ? "–" : l}</td><td class="nowrap"><b>${esc(x.unit || "–")}</b></td>
+        <td>${esc(x.konsumen || "–")}</td><td class="c">${esc(x.tipe || "–")}</td><td>${esc(x.bayar || "–")}</td><td class="acc">${rp0(x.rpInc || x.rpExc)}</td><td class="acc">${rp0(hrTj(x))}</td>
+        <td>${esc(x.sales || "–")}</td><td class="ket">${esc(x.ket || "")}</td><td class="c">${+x.jumlah || 1}</td></tr>`; }).join(""); }).join("");
+  return `<div class="page cap" id="capHold">
+  <div class="hero"><div class="tabs"><span class="tab">Hold Reserved</span><span class="tab">${panjang(todayISO())}</span></div>
+    <div class="hero-body gut"><h1>Hold Reserved Dashboard</h1><div class="sub">${hrProyek ? esc(hrProyek) : "Semua proyek"}${hrDari || hrSampai ? ` • ${hrDari ? ddmmyyyy(hrDari) : "awal"} s.d ${hrSampai ? ddmmyyyy(hrSampai) : "sekarang"}` : ""} • data dari Weekly Sales Dashboard (Hold Reserved)</div></div></div>
+  <div class="mn-ctl gut no-cap"><label class="wk-opt" for="hrPr">Proyek <select id="hrPr"><option value="">Semua proyek</option>${opsi}</select></label>
+    <label class="wk-opt" for="hrDari">Dari <input type="date" id="hrDari" value="${hrDari}"></label><label class="wk-opt" for="hrSampai">Sampai <input type="date" id="hrSampai" value="${hrSampai}"></label>
+    ${hrProyek || hrDari || hrSampai ? `<button type="button" class="btn-ghost" id="hrReset">Reset filter</button>` : ""}
+    <span class="mn-act"><button type="button" class="btn sec" id="hrKirim">Kirim ringkasan</button><button type="button" class="btn sec" id="hrShot" data-shot aria-haspopup="menu">Unduh / Bagikan ▾</button><button type="button" class="btn sec" id="hrXls">Ekspor Excel</button></span></div>
+  <div class="kpis gut hr-kpis">${kpi("var(--purple)", "Total unit hold", `${U.toLocaleString(LOC())} <small>unit</small>`, `${ada.length} proyek`)}${kpi("var(--gold)", "Total Nilai Reserved", TJ ? rpPendek(TJ) : "–", "Tanda jadi / UTJ")}${kpi("var(--blue)", "Nilai kontrak unit hold", rp(NK), "Include PPN (Exclude jika kosong)")}${kpi("var(--red)", "Hold terlama", `${lamaMax} <small>hari</small>`, "Sejak tanggal transaksi")}</div>
+  <section class="gut"><h2>Ringkasan per proyek</h2><div class="tbl-wrap"><table class="hold-t pg-t hr-sum"><thead><tr><th>Proyek</th><th>Unit</th><th>Nilai Reserved</th><th>Nilai Kontrak</th></tr></thead><tbody>
+    ${ada.map(p => `<tr><td>${esc(p.nama)}</td><td class="c">${p.rows.reduce((a, x) => a + (+x.jumlah || 1), 0)}</td><td class="acc">${rp0(p.rows.reduce((a, x) => a + hrTj(x), 0))}</td><td class="acc">${rp0(p.rows.reduce((a, x) => a + (x.rpInc || x.rpExc || 0), 0))}</td></tr>`).join("") || `<tr><td colspan="4" style="text-align:center;color:var(--muted)">Tidak ada unit hold.</td></tr>`}
+    ${ada.length ? `<tr class="t"><td>TOTAL</td><td class="c">${U}</td><td class="acc">${rp0(TJ)}</td><td class="acc">${rp0(NK)}</td></tr>` : ""}</tbody></table></div></section>
+  <section class="gut"><h2>Rincian Hold Reserved</h2><div class="desc">Lama = hari sejak tanggal transaksi (merah jika lebih dari 30 hari). Nilai Reserved dari kolom Weekly; jika kosong diambil dari Hold Reserved di Daily Sales.</div>
+    <div class="tbl-wrap"><table class="hold-t pg-t hr-t"><thead><tr><th>Tanggal</th><th>Lama<br>(hari)</th><th>Unit</th><th>Konsumen</th><th>Tipe</th><th>Skema Bayar</th><th>Nilai Kontrak</th><th>Nilai Reserved</th><th>Sales</th><th>Keterangan</th><th>Jml</th></tr></thead>
+    <tbody>${body || `<tr><td colspan="11" style="text-align:center;color:var(--muted)">Tidak ada unit hold.</td></tr>`}</tbody></table></div></section></div>`;
+}
+function teksHold() {
+  return denganID(() => { const D = hrData().filter(p => p.rows.length); const L = [`*HOLD RESERVED*`, `Per ${ddmmyyyy(todayISO())}`, ""];
+    if (!D.length) return L.concat("Tidak ada unit hold.").join("\n");
+    D.forEach(p => L.push(`*${p.nama} :* ${p.rows.reduce((a, x) => a + (+x.jumlah || 1), 0)} Unit (${p.rows.map(x => { const tj = hrTj(x); return `${x.unit || "?"}${tj ? " " + rpPendek(tj) : ""}`; }).join(" & ")})`));
+    const s = D.flatMap(p => p.rows); L.push("", `*Total : ${s.reduce((a, x) => a + (+x.jumlah || 1), 0)} Unit • Nilai Reserved ${rpPendek(s.reduce((a, x) => a + hrTj(x), 0))}*`);
+    return L.join("\n"); });
+}
+function exportHoldExcel() {
+  if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
+  const RP = "#,##0", rpC = v => ({ v: v || 0, t: "n", z: RP });
+  const aoa = [["HOLD RESERVED - SEMUA PROYEK"], [`Per ${ddmmyyyy(todayISO())} • data dari Weekly Sales Dashboard`], [],
+    ["PT", "Proyek", "Tanggal", "Lama (hari)", "Kode Unit", "Konsumen", "Tipe", "Skema Bayar", "Nilai Kontrak (Rp)", "Nilai Reserved (Rp)", "Sales", "Keterangan", "Jumlah"]];
+  hrData().forEach(p => p.rows.forEach(x => aoa.push([p.grup, p.nama, x.tanggal ? ddmmyyyy(x.tanggal) : "", hrLama(x.tanggal) ?? "", x.unit || "", x.konsumen || "", x.tipe || "", x.bayar || "",
+    rpC(x.rpInc || x.rpExc), rpC(hrTj(x)), x.sales || "", x.ket || "", +x.jumlah || 1])));
+  const n = aoa.length; aoa.push(["TOTAL", "", "", "", "", "", "", "", { f: `SUM(I5:I${n})`, z: RP }, { f: `SUM(J5:J${n})`, z: RP }, "", "", { f: `SUM(M5:M${n})` }]);
+  const ws = aoaSheet(aoa); ws["!cols"] = [{ wch: 34 }, { wch: 20 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 26 }, { wch: 8 }, { wch: 24 }, { wch: 18 }, { wch: 18 }, { wch: 30 }, { wch: 40 }, { wch: 8 }];
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Hold Reserved"); XLSX.writeFile(wb, `Hold_Reserved_${todayISO()}.xlsx`); toast("File Excel diunduh");
+}
+function bindHold() {
+  const g = id => document.getElementById(id);
+  if (g("hrPr")) g("hrPr").onchange = e => { hrProyek = e.target.value; render(); };
+  ["hrDari", "hrSampai"].forEach(id => { const el = g(id); if (el) el.onchange = () => { clearTimeout(el._t); el._t = setTimeout(() => { if (id === "hrDari") hrDari = el.value; else hrSampai = el.value; render(id); }, 700); }; });
+  if (g("hrReset")) g("hrReset").onclick = () => { hrProyek = hrDari = hrSampai = ""; render(); };
+  if (g("hrXls")) g("hrXls").onclick = () => denganID(() => exportHoldExcel());
+  if (g("hrShot")) g("hrShot").onclick = e => menuGambar(e.currentTarget, "capHold", `Hold_Reserved_${todayISO()}.png`);
+  if (g("hrKirim")) g("hrKirim").onclick = () => bukaKirimTeks("Hold Reserved", teksHold);
+}
 const REPORTS = [
   { id: "penjualan", nama: "Daily Sales Dashboard", menu: "DAILY SALES DASHBOARD", desc: "Unit dan nilai penjualan per proyek: hari ini, bulan laporan, YTD, dan akumulasi terjual. Mengikuti format Excel Daily Report.",
     tabs: [
@@ -4100,6 +4175,11 @@ const REPORTS = [
       { id: "monthly", label: "Dashboard", view: viewMonthly, bind: bindMonthly },
     ],
     meta: () => "" },
+  { id: "hold", nama: "Hold Reserved Dashboard", menu: "HOLD RESERVED DASHBOARD", desc: "Semua unit Hold Reserved dari Weekly Sales Dashboard, seluruh proyek, lengkap dengan nilai reserved, ekspor Excel, gambar, dan kirim ringkasan.",
+    tabs: [
+      { id: "hold", label: "Dashboard", view: viewHold, bind: bindHold },
+    ],
+    meta: () => { const n = hrData().reduce((a, p) => a + p.rows.length, 0); return n ? `${n} unit hold saat ini` : "Tidak ada unit hold"; } },
   { id: "bast", nama: "Monitoring BAST (PPN & Non-PPN)", menu: "MONITORING BAST (PPN & NON-PPN)", desc: "Progres BAST unit PPN DTP dan Non PPN DTP per periode dan proyek.",
     tabs: [
       { id: "bast", label: "Dashboard", view: viewDashboard, bind: bindDashboard },
@@ -4162,7 +4242,7 @@ function renderMenu(v) {
 let rendering = false;
 /* Mode lihat saja untuk Viewer di Input Data & Master: semua isian dikunci, tombol ubah disembunyikan; Ekspor Excel, filter & tampilan tetap bisa */
 function kunciViewer(view) {
-  const boleh = "#sXls, #wkXls, #xlsBtn, #mnXls, #rpDetail, #rpM, #tglIn, #wkMg, #wkTh, #wkHanyaIsi, [data-wktambahan], [data-wkbln], [data-wkmore], [data-wkall], [data-wkless], [data-fbh], [data-fbhreset], #msXls, #msPng, #msShare, [data-mszoom], [data-msf], [data-msk], [data-mshal], #msLgdPos";
+  const boleh = "#sXls, #wkXls, #xlsBtn, #mnXls, #rpDetail, #rpM, #tglIn, #wkMg, #wkTh, #wkHanyaIsi, [data-wktambahan], [data-wkbln], [data-wkmore], [data-wkall], [data-wkless], [data-fbh], [data-fbhreset], #msXls, #msPng, #msShare, [data-mszoom], [data-msf], [data-msk], [data-mshal], #msLgdPos, #hrPr, #hrDari, #hrSampai, #hrReset";
   view.querySelectorAll("input, select, textarea").forEach(el => { if (!el.matches(boleh)) { el.disabled = true; el.classList.add("ro"); } });
   view.querySelectorAll("button").forEach(b => { if (!b.matches(boleh) && !/ekspor excel/i.test(b.textContent)) b.hidden = true; });
   const nav = view.querySelector(".rtabs");
