@@ -174,6 +174,9 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-zoom button { font: inherit; font-weight: 700; width: 34px; height: 30px; border: 0; background: var(--bg); color: var(--ink); cursor: pointer; } .ms-zoom span { font-size: 12px; min-width: 46px; text-align: center; } .ms-zoom button:disabled { opacity: .35; cursor: default; } .ms-uk { margin-left: auto; margin-right: 8px; }
 .ms-scroll { overflow: auto; max-height: 80vh; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
 .ms-wrap { position: relative; }
+.wk-cat { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 12px; margin: 4px 0 14px; padding: 10px 12px; border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 6px; font-size: 13px; color: var(--ink); background: var(--bg); }
+.wk-cat > b { padding-top: 5px; } .wk-cat textarea { flex: 1 1 420px; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--ink); resize: vertical; }
+.wk-cat-t { flex: 1; white-space: pre-wrap; padding-top: 5px; } .wk-cat small { width: 100%; color: var(--muted); }
 .ms-semua { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 10px; }
 .ms-sm { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; } .ms-sm .ms-scroll { border: 0; border-radius: 0; }
 .ms-sm-h { font-weight: 800; font-size: 13px; padding: 6px 10px; background: var(--navy); color: #fff; }
@@ -2802,6 +2805,11 @@ function viewWeekly(nama, id) {
       const r = hitungSales([p]).rows[0]; if (!r || !r.stok) return "";
       const sisa = [Math.max(0, r.stok[0] - r.akum[0]), Math.max(0, r.stok[1] - r.akum[1])];
       return kpi("var(--navy)", "Stock awal", r.stok[0], r.stok[1], "Total stock (Daily Sales Dashboard)") + kpi("var(--teal, #0f8a8a)", "Sisa unit", sisa[0], sisa[1], `Stock awal − akumulasi terjual ${r.akum[0].toLocaleString(LOC())} unit`); })()}</div>
+  ${(() => { /* Catatan di bawah kartu (per proyek). Admin proyek & admin.chl bisa mengubah; lainnya hanya melihat */
+    const ct = W.catatanKartu || {}, ed = S.role === "ADMIN" && bolehEdit(nama);
+    if (!ed && !ct.teks) return "";
+    return `<div class="wk-cat gut"><b>Catatan</b>${ed ? `<textarea id="wkCat" rows="2" placeholder="Tulis catatan untuk kartu di atas (opsional)">${esc(ct.teks || "")}</textarea><button type="button" class="btn sec no-cap" id="wkCatSimpan" data-nama="${esc(nama)}">Simpan catatan</button>` : `<div class="wk-cat-t">${esc(ct.teks)}</div>`}
+      ${ct.teks && ct.oleh ? `<small>${esc(ct.oleh)}${ct.t ? " • " + ddmmyyyy(ct.t.slice(0, 10)) : ""}</small>` : ""}</div>`; })()}
   ${!jL.length && !bL.length && !hold.length ? `<div class="wk-imp gut no-cap"><b>Belum ada transaksi ${th} untuk ${esc(nama)}.</b> ${S.role === "ADMIN" && bolehEdit(nama)
     ? (bolehImporExcel() ? `Masukkan dari file Weekly Report: buka <a href="#${(REPORTS.find(r => r.id === "weekly").tabs.find(t => t.proyek === nama && t.label === "Input Data") || {}).id}">Input Data</a> → klik <b>Impor dari Excel</b> → pilih file → <b>Simpan data</b>.` : `Isi transaksinya di <a href="#${(REPORTS.find(r => r.id === "weekly").tabs.find(t => t.proyek === nama && t.label === "Input Data") || {}).id}">Input Data</a>, lalu <b>Simpan data</b>.`) : "Data akan tampil setelah admin mengisi Input Data."}</div>` : ""}
   <section class="gut"><div class="wk-h"><h2>Penjualan per minggu ${th}</h2>
@@ -2837,6 +2845,11 @@ function viewWeekly(nama, id) {
   </div>`;
 }
 function bindWeekly() {
+  const cs = document.getElementById("wkCatSimpan");
+  if (cs) cs.onclick = () => { const nama = cs.dataset.nama, W = S.weekly[nama]; if (!W || !bolehEdit(nama)) return;
+    const teks = document.getElementById("wkCat").value.trim(), lama = (W.catatanKartu || {}).teks || ""; if (teks === lama) { toast("Tidak ada perubahan"); return; }
+    if (teks) W.catatanKartu = { teks, oleh: SESI ? SESI.nama : "", t: new Date().toISOString() }; else delete W.catatanKartu;
+    catat(`weekly:${nama}`, "Dashboard", [teks ? `Catatan kartu: ${teks}` : "Catatan kartu dihapus"]); save(); toast("Catatan disimpan"); render(); };
   const c = document.getElementById("wkHanyaIsi"); if (c) c.onchange = () => { wkHanyaIsi = c.checked; render("wkHanyaIsi"); };
   const m = document.getElementById("wkMg"); if (m) m.onchange = () => { wkPilihMg = m.value; render("wkMg"); };
   const t = document.getElementById("wkTh"); if (t) t.onchange = () => { const y = +t.value; wkTahun = y === wkThIni() ? null : y; wkPilihMg = ""; render("wkTh"); };
