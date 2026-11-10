@@ -3769,7 +3769,10 @@ async function msSimpanStok(nama, pesan) {
   return /^Tersimpan/.test(msStokInfo[nama]);
 }
 const MS_LGD = [["kb", "kanan bawah"], ["kib", "kiri bawah"], ["kia", "kiri atas"], ["ka", "kanan atas"]];
-const msLgdPos = nama => { const v = (msData(nama) || {}).lgdPos; return MS_LGD.some(x => x[0] === v) ? v : "kb"; };
+/* Tempat kosong bawaan per siteplan (persen kiri, atas) agar legenda tidak menutupi gambar/tulisan */
+const MS_LGD_BAWAAN = { "Permai Indah": [63, 2], "Mazenta Residence": [3, 87], "Bio District": [72, 80], "Naraya Serpong": [67, 3], "Scotts Vale": [83, 70],
+  "Orchard Riviera": [76, 4], "Tanglin Parc": [3, 6], "Newton Springs": [74, 62], "Banara Serpong": [72, 56], "Marchand": null };
+const msLgdPos = nama => { const v = (msData(nama) || {}).lgdPos; return MS_LGD.some(x => x[0] === v) ? v : (MS_LGD_BAWAAN[nama] && !msHal(nama) ? "auto" : "kb"); };
 const MS_ZOOM = [0.5, 0.75, 1, 1.5, 2, 3, 4];
 /* Ukuran titik (persen lebar gambar), bisa disesuaikan admin dan tersimpan per proyek */
 const MS_UKURAN = [0.4, 0.5, 0.6, 0.75, 0.9, 1.1, 1.3, 1.6];
@@ -3822,7 +3825,7 @@ function msPeta(nama, H) {
   const T = msAtur === nama ? msTitik : msTitikEf(nama), units = H ? H.units : [];
   const dots = units.filter(u => T[u.k] && msHalTitik(T[u.k]) === hp && (msAtur === nama || (!msSembunyi.has(u.st) && u.st !== "avail"))).map(u => msDot(u, T[u.k])).join("");
   /* Legenda warna di dalam gambar (pojok kanan atas, tetap terlihat saat digeser/diperbesar) */
-  const lg = H ? `<div class="ms-lgd p-${msLgdPos(nama)}" aria-label="Unit Status Legend"><b>Unit Status Legend</b>${msAda(H).map(s => `<span><i ${s === "avail" ? 'class="kosong"' : `style="background:${MS_ST[s].c}"`}></i>${MS_ST[s].t}${s === "avail" ? " (kosong)" : ""}<em>${H.n[s]}</em><small>${idn(H.n[s] / (H.units.length || 1) * 100, 1)}%</small></span>`).join("")}</div>` : "";
+  const lg = H ? `<div class="ms-lgd p-${msLgdPos(nama)}" ${msLgdPos(nama) === "auto" ? `style="left:${MS_LGD_BAWAAN[nama][0]}%;top:${MS_LGD_BAWAAN[nama][1]}%"` : ""} aria-label="Unit Status Legend"><b>Unit Status Legend</b>${msAda(H).map(s => `<span><i ${s === "avail" ? 'class="kosong"' : `style="background:${MS_ST[s].c}"`}></i>${MS_ST[s].t}${s === "avail" ? " (kosong)" : ""}<em>${H.n[s]}</em><small>${idn(H.n[s] / (H.units.length || 1) * 100, 1)}%</small></span>`).join("")}</div>` : "";
   return `<div class="ms-wrap">${lg}<div class="ms-scroll" id="msScroll"><div class="ms-map ${msAtur === nama ? "atur" : ""}" id="msMap" style="width:${msZoom * 100}%;--msd:${msUkuran(nama)}"><img src="${img}" alt="Siteplan ${esc(nama)}" draggable="false">${dots}</div></div></div>`;
 }
 const msDot = (u, p) => `<button type="button" class="ms-dot st-${u.st} ${msAtur && msPilih === u.k ? "on" : ""}" style="left:${p[0]}%;top:${p[1]}%" data-msk="${esc(u.k)}" title="${esc(u.k)} • ${MS_ST[u.st].t}" aria-label="${esc(u.k)}, ${MS_ST[u.st].t}"></button>`;
@@ -3846,7 +3849,7 @@ function viewStock(nama) {
   const tot = H.units.length, T = msTitikEf(nama), belum = H.units.filter(u => !(atur ? msTitik : T)[u.k]).length;
   const uk = MS_UKURAN.indexOf(msUkuran(nama));
   const ukuran = msImg[msK(nama)] && ed ? `<div class="ms-zoom ms-uk" role="group" aria-label="Ukuran titik"><button type="button" data-msuk="-1" aria-label="Titik lebih kecil" ${uk === 0 ? "disabled" : ""}>−</button><span>Titik</span><button type="button" data-msuk="1" aria-label="Titik lebih besar" ${uk === MS_UKURAN.length - 1 ? "disabled" : ""}>+</button></div>` : "";
-  const lgdBtn = msImg[msK(nama)] && H ? `<button type="button" class="ms-lgd-pos" id="msLgdPos" title="Pindahkan legenda agar tidak menutupi tulisan di gambar">Posisi legenda: ${MS_LGD.find(x => x[0] === msLgdPos(nama))[1]} ↻</button>` : "";
+  const lgdBtn = msImg[msK(nama)] && H ? `<button type="button" class="ms-lgd-pos" id="msLgdPos" title="Pindahkan legenda agar tidak menutupi tulisan di gambar">Posisi legenda: ${(MS_LGD.find(x => x[0] === msLgdPos(nama)) || [0, "tempat kosong"])[1]} ↻</button>` : "";
   const zoom = msImg[msK(nama)] ? `${lgdBtn}${ukuran}<div class="ms-zoom" role="group" aria-label="Perbesar gambar"><button type="button" data-mszoom="-1" aria-label="Perkecil">−</button><span>${Math.round(msZoom * 100)}%</span><button type="button" data-mszoom="1" aria-label="Perbesar">+</button></div>` : "";
   const sisi = atur ? (() => { const B = msRekapBlok(H.units);
     return `<div class="ms-side"><div class="ms-side-h">${msSunting ? `<b>Sunting titik:</b> tarik (drag) titik ke posisi yang rapi, atau pilih titik lalu geser dengan tombol panah keyboard. Terpilih: <b id="msPilihLbl">${esc(msPilih || "–")}</b>` : `Klik posisi unit <b id="msPilihLbl">${esc(msPilih || "–")}</b> di gambar. Klik titik yang sudah ada untuk memilih, atau tarik titik untuk menggesernya.`}</div>
@@ -3904,7 +3907,7 @@ function bindStock(nama) {
   const ingatScroll = () => { const s = g("msScroll"); msScroll = s ? [s.scrollLeft / s.scrollWidth, s.scrollTop / s.scrollHeight] : null; };
   v.querySelectorAll("[data-msf]").forEach(b => b.onclick = () => { const s = b.dataset.msf; msSembunyi.has(s) ? msSembunyi.delete(s) : msSembunyi.add(s); ingatScroll(); render(); });
   if (g("msLgdPos")) g("msLgdPos").onclick = () => { const D = msData(nama); if (!D) return; const i = MS_LGD.findIndex(x => x[0] === msLgdPos(nama));
-    D.lgdPos = MS_LGD[(i + 1) % MS_LGD.length][0]; ingatScroll(); render(); if (bolehEdit(nama)) msSimpanStok(nama); };
+    D.lgdPos = i === MS_LGD.length - 1 && MS_LGD_BAWAAN[nama] ? "" : MS_LGD[(i + 1) % MS_LGD.length][0]; ingatScroll(); render(); if (bolehEdit(nama)) msSimpanStok(nama); };
   v.querySelectorAll("[data-mshal]").forEach(b => b.onclick = () => { msHalPilih[nama] = +b.dataset.mshal; msScroll = null; render(); });
   v.querySelectorAll("[data-mszoom]").forEach(b => b.onclick = () => { const i = Math.max(0, Math.min(MS_ZOOM.length - 1, MS_ZOOM.indexOf(msZoom) + +b.dataset.mszoom)); ingatScroll(); msZoom = MS_ZOOM[i]; render(); });
   if (g("msXls")) g("msXls").onclick = () => denganID(() => msEksporExcel(nama));
