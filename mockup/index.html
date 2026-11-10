@@ -189,6 +189,7 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .ms-dot.on { outline: 3px solid #0d2a57; outline-offset: 2px; z-index: 2; }
 .ms-pop { position: absolute; z-index: 5; transform: translate(-50%, calc(-100% - 14px)); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,.2); padding: 9px 12px; font-size: 12.5px; line-height: 1.5; min-width: 210px; max-width: 300px; pointer-events: none; }
 .ms-pill { color: #fff; border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 700; margin-left: 4px; } .ms-src { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+.btn.ms-hapus { color: var(--red); border-color: var(--red); }
 .ms-srv { color: var(--muted); font-style: italic; } .ms-srv.err { color: var(--red); font-weight: 700; font-style: normal; }
 .ms-note { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
 .ms-aturw { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 12px; align-items: start; }
@@ -3814,7 +3815,7 @@ function viewStock(nama) {
   const H = msHitung(nama), ed = bolehEdit(nama), D = msData(nama), atur = msAtur === nama;
   const n0 = v => v ? v.toLocaleString(LOC()) : "–";
   const alat = `<div class="btn-row">${H ? `<button class="btn sec" id="msXls" type="button">Ekspor Excel</button>${msImg[nama] && D && Object.keys(msTitikEf(nama)).length ? `<button class="btn sec" id="msPng" type="button">Ekspor gambar</button><button class="btn sec" id="msShare" type="button" aria-haspopup="menu">Bagikan ▾</button>` : ""}` : ""}
-    ${ed && !atur ? `<button class="btn sec" id="msUp" type="button">${msImg[nama] ? "Ganti siteplan" : "Unggah siteplan"}</button><input type="file" id="msUpFile" accept="image/png,image/jpeg,image/webp" hidden>
+    ${ed && !atur ? `<button class="btn sec" id="msUp" type="button">${msImg[nama] ? "Ganti siteplan" : "Unggah siteplan"}</button><input type="file" id="msUpFile" accept="image/png,image/jpeg,image/webp" hidden>${msImg[nama] ? `<button class="btn sec ms-hapus" id="msHapusSp" type="button" title="Hapus gambar siteplan (jika salah unggah)">Hapus siteplan</button>` : ""}
       <button class="btn sec" id="msImp" type="button">Impor Excel stock</button><input type="file" id="msImpFile" accept=".xlsx,.xls" hidden>
       ${H && msImg[nama] ? `<button class="btn sec" id="msSuntingBtn" type="button" title="Geser titik yang sudah ada agar rapi">Sunting titik</button><button class="btn" id="msAturBtn" type="button">Atur titik unit</button>` : ""}` : ""}</div>`;
   const info = D && D.units && D.units.length ? `Status per <b>${D.tanggal ? ddmmyyyy(D.tanggal) : "–"}</b> dari Excel stock${D.file ? ` (${esc(D.file)})` : ""}. Transaksi Weekly setelah tanggal itu ikut memperbarui status.` : "Belum ada data stock.";
@@ -3912,6 +3913,11 @@ function bindStock(nama) {
   v.querySelectorAll("[data-msuk]").forEach(b => b.onclick = () => { const D = msData(nama); if (!D) return; const i = MS_UKURAN.indexOf(msUkuran(nama)), j = Math.max(0, Math.min(MS_UKURAN.length - 1, (i < 0 ? 2 : i) + +b.dataset.msuk));
     D.ukuran = MS_UKURAN[j]; const m = g("msMap"); if (m) m.style.setProperty("--msd", D.ukuran); clearTimeout(msUkT); msUkT = setTimeout(() => msSimpanStok(nama), 600);
     v.querySelectorAll("[data-msuk]").forEach(x => x.disabled = (+x.dataset.msuk < 0 && j === 0) || (+x.dataset.msuk > 0 && j === MS_UKURAN.length - 1)); });
+  if (g("msHapusSp")) g("msHapusSp").onclick = async () => {
+    if (!confirm(`Hapus gambar siteplan ${nama}?\n\nData unit dan posisi titik tetap tersimpan. Setelah itu unggah siteplan yang benar.`)) return;
+    try { const r = await api("POST", "/api/siteplan", { p: nama, hapus: true }); if (!r.ok) { toast(r.data.error || "Gagal menghapus siteplan"); return; }
+      msImg[nama] = ""; catat(`weekly:${nama}`, "Master Stock", [`Gambar siteplan ${nama} dihapus`]); save(); toast("Siteplan dihapus"); render();
+    } catch (e) { if (e.message !== "401") toast("Gagal menghapus siteplan"); } };
   const up = g("msUpFile");
   if (g("msUp")) g("msUp").onclick = () => { up.value = ""; up.click(); };
   if (up) up.onchange = async () => { const file = up.files && up.files[0]; if (!file) return;

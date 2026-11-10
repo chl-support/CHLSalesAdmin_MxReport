@@ -19,6 +19,8 @@ module.exports = async (req, res) => {
       const b = await readBody(req), p = low(b && b.p);
       if (!p) return send(res, 400, { error: "Nama proyek kosong" });
       if (user.proyek && !user.proyek.includes(p)) return send(res, 403, { error: "Akun ini tidak punya akses ke proyek tersebut." });
+      /* Hapus siteplan (mis. salah unggah) */
+      if (b.hapus) { await kvSet(KEY + p, ""); return send(res, 200, { ok: true }); }
       if (typeof b.img !== "string" || !/^data:image\/(jpeg|png|webp);base64,/.test(b.img)) return send(res, 400, { error: "Format gambar tidak didukung" });
       if (b.img.length > 3500000) return send(res, 413, { error: "Gambar terlalu besar" });
       await kvSet(KEY + p, b.img);
