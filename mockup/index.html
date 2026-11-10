@@ -4155,9 +4155,9 @@ const REPORTS = [
     tabs: [
       { id: "penjualan", label: "Dashboard", view: () => denganTahunSales(viewSales), bind: bindSales },
       { id: "penjualan-input", label: "Input Data", view: viewSalesInput, bind: bindSalesInput, admin: true },
+      { id: "hold", label: "Hold Reserved", view: viewHold, bind: bindHold },
       { id: "penjualan-master", label: "Master", view: viewSalesMaster, bind: bindSalesMaster, admin: true, master: true },
       { id: "penjualan-history", label: "History", view: () => viewHistory("penjualan"), bind: () => {} },
-      { id: "hold", label: "Hold Reserved", view: viewHold, bind: bindHold },
     ],
     meta: () => { const T = hitungSales().tot; return `Laporan ${ddmmyyyy(S.sales2.tanggal)} · ${T.bln[0]} unit bulan ini · ${rp(T.bln[1])}`; } },
   { id: "weekly", subMenu: true, nama: "Weekly Sales Dashboard", menu: "WEEKLY SALES DASHBOARD", desc: "",
