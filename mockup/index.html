@@ -3893,7 +3893,7 @@ function viewStock(nama) {
   const ukuran = msImg[msK(nama)] && ed ? `<div class="ms-zoom ms-uk" role="group" aria-label="Ukuran titik"><button type="button" data-msuk="-1" aria-label="Titik lebih kecil" ${uk === 0 ? "disabled" : ""}>−</button><span>Titik</span><button type="button" data-msuk="1" aria-label="Titik lebih besar" ${uk === MS_UKURAN.length - 1 ? "disabled" : ""}>+</button></div>` : "";
   const tglIn = H ? `<label class="ms-tgl" for="msTgl" title="Tanggal data yang tertulis di legenda, gambar, Excel, dan ringkasan yang dikirim">Tanggal data <input type="date" id="msTgl" value="${msTglData(nama)}" max="${todayISO()}"></label>` : "";
   const lgdBtn = msImg[msK(nama)] && H ? `<button type="button" class="ms-lgd-pos" id="msLgdPos" title="Pindahkan legenda agar tidak menutupi tulisan di gambar">Posisi legenda: ${(MS_LGD.find(x => x[0] === msLgdPos(nama)) || [0, "tempat kosong"])[1]} ↻</button>` : "";
-  const zoom = msImg[msK(nama)] ? `${tglIn}${lgdBtn}${ukuran}<div class="ms-zoom" role="group" aria-label="Perbesar gambar"><button type="button" data-mszoom="-1" aria-label="Perkecil">−</button><span>${Math.round(msZoom * 100)}%</span><button type="button" data-mszoom="1" aria-label="Perbesar">+</button></div>` : "";
+  const zoom = msImg[msK(nama)] ? `${lgdBtn}${ukuran}<div class="ms-zoom" role="group" aria-label="Perbesar gambar"><button type="button" data-mszoom="-1" aria-label="Perkecil">−</button><span>${Math.round(msZoom * 100)}%</span><button type="button" data-mszoom="1" aria-label="Perbesar">+</button></div>` : "";
   const sisi = atur ? (() => { const B = msRekapBlok(H.units);
     return `<div class="ms-side"><div class="ms-side-h">${msSunting ? `<b>Sunting titik:</b> tarik (drag) titik ke posisi yang rapi, atau pilih titik lalu geser dengan tombol panah keyboard. Terpilih: <b id="msPilihLbl">${esc(msPilih || "–")}</b>` : `Klik posisi unit <b id="msPilihLbl">${esc(msPilih || "–")}</b> di gambar. Klik titik yang sudah ada untuk memilih, atau tarik titik untuk menggesernya.`}</div>
       ${B.map(g => `<div class="ms-g">${esc(g.b)} <small data-msgc="${esc(g.b)}">${g.u.filter(u => msTitik[u.k]).length}/${g.n}</small></div><div class="ms-us">${g.u.map(u => `<button type="button" class="ms-u ${msTitik[u.k] ? "ok" : ""} ${msPilih === u.k ? "on" : ""}" data-msu="${esc(u.k)}" title="${esc(u.k)}">${esc(u.k.split("-").pop())}</button>`).join("")}</div>`).join("")}</div>`; })() : "";
@@ -4071,7 +4071,7 @@ function bindStock(nama) {
 function msEksporExcel(nama) {
   if (!window.XLSX) { toast("Ekspor Excel belum siap. Periksa koneksi internet."); return; }
   const H = msHitung(nama); if (!H) return;
-  const aoa = [[`MASTER STOCK ${nama.toUpperCase()}`], [`Data per ${ddmmyyyy(msTglData(nama))} • Status Excel per ${H.D.tanggal ? ddmmyyyy(H.D.tanggal) : "-"} (Excel stock) + transaksi Weekly sesudahnya • diekspor ${ddmmyyyy(todayISO())}`], [],
+  const aoa = [[`MASTER STOCK ${nama.toUpperCase()}`], [`Data per ${ddmmyyyy(msTglData(nama))} • diekspor ${ddmmyyyy(todayISO())} • Status Excel per ${H.D.tanggal ? ddmmyyyy(H.D.tanggal) : "-"} (Excel stock) + transaksi Weekly sesudahnya • diekspor ${ddmmyyyy(todayISO())}`], [],
     ["Kode", "Blok", ...(msHalList(nama).length > 1 ? ["Lantai / Siteplan"] : []), "Tipe", "LB", "LT", "Status", "Sumber status", "Status di Excel", "Konsumen", "Sales"]];
   const TT = msTitikEf(nama), LL = msHalList(nama), lt = k => TT[k] ? ((LL.find(x => x.id === msHalTitik(TT[k])) || {}).nama || "") : "";
   H.units.forEach(u => aoa.push([u.k, u.blok, ...(LL.length > 1 ? [lt(u.k)] : []), u.tipe, u.lb, u.lt, MS_ST[u.st].t, u.dari, u.stAsli || "", (u.jual && u.jual.konsumen) || "", (u.jual && u.jual.sales) || ""]));
@@ -4089,9 +4089,9 @@ function msEksporGambar(nama, cara, h = msHal(nama)) {
   return new Promise(selesai => { const im = new Image(); im.onerror = () => { toast("Gagal membuat gambar"); selesai(null); }; im.onload = () => { const W = im.naturalWidth, Hh = im.naturalHeight, c = document.createElement("canvas"); c.width = W; c.height = Hh; const x = c.getContext("2d");
     x.drawImage(im, 0, 0); const r = W * 0.0034 * msUkuran(nama), T = msTitikEf(nama);
     const hp = h; H.units.forEach(u => { const p = T[u.k]; if (!p || u.st === "avail" || msHalTitik(p) !== hp) return; x.beginPath(); x.arc(p[0] / 100 * W, p[1] / 100 * Hh, r, 0, Math.PI * 2); x.fillStyle = MS_ST[u.st].c; x.fill(); x.lineWidth = r * 0.35; x.strokeStyle = "#fff"; x.stroke(); });
-    const S2 = msAda(H), fs = Math.round(W * 0.008), pad = fs * 0.8, bw = fs * 21, bh = pad * 2 + fs * 1.5 * (S2.length + 1);
+    const S2 = msAda(H), fs = Math.round(W * 0.008), pad = fs * 0.8, bw = fs * 30, bh = pad * 2 + fs * 1.5 * (S2.length + 1);
     x.fillStyle = "rgba(255,255,255,.93)"; x.fillRect(pad, Hh - bh - pad, bw, bh); x.strokeStyle = "#0d2a57"; x.lineWidth = 2; x.strokeRect(pad, Hh - bh - pad, bw, bh);
-    x.font = `700 ${fs}px sans-serif`; x.fillStyle = "#0d2a57"; x.fillText(`Unit Status Legend • data per ${ddmmyyyy(msTglData(nama))}`, pad * 2, Hh - bh - pad + pad + fs);
+    x.font = `700 ${fs}px sans-serif`; x.fillStyle = "#0d2a57"; x.fillText(`Unit Status Legend • data per ${ddmmyyyy(msTglData(nama))} • dikirim ${ddmmyyyy(todayISO())}`, pad * 2, Hh - bh - pad + pad + fs);
     S2.forEach((s, i) => { const yy = Hh - bh - pad + pad + fs * 1.5 * (i + 1) + fs; x.beginPath(); x.arc(pad * 2 + fs * 0.45, yy - fs * 0.35, fs * 0.45, 0, Math.PI * 2); if (s === "avail") { x.fillStyle = "#fff"; x.fill(); x.lineWidth = 2; x.strokeStyle = "#8a94a6"; x.stroke(); } else { x.fillStyle = MS_ST[s].c; x.fill(); }
       x.fillStyle = "#0f2140"; x.font = `600 ${fs}px sans-serif`; x.fillText(`${MS_ST[s].t}${s === "avail" ? " (kosong)" : ""}: ${H.n[s]} (${idn(H.n[s] / H.units.length * 100, 1)}%)`, pad * 2 + fs * 1.4, yy); });
     const hn = msHalList(nama).length > 1 ? "_" + ((msHalList(nama).find(x => x.id === h) || {}).nama || "").replace(/\s+/g, "_") : "";
@@ -4103,7 +4103,7 @@ function msEksporGambar(nama, cara, h = msHal(nama)) {
 function msTeks(nama) {
   const H = msHitung(nama); if (!H) return "";
   const tot = H.units.length, pc = v => idn(v / (tot || 1) * 100, 1) + "%";
-  const L = [`*MASTER STOCK ${nama.toUpperCase()}*`, `Data per ${ddmmyyyy(msTglData(nama))}`, "", `Total unit: *${tot}*`];
+  const L = [`*MASTER STOCK ${nama.toUpperCase()}*`, `Data per ${ddmmyyyy(msTglData(nama))} • dikirim ${ddmmyyyy(todayISO())}`, "", `Total unit: *${tot}*`];
   msAda(H).forEach(s => L.push(`• ${MS_ST[s].t}: *${H.n[s]}* (${pc(H.n[s])})`));
   const g = msRekapBlok(H.units);
   if (g.length > 1) { L.push("", "_Sisa (Available) per blok:_"); g.filter(x => x.avail).forEach(x => L.push(`• ${x.b}: ${x.avail} unit`)); }
