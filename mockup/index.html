@@ -416,7 +416,7 @@ tr.row-cat .cat-cb { color: var(--purple); }
 .hold-t th { background: var(--navy); color: #fff; font-size: 13px; padding: 8px 10px; text-align: left; }
 .hold-t td { padding: 7px 10px; border-bottom: 1px solid var(--line); font-size: 14px; }
 .hold-t td.proj { font-weight: 700; color: var(--ink); }
-.hold-t td.ket { color: var(--muted); font-size: 13px; }
+.hold-t td.ket { color: var(--muted); font-size: 13px; white-space: pre-line; }
 .hold-t th:nth-child(3), .hold-t th:nth-child(4) { text-align: right; }
 .hold-t td.acc { width: 1%; white-space: nowrap; }
 .hold-t.pg-t th { text-align: left; }
@@ -1822,7 +1822,8 @@ function wkKapital(v) {
   return wkAkronim(t.toLowerCase().replace(/(^|[\s(\/\-.,&+'"])(\p{L})/gu, (m, a, b) => a + b.toUpperCase()));
 }
 function wkKalimat(v) {
-  const t = String(v == null ? "" : v).replace(/\s+/g, " ").trim(); if (!t) return t;
+  /* Baris baru (Enter) dipertahankan; spasi berlebih di dalam baris dirapikan */
+  const t = String(v == null ? "" : v).replace(/\r/g, "").split("\n").map(b => b.replace(/\s+/g, " ").trim()).join("\n").replace(/\n{3,}/g, "\n\n").trim(); if (!t) return t;
   return wkAkronim(t.toLowerCase().replace(/(^|[.!?]\s+|^\(|\n)(\p{L})/gu, (m, a, b) => a + b.toUpperCase()));
 }
 const WK_FMT_KATA = ["klaster", "konsumen", "bayar", "bayarLama", "bayarBaru", "sales", "sumber", "kel", "kec", "kota", "normal"];
@@ -2460,9 +2461,10 @@ function teksDailyReport(bagian = "semua") {
     const tLap = S.sales2.tanggal, tgl = drTgl || tLap, lain = tgl !== tLap, m = bulanKe(tLap), bln = BULAN[m - 1];
     const pil = drProyekPilih(), dipilih = x => !pil || pil.has(x.proyekId);
     const { rows, tot: T } = hitungSales(S.sales2.proyek.filter(p => p.aktif && (!pil || pil.has(p.id))), m);
-    /* Tanggal report lain: "terjual hari ini" dari penjualan Weekly bertanggal itu */
-    if (lain) { T.hari = [0, 0]; rows.forEach(x => { const W = S.weekly && S.weekly[x.p.nama], l = W ? wkHit(W.jual).filter(r => r.tanggal === tgl) : [];
-      x.hari = [l.reduce((a, r) => a + (+r.jumlah || 0), 0), wkNilai(l)]; T.hari[0] += x.hari[0]; T.hari[1] += x.hari[1]; }); }
+    /* "Terjual hari ini": dari penjualan Weekly bertanggal report (semua proyek). Jika Weekly kosong tetapi Daily diisi, pakai angka Daily (hanya untuk tanggal laporan) */
+    T.hari = [0, 0]; rows.forEach(x => { const W = S.weekly && S.weekly[x.p.nama], l = W ? wkHit(W.jual).filter(r => r.tanggal === tgl) : [];
+      const wk = [l.reduce((a, r) => a + (+r.jumlah || 0), 0), wkNilai(l)];
+      x.hari = wk[0] || lain ? wk : x.hari; T.hari[0] += x.hari[0]; T.hari[1] += x.hari[1]; });
     const batalHari = s2L("batal").filter(x => x.tanggal === tgl && dipilih(x));
     const pindahHari = s2L("pindah").filter(x => x.tanggal === tgl && dipilih(x)), gantiHari = s2L("ganti").filter(x => x.tanggal === tgl && dipilih(x));
     const teksPindah = l => `*Pindah Unit : ${l.length} Unit (${l.map(b => `${b.kodeLama || "?"} → ${b.kode || "?"}`).join(" & ")})*`;
@@ -2475,22 +2477,24 @@ function teksDailyReport(bagian = "semua") {
        Baris yang sudah tercatat di Daily (kode sama) tidak dihitung dua kali. */
     const kd = v => String(v || "").toUpperCase().replace(/\s+/g, "");
     const wkHari = (x, j) => { const W = S.weekly && S.weekly[x.p.nama]; return W ? wkHit(W[j]).filter(r => r.tanggal === tgl) : []; };
-    const holdHari = {}, pindahWk = {}, gantiWk = {};
+    const holdHari = {}, pindahWk = {}, gantiWk = {}, batalWk = {};
+    const teksBatal = l => `*Batal : ${l.reduce((a, b) => a + (+b.jumlah || 1), 0)} Unit (${l.map(b => { const v = b.rpInc || b.rpExc || b.rp || 0; return `${b.unit || b.kode || "?"}${v ? "/" + fM(v) + " M" : ""}`; }).join(" & ")})*`;
     rows.forEach(x => {
+      batalWk[x.p.id] = wkHari(x, "batal").filter(r => !batalHari.some(b => b.proyekId === x.p.id && kd(b.kode) === kd(r.unit)));
       holdHari[x.p.id] = wkHari(x, "hold");
       pindahWk[x.p.id] = wkHari(x, "pindah").filter(r => !pindahHari.some(b => b.proyekId === x.p.id && kd(b.kode) === kd(r.kode) && kd(b.kodeLama) === kd(r.kodeLama)));
       gantiWk[x.p.id] = wkHari(x, "ganti").map(r => Object.assign({}, r, { kode: r.unit || r.kode })).filter(r => !gantiHari.some(b => b.proyekId === x.p.id && kd(b.kode) === kd(r.kode)));
     });
     const semua = o => Object.values(o).flat();
     const blok = x => {
-      const bt = batalHari.filter(b => b.proyekId === x.p.id), pd = [...pindahHari.filter(b => b.proyekId === x.p.id), ...pindahWk[x.p.id]], gb = [...gantiHari.filter(b => b.proyekId === x.p.id), ...gantiWk[x.p.id]], hd = holdHari[x.p.id], L = [];
+      const bt = [...batalHari.filter(b => b.proyekId === x.p.id), ...batalWk[x.p.id]], pd = [...pindahHari.filter(b => b.proyekId === x.p.id), ...pindahWk[x.p.id]], gb = [...gantiHari.filter(b => b.proyekId === x.p.id), ...gantiWk[x.p.id]], hd = holdHari[x.p.id], L = [];
       if (x.hari[0] || x.hari[1]) {
         /* Kode unit & nilai per unit dari penjualan Weekly bertanggal sama, mis. (NS-NRB-16/2,01 M & NS-NRB-12/2,18 M) */
         const Wk = S.weekly && S.weekly[x.p.nama], jl = Wk ? wkHit(Wk.jual).filter(r => r.tanggal === tgl && (r.unit || "").trim()) : [];
         const rinci = jl.length ? jl.map(r => `${r.unit.trim()}/${fM(r.rpInc || r.rpExc || 0)} M`).join(" & ") : `${fM(x.hari[1])} M`;
         L.push(`*Terjual ${lain ? ddmmyyyy(tgl) : "hari ini"} : ${x.hari[0]} Unit (${rinci})*`);
       }
-      if (bt.length) L.push(`*Batal : ${bt.length} Unit (${bt.map(b => b.kode || "?").join(" & ")})*`);
+      if (bt.length) L.push(teksBatal(bt));
       if (pd.length) L.push(teksPindah(pd));
       if (gb.length) L.push(teksGanti(gb));
       if (hd.length) L.push(teksHold(hd));
@@ -2515,7 +2519,7 @@ function teksDailyReport(bagian = "semua") {
     });
     const L = [];
     if (T.hari[0] || T.hari[1]) L.push(`*Terjual ${lain ? ddmmyyyy(tgl) : "hari ini"} : ${T.hari[0]} Unit (${fM(T.hari[1])} M)*`);
-    if (batalHari.length) L.push(`*Batal : ${batalHari.length} Unit (${batalHari.map(b => b.kode || "?").join(" & ")})*`);
+    const btT = [...batalHari, ...semua(batalWk)]; if (btT.length) L.push(teksBatal(btT));
     const pdT = [...pindahHari, ...semua(pindahWk)], gbT = [...gantiHari, ...semua(gantiWk)], hdT = semua(holdHari);
     if (pdT.length) L.push(teksPindah(pdT));
     if (gbT.length) L.push(teksGanti(gbT));
