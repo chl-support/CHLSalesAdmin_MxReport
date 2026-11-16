@@ -2528,7 +2528,7 @@ function teksDailyReport(bagian = "semua") {
     L.push(`${bln} / YTD : ${fU(T.bln[0])}/${fU(T.ytd[0])} Unit (${fM(T.bln[1])}/${fM(T.ytd[1])} M)`);
     L.push(`Total Terjual : ${fU(T.akum[0])}/${fU(T.stok[0])} Unit (${fM(T.akum[1])}/${fM(T.stok[1])} M)`);
     out.push(`*${userTerbatas() || pil ? "Total" : "CHL"} :*\n${L.join("\n")}`);
-    let t = `Daily Report\nPerubahan ${lain ? "Tanggal" : "Hari ini"} (${ddmmyyyy(tgl)})${lain ? `\n_Bulan / YTD / Total Terjual: posisi data per ${ddmmyyyy(tLap)}_` : ""}\n\n` + out.join("\n\n");
+    let t = `Daily Report\nPerubahan Tanggal (${ddmmyyyy(tgl)})${lain ? `\n_Bulan / YTD / Total Terjual: posisi data per ${ddmmyyyy(tLap)}_` : ""}\n\n` + out.join("\n\n");
     /* Hold Reserved */
     const hold = s2L("hold").filter(dipilih);
     if (hold.length) {
@@ -2546,7 +2546,7 @@ function teksDailyReport(bagian = "semua") {
     let tb = "";
     if (dBast) {
       const H = hitung(dBast), g = n => n === 0 ? "-" : n;
-      tb = `Report BAST Program PPN DTP\nPerubahan Hari ini (${ddmmyyyy(tgl)})\n`;
+      tb = `Report BAST Program PPN DTP\nPerubahan Tanggal (${ddmmyyyy(tgl)})\n`;
       const namaPil = pil ? new Set(S.sales2.proyek.filter(p => pil.has(p.id)).map(p => p.nama.trim().toLowerCase())) : null;
       H.periodes.forEach(({ p, rincian }) => {
         const rc = namaPil ? rincian.filter(({ j }) => namaPil.has(String(j.nama || "").trim().toLowerCase())) : rincian;
