@@ -2492,7 +2492,7 @@ function teksDailyReport(bagian = "semua") {
         /* Kode unit & nilai per unit dari penjualan Weekly bertanggal sama, mis. (NS-NRB-16/2,01 M & NS-NRB-12/2,18 M) */
         const Wk = S.weekly && S.weekly[x.p.nama], jl = Wk ? wkHit(Wk.jual).filter(r => r.tanggal === tgl && (r.unit || "").trim()) : [];
         const rinci = jl.length ? jl.map(r => `${r.unit.trim()}/${fM(r.rpInc || r.rpExc || 0)} M`).join(" & ") : `${fM(x.hari[1])} M`;
-        L.push(`*Terjual ${lain ? ddmmyyyy(tgl) : "hari ini"} : ${x.hari[0]} Unit (${rinci})*`);
+        L.push(`*Terjual : ${x.hari[0]} Unit (${rinci})*`);
       }
       if (bt.length) L.push(teksBatal(bt));
       if (pd.length) L.push(teksPindah(pd));
@@ -2518,7 +2518,7 @@ function teksDailyReport(bagian = "semua") {
       out.push(`*${mk} :*\n` + kel.map(blok).join("\n\n"));
     });
     const L = [];
-    if (T.hari[0] || T.hari[1]) L.push(`*Terjual ${lain ? ddmmyyyy(tgl) : "hari ini"} : ${T.hari[0]} Unit (${fM(T.hari[1])} M)*`);
+    if (T.hari[0] || T.hari[1]) L.push(`*Terjual : ${T.hari[0]} Unit (${fM(T.hari[1])} M)*`);
     const btT = [...batalHari, ...semua(batalWk)]; if (btT.length) L.push(teksBatal(btT));
     const pdT = [...pindahHari, ...semua(pindahWk)], gbT = [...gantiHari, ...semua(gantiWk)], hdT = semua(holdHari);
     if (pdT.length) L.push(teksPindah(pdT));
