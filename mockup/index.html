@@ -2479,8 +2479,8 @@ function teksDailyReport(bagian = "semua") {
     const kd = v => String(v || "").toUpperCase().replace(/\s+/g, "");
     const wkHari = (x, j) => { const W = S.weekly && S.weekly[x.p.nama]; return W ? wkHit(W[j]).filter(r => r.tanggal === tgl) : []; };
     const holdHari = {}, pindahWk = {}, gantiWk = {}, batalWk = {}, refundHari = {};
-    const teksNonRefund = l => `*Non Refund : ${l.reduce((a, b) => a + (+b.jumlah || 1), 0)} Unit (${l.map(b => { const tj = tjHold(b); return `${b.unit || b.kode || "?"}${tj ? " " + rpPendek(tj) : ""}`; }).join(" & ")})*`, nonRefundHari = {};
-    const teksRefund = l => `*Refund : ${l.reduce((a, b) => a + (+b.jumlah || 1), 0)} Unit (${l.map(b => { const tj = tjHold(b); return `${b.unit || b.kode || "?"}${tj ? " " + rpPendek(tj) : ""}`; }).join(" & ")})*`;
+    const teksNonRefund = l => `*Hold Reserved (Non Refund) : ${l.reduce((a, b) => a + (+b.jumlah || 1), 0)} Unit (${l.map(b => { const tj = tjHold(b); return `${b.unit || b.kode || "?"}${tj ? " " + rpPendek(tj) : ""}`; }).join(" & ")})*`, nonRefundHari = {};
+    const teksRefund = l => `*Hold Reserved (Refund) : ${l.reduce((a, b) => a + (+b.jumlah || 1), 0)} Unit (${l.map(b => { const tj = tjHold(b); return `${b.unit || b.kode || "?"}${tj ? " " + rpPendek(tj) : ""}`; }).join(" & ")})*`;
     const teksBatal = l => `*Batal : ${l.reduce((a, b) => a + (+b.jumlah || 1), 0)} Unit (${l.map(b => { const v = b.rpInc || b.rpExc || b.rp || 0; return `${b.unit || b.kode || "?"}${v ? "/" + fM(v) + " M" : ""}`; }).join(" & ")})*`;
     rows.forEach(x => {
       refundHari[x.p.id] = ((S.weekly && S.weekly[x.p.nama] && S.weekly[x.p.nama].hold) || []).filter(r => r.refund === tgl);
