@@ -134,6 +134,7 @@ table { width: 100%; border-collapse: collapse; }
 td.del-c { white-space: nowrap; }
 .cat-cb { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: var(--muted); margin-right: 4px; cursor: pointer; vertical-align: middle; }
 .cat-cb input { margin: 0; }
+.ref-cb { color: var(--red); } .ref-d { display: block; margin: 3px 0; font: inherit; font-size: 11px; padding: 2px 3px; border: 1px solid var(--line); border-radius: 4px; width: 112px; }
 tr.row-cat td { background: var(--grey-soft) !important; }
 tr.row-cat input:not([type=checkbox]), tr.row-cat select, tr.row-cat textarea { color: var(--muted); font-style: italic; text-decoration: line-through; text-decoration-color: rgba(120,120,120,.5); }
 tr.row-cat .cat-cb { color: var(--purple); }
@@ -2477,9 +2478,11 @@ function teksDailyReport(bagian = "semua") {
        Baris yang sudah tercatat di Daily (kode sama) tidak dihitung dua kali. */
     const kd = v => String(v || "").toUpperCase().replace(/\s+/g, "");
     const wkHari = (x, j) => { const W = S.weekly && S.weekly[x.p.nama]; return W ? wkHit(W[j]).filter(r => r.tanggal === tgl) : []; };
-    const holdHari = {}, pindahWk = {}, gantiWk = {}, batalWk = {};
+    const holdHari = {}, pindahWk = {}, gantiWk = {}, batalWk = {}, refundHari = {};
+    const teksRefund = l => `*Refund : ${l.reduce((a, b) => a + (+b.jumlah || 1), 0)} Unit (${l.map(b => { const tj = tjHold(b); return `${b.unit || b.kode || "?"}${tj ? " " + rpPendek(tj) : ""}`; }).join(" & ")})*`;
     const teksBatal = l => `*Batal : ${l.reduce((a, b) => a + (+b.jumlah || 1), 0)} Unit (${l.map(b => { const v = b.rpInc || b.rpExc || b.rp || 0; return `${b.unit || b.kode || "?"}${v ? "/" + fM(v) + " M" : ""}`; }).join(" & ")})*`;
     rows.forEach(x => {
+      refundHari[x.p.id] = ((S.weekly && S.weekly[x.p.nama] && S.weekly[x.p.nama].hold) || []).filter(r => r.refund === tgl);
       batalWk[x.p.id] = wkHari(x, "batal").filter(r => !batalHari.some(b => b.proyekId === x.p.id && kd(b.kode) === kd(r.unit)));
       holdHari[x.p.id] = wkHari(x, "hold");
       pindahWk[x.p.id] = wkHari(x, "pindah").filter(r => !pindahHari.some(b => b.proyekId === x.p.id && kd(b.kode) === kd(r.kode) && kd(b.kodeLama) === kd(r.kodeLama)));
@@ -2498,6 +2501,7 @@ function teksDailyReport(bagian = "semua") {
       if (pd.length) L.push(teksPindah(pd));
       if (gb.length) L.push(teksGanti(gb));
       if (hd.length) L.push(teksHold(hd));
+      if (refundHari[x.p.id].length) L.push(teksRefund(refundHari[x.p.id]));
       if (!L.length) L.push("Tidak ada perubahan");
       L.push(`${bln} / YTD : ${fU(x.bln[0])}/${fU(x.ytd[0])} Unit (${fM(x.bln[1])}/${fM(x.ytd[1])} M)`);
       L.push(`Total Terjual : ${fU(x.akum[0])}/${fU(x.stok[0])} Unit (${fM(x.akum[1])}/${fM(x.stok[1])} M)`);
@@ -2524,6 +2528,7 @@ function teksDailyReport(bagian = "semua") {
     if (pdT.length) L.push(teksPindah(pdT));
     if (gbT.length) L.push(teksGanti(gbT));
     if (hdT.length) L.push(teksHold(hdT));
+    const rfT = semua(refundHari); if (rfT.length) L.push(teksRefund(rfT));
     if (!L.length) L.push("Tidak ada perubahan");
     L.push(`${bln} / YTD : ${fU(T.bln[0])}/${fU(T.ytd[0])} Unit (${fM(T.bln[1])}/${fM(T.ytd[1])} M)`);
     L.push(`Total Terjual : ${fU(T.akum[0])}/${fU(T.stok[0])} Unit (${fM(T.akum[1])}/${fM(T.stok[1])} M)`);
@@ -2720,7 +2725,8 @@ function wkKolom(W) {
 const wkRpK = W => wkKolom(W).filter(c => c.t === "rp").map(c => c.k);
 const wkAwal = W => W.awal || WK_AWAL;
 /* "Catatan saja": baris Batal / Hold / Pindah / Ganti yang ditandai catatan tidak dihitung di angka mana pun */
-const wkHit = l => (l || []).filter(x => !x.catatan);
+/* Baris dihitung: bukan "Catatan saja" dan (untuk Hold) belum Refund */
+const wkHit = l => (l || []).filter(x => !x.catatan && !x.refund);
 const s2L = j => (S.sales2 && S.sales2[j] || []).filter(x => !x.catatan);
 const CAT_BAG = { batal: "Batal", hold: "Hold Reserved", pindah: "Pindah Unit", ganti: "Ganti Cara Bayar" };
 /* Tahun tampilan Weekly: null = tahun berjalan; tahun lalu = arsip (tanggal acuan 31 Desember) */
@@ -2924,8 +2930,8 @@ function viewWeeklyInput(nama, id) {
     return `<div class="bh-box"><div class="bh-head"><div><h3>${B.judul}</h3><div class="desc">${WK_PG[j] ? B.desc : j === "hold" ? "Unit yang ditahan, belum dihitung sebagai penjualan." : `Satu baris per transaksi, masuk ke minggu dan bulan sesuai tanggalnya.`}${oto && !WK_PG[j] ? " Nilai Kontrak (Exclude PPN) otomatis ÷ 1,11 jika kosong." : ""}</div></div>
       ${lk ? "" : `<button class="btn sec" data-wkadd="${j}" type="button">Tambah baris</button>`}</div>
       ${bar}<div class="tbl-wrap"><table class="edit bh-t wk-in wk-fit${K.length >= 18 ? " wk-banyak wk-sgt wk-sgt2" : K.length >= 15 ? " wk-banyak wk-sgt" : K.length >= 10 ? " wk-banyak" : ""}"><colgroup><col style="width:114px">${K.map(c => `<col${WK_COLW[c.k] ? ` style="width:${WK_COLW[c.k]}"` : ""}>`).join("")}<col style="width:${j === "jual" ? 28 : 92}px"></colgroup><thead><tr><th>${B.tgl}</th>${K.map(c => `<th class="${c.t === "rp" ? "c" : ""}${c.k === "sbum" ? " c-sbum" : ""}${wkTmb(c)}">${c.k === "jumlah" ? "Jumlah (unit)" : c.l}</th>`).join("")}<th></th></tr></thead><tbody>
-      ${list.map(x => `<tr class="${x.catatan ? "row-cat" : ""}"><td><input type="date" id="wk-${j}-${x.id}-tanggal" data-wk="${j}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal || ""}" ${ro} ${x.minggu && wkEf(x) !== x.tanggal ? `title="Di Excel ada di minggu ${wkTgl(x.minggu)}"` : ""}></td>${K.map(c => `<td class="${c.k === "sbum" ? "c-sbum" : ""}${wkTmb(c)}">${inp(j, x, c)}</td>`).join("")}
-        <td class="del-c">${j !== "jual" ? (lk ? (x.catatan ? '<span class="cat-badge">Catatan</span>' : "") : `<label class="cat-cb" title="Catatan saja: baris ini tidak dihitung"><input type="checkbox" id="wkc-${j}-${x.id}" data-wkcat="${j}:${x.id}" ${x.catatan ? "checked" : ""}> Catatan</label>`) : ""}${lk ? ikonKunci : `<button class="del" data-wkdel="${j}:${x.id}" type="button" aria-label="Hapus">×</button>`}</td></tr>`).join("")
+      ${list.map(x => `<tr class="${x.catatan || x.refund ? "row-cat" : ""}"><td><input type="date" id="wk-${j}-${x.id}-tanggal" data-wk="${j}" data-id="${x.id}" data-f="tanggal" value="${x.tanggal || ""}" ${ro} ${x.minggu && wkEf(x) !== x.tanggal ? `title="Di Excel ada di minggu ${wkTgl(x.minggu)}"` : ""}></td>${K.map(c => `<td class="${c.k === "sbum" ? "c-sbum" : ""}${wkTmb(c)}">${inp(j, x, c)}</td>`).join("")}
+        <td class="del-c">${j !== "jual" ? (lk ? (x.catatan ? '<span class="cat-badge">Catatan</span>' : "") : `<label class="cat-cb" title="Catatan saja: baris ini tidak dihitung"><input type="checkbox" id="wkc-${j}-${x.id}" data-wkcat="${j}:${x.id}" ${x.catatan ? "checked" : ""}> Catatan</label>`) : ""}${j === "hold" ? (lk ? (x.refund ? `<span class="cat-badge">Refund ${ddmmyyyy(x.refund)}</span>` : "") : `<label class="cat-cb ref-cb" title="Hold di-refund: tidak dihitung lagi sebagai hold, tampil di Daily Report pada tanggal refund"><input type="checkbox" id="wkr-${x.id}" data-wkref="${x.id}" ${x.refund ? "checked" : ""}> Refund</label>${x.refund ? `<input type="date" class="ref-d" id="wkrd-${x.id}" data-wkrefd="${x.id}" value="${x.refund}" title="Tanggal refund">` : ""}`) : ""}${lk ? ikonKunci : `<button class="del" data-wkdel="${j}:${x.id}" type="button" aria-label="Hapus">×</button>`}</td></tr>`).join("")
         || `<tr><td colspan="${K.length + 2}" style="color:var(--muted);text-align:center;padding:12px">${semua.length ? "Tidak ada baris pada bulan ini." : "Belum ada data."}</td></tr>`}</tbody></table></div>${more}</div>`; };
   const tahunLalu = wkTahunRekap(W, th);
   const nk = rk.length + 1, nol = () => Array(nk).fill(0);
@@ -3141,6 +3147,9 @@ function bindWeeklyInput(nama) {
     const r = wkBaru(W, Math.max(0, ...d[j].map(x => x.id)) + 1, j); if (!WK_PG[j]) r.klaster = nama; d[j].push(r); render(); });
   v.querySelectorAll("[data-wkcat]").forEach(el => el.onchange = () => { const [j, id] = el.dataset.wkcat.split(":"), r = (d[j] || []).find(x => x.id === +id); if (!r) return;
     if (el.checked) r.catatan = true; else delete r.catatan; render(el.id); });
+  v.querySelectorAll("[data-wkref]").forEach(el => el.onchange = () => { const r = (d.hold || []).find(x => x.id === +el.dataset.wkref); if (!r) return;
+    if (el.checked) r.refund = todayISO(); else delete r.refund; render(el.id); });
+  v.querySelectorAll("[data-wkrefd]").forEach(el => el.onchange = () => { const r = (d.hold || []).find(x => x.id === +el.dataset.wkrefd); if (!r || !el.value) return; r.refund = el.value; });
   v.querySelectorAll("[data-wkdel]").forEach(b => b.onclick = () => { const [j, id] = b.dataset.wkdel.split(":"); d[j] = d[j].filter(x => x.id !== +id); render(); });
   const rpKeys = new Set([...wkRpK(W), "hargaLama", "harga", "tandaJadi"]);
   v.querySelectorAll("[data-wk]").forEach(el => el.onchange = () => {
