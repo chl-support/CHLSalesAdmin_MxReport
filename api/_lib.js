@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const SALT = "chl-mockup-v1:";
 /* Passwords are stored as salted SHA-256 hashes. Override the whole list with the USERS_JSON env var if needed. */
 const DEFAULT_USERS = [
-  {"u": "admin.chl", "hash": "c39f924db879fee6e3d6191b73bd812d80c881e4641d949c7fc0d08565bbab5d", "nama": "Admin CHL", "role": "ADMIN"},
+  {"u": "admin.chl", "hash": "c39f924db879fee6e3d6191b73bd812d80c881e4641d949c7fc0d08565bbab5d", "nama": "Super Admin", "role": "ADMIN"},
   {"u": "admin.tsc", "hash": "1a5119082bb0f12134a1b29ae789a17364cf320b510b830dfdb5cad1fbc7d545", "nama": "Admin TSC", "role": "ADMIN", "proyek": ["tanglin parc", "newton springs", "scotts vale", "orchard riviera"], "kunciStok": true},
   {"u": "admin.biodistrict", "hash": "7fb0edc4a878368e2531076fbac9f8899492e09b92b3b595dbc7bb93e6ea32a7", "nama": "Admin Bio District", "role": "ADMIN", "proyek": ["bio district"], "kunciStok": true},
   {"u": "admin.narayabanaraserpong", "hash": "91e56c59466d0fb73759e51a56e4d72c9308e4e5ddbb305a1b146f6aa3f99747", "nama": "Admin Naraya Banara Serpong", "role": "ADMIN", "proyek": ["banara serpong", "naraya serpong", "mazenta residence", "mozenta residence"], "kunciStok": true},

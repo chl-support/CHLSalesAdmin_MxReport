@@ -4423,7 +4423,7 @@ function viewUsers() {
       ${P.map(n => `<label><input type="checkbox" data-ump="${i}" value="${esc(n.toLowerCase())}" ${sel && sel.has(n.toLowerCase()) ? "checked" : ""}> ${esc(n)}</label>`).join("")}</div>`}</details>`; };
   const baris = (x, i) => `<tr data-umrow="${i}"><td class="um-u">${x.baru ? `<input type="text" id="umu-${i}" data-umf="u" value="${esc(x.u || "")}" placeholder="mis. admin.proyek">` : `<b>${esc(x.u)}</b>`}</td>
     <td><input type="text" id="umn-${i}" data-umf="nama" value="${esc(x.nama || "")}" placeholder="Nama yang tampil"></td>
-    <td><select id="umr-${i}" data-umf="role" ${x.u === "admin.chl" ? "disabled" : ""}><option value="ADMIN" ${x.role !== "VIEWER" ? "selected" : ""}>Admin</option><option value="VIEWER" ${x.role === "VIEWER" ? "selected" : ""}>Viewer (lihat saja)</option></select></td>
+    <td><select id="umr-${i}" data-umf="role" ${x.u === "admin.chl" ? "disabled" : ""}><option value="ADMIN" ${x.role !== "VIEWER" ? "selected" : ""}>${x.u === "admin.chl" ? "Super Admin / IT" : "Admin"}</option><option value="VIEWER" ${x.role === "VIEWER" ? "selected" : ""}>Viewer (lihat saja)</option></select></td>
     <td>${akses(x, i)}</td>
     <td class="c"><input type="checkbox" id="umk-${i}" data-umf="kunciStok" ${x.kunciStok ? "checked" : ""} ${x.proyek && x.role !== "VIEWER" ? "" : "disabled"} title="Admin proyek tidak bisa mengubah total stok"></td>
     <td>${x.baru ? `<input type="password" id="umpw-${i}" data-umf="pw" placeholder="Password (min. 6)" autocomplete="new-password">` : `<button type="button" class="btn sec um-b" data-umreset="${esc(x.u)}">Reset password</button>`}</td>
@@ -4470,7 +4470,7 @@ function render(focusId) {
   document.getElementById("shell").hidden = !masuk;
   if (!masuk) { document.title = "Masuk · Monitoring Laporan CHL"; try { terapkanBahasa(document.getElementById("loginScreen")); } catch (e) {} return; }
   document.title = "Monitoring Laporan CHL";
-  const peran = SESI.role !== "ADMIN" ? "Viewer" : SESI.proyek ? "Admin Proyek" : "Admin";
+  const peran = String(SESI.u || "").toLowerCase() === "admin.chl" ? "Super Admin / IT" : SESI.role !== "ADMIN" ? "Viewer" : SESI.proyek ? "Admin Proyek" : "Admin";
   document.getElementById("whoName").textContent = SESI.nama;
   document.getElementById("whoRole").textContent = peran;
   document.getElementById("profName").textContent = SESI.nama;
