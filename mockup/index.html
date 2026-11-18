@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Monitoring Laporan CHL</title>
+<title>CHL Sales Admin_MxReport</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap">
@@ -4484,8 +4484,8 @@ function render(focusId) {
   const masuk = !!SESI;
   document.getElementById("loginScreen").hidden = masuk;
   document.getElementById("shell").hidden = !masuk;
-  if (!masuk) { document.title = "Masuk · Monitoring Laporan CHL"; try { terapkanBahasa(document.getElementById("loginScreen")); } catch (e) {} return; }
-  document.title = "Monitoring Laporan CHL";
+  if (!masuk) { document.title = "Masuk · CHL Sales Admin_MxReport"; try { terapkanBahasa(document.getElementById("loginScreen")); } catch (e) {} return; }
+  document.title = "CHL Sales Admin_MxReport";
   const peran = String(SESI.u || "").toLowerCase() === "admin.chl" ? "Super Admin / IT" : SESI.role !== "ADMIN" ? "Viewer" : SESI.proyek ? "Admin Proyek" : "Admin";
   document.getElementById("whoName").textContent = SESI.nama;
   document.getElementById("whoRole").textContent = peran;
