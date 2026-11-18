@@ -4484,7 +4484,7 @@ function render(focusId) {
   const masuk = !!SESI;
   document.getElementById("loginScreen").hidden = masuk;
   document.getElementById("shell").hidden = !masuk;
-  if (!masuk) { document.title = "Masuk · CHL Sales Admin_MxReport"; try { terapkanBahasa(document.getElementById("loginScreen")); } catch (e) {} return; }
+  if (!masuk) { document.title = "CHL Sales Admin_MxReport"; try { terapkanBahasa(document.getElementById("loginScreen")); } catch (e) {} return; }
   document.title = "CHL Sales Admin_MxReport";
   const peran = String(SESI.u || "").toLowerCase() === "admin.chl" ? "Super Admin / IT" : SESI.role !== "ADMIN" ? "Viewer" : SESI.proyek ? "Admin Proyek" : "Admin";
   document.getElementById("whoName").textContent = SESI.nama;
